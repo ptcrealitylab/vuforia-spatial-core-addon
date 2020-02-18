@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UI Tutorial</title>
+    <style>
+        body {
+            font-family: BrutalType-Bold, Brutal Type, "Avenir", "Futura", Helvetica Neue, Helvetica, Arial, sans-serif;
+            color: rgb(45,255,255);
+        }
+        .fullwidth {
+            width: 100%;
+        }
+        .centered {
+            text-align: center;
+        }
+        .fullframe {
+            width: 568px;
+            height: 320px;
+        }
+        #title {
+            font-size: 24px;
+        }
+        #description {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body style="width: 568px; height: 420px;">
+    <div id="title" class="fullwidth centered">Draw Line</div>
+    <div id="gifContainer">
+        <img id="gif" src="resources/01_drawLine-1-2.gif" class="fullframe">
+    </div>
+    <div id="description" class="centered">
+        Link two nodes together by dragging a line between them. Dots will flow from the first to the second.
+    </div>
+<script>
+
+    var step0 = {
+        imageSrc: 'resources/01_drawLine-1-2.gif',
+        title: 'Draw Line',
+        description: 'You can connect any two nodes by dragging a line between them.'
+    };
+
+    var step1 = {
+        imageSrc: 'resources/02_cutLine-2.gif',
+        title: 'Cut Line',
+        description: 'To delete a link, you can swipe through it to cut it.'
+    };
+
+    var step2 = {
+        imageSrc: 'resources/03_moveNode.gif',
+        title: 'Move Node',
+        description: 'If you tap and hold on a node for long enough, you can reposition it by dragging it around.'
+    };
+
+    var steps = [step0, step1, step2];
+
+    var currentStep = 0;
+
+    function renderStep(stepNumber) {
+        if (!stepNumber || stepNumber < 0) { stepNumber = 0; }
+        if (stepNumber >= steps.length) { stepNumber = steps.length - 1; }
+
+        var stepInfo = steps[stepNumber];
+        document.getElementById('title').innerText = stepInfo.title;
+        document.getElementById('gif').src = stepInfo.imageSrc;
+        document.getElementById('description').innerText = stepInfo.description;
+
+        currentStep = stepNumber;
+    }
+
+    function nextStep() {
+        var nextStepNumber = currentStep + 1;
+        if (nextStepNumber >= steps.length) { nextStepNumber = 0; }
+        renderStep(nextStepNumber);
+    }
+
+    function prevStep() {
+        var prevStepNumber = currentStep - 1;
+        if (prevStepNumber < 0) { prevStepNumber = steps.length - 1; }
+        renderStep(prevStepNumber);
+    }
+
+    document.addEventListener('pointerup', function() {
+        nextStep();
+    })
+
+</script>
+</body>
+</html>
