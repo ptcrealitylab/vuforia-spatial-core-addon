@@ -51,7 +51,7 @@ exports.enabled = false;
 exports.configurable = false;
 
 if (exports.enabled) {
-    var server = require(__dirname + '/../../libraries/hardwareInterfaces');
+    var server = require('../../../../libraries/hardwareInterfaces');
     var settings = server.loadHardwareInterface(__dirname);
 
     var sm = require("./3DConnexion.js");
