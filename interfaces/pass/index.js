@@ -1,5 +1,5 @@
-var server = require('../../../../libraries/hardwareInterfaces');
-var utilities = require('../../../../libraries/utilities');
+var server = require('@libraries/hardwareInterfaces');
+var utilities = require('@libraries/utilities');
 
 var settings = server.loadHardwareInterface(__dirname);
 

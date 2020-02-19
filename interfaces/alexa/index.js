@@ -45,7 +45,7 @@
  */
 
 
-var server = require('../../../../libraries/hardwareInterfaces');
+var server = require('@libraries/hardwareInterfaces');
 var settings = server.loadHardwareInterface(__dirname);
 
 /**

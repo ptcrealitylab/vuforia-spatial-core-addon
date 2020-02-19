@@ -51,15 +51,15 @@ exports.enabled = false;
 exports.configurable = false;
 
 if (exports.enabled) {
-    var server = require('../../../../libraries/hardwareInterfaces');
+    var server = require('@libraries/hardwareInterfaces');
     var settings = server.loadHardwareInterface(__dirname);
 
     var sm = require("./3DConnexion.js");
 
     sm.spaceMice.onData = mouse => {
         // translation
-        console.log("translate",JSON.stringify(mouse.mice[0]["translate"]));
+        console.log('translate', JSON.stringify(mouse.mice[0]["translate"]));
         // rotation
-        console.log("rotate",JSON.stringify(mouse.mice[0]["rotate"]));
+        console.log('rotate', JSON.stringify(mouse.mice[0]["rotate"]));
     };
 }
