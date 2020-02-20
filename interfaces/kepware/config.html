@@ -20,7 +20,7 @@
             font-weight: medium;
             font-size: 28pt;
         }
-        
+
         #tagsTitle {
             margin-top: 18px;
             color: rgb(45,255,255);
@@ -30,6 +30,10 @@
 
         #contents {
             color: rgb(255,255,255);
+        }
+
+        .tag {
+            margin-bottom: 20px;
         }
 
         .button {
@@ -43,7 +47,6 @@
             border: 2px solid white;
             margin-top: 10px;
             display: inline-block;
-
         }
 
         .space {
@@ -120,7 +123,7 @@
         .half {
             width: 46px;
         }
-        
+
         .halfPlus {
             width: 49px;
         }
@@ -132,7 +135,7 @@
         .two {
             width: 220px;
         }
-        
+
         .twoAndHalf{
             width: 278px;
         }
@@ -148,34 +151,52 @@
         .fourAndHalf {
             width: 514px;
         }
-        
+
         .five {
             width: 568px;
         }
 
-        .fiveAndHalf  {
+        .fiveAndHalf {
             width: 626px;
         }
-        
-        .textfield{
+
+        .textfield {
             cursor: text;
             -webkit-user-select: text;
             -moz-user-select: text;
             user-select: text;
-            font-family: myriadPro, Helvetica Neue, Helvetica, Arial, sans-serif;;
+            font-family: myriadPro, Helvetica Neue, Helvetica, Arial, sans-serif;
             font-size: 12pt;
+            white-space: nowrap;
         }
-        
+
         .setting {
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
-        
+
         #introduction {
             margin-bottom: 42px;
         }
-        
+
         a {
             color: rgba(45,255,255, 0.5);
+        }
+
+        .displayNone {
+            display: none;
+        }
+
+        .inactive {
+            opacity: 0.25;
+        }
+
+        .label {
+            display: inline-block;
+            line-height: 35px;
+            height: 35px;
+            vertical-align: middle;
+            text-align: center;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -189,10 +210,13 @@
             <div class='name item button white two'>Setting Name</div>
             <div class='space smallSpace'></div>
             <div class='textfield value item button white two' contenteditable>Enter Name</div>
-            <div class='space smallSpace'></div>
-            <div class='reset item button red one clickAble hidden'>Reset</div>
-            <div class='space smallSpace'></div>
-            <div class='save item button green half clickAble hidden'>Save</div>
+            <br>
+<!--            <div class='space smallSpace'></div>-->
+            <div class="saveAndReset displayNone">
+                <div class='reset item button red one clickAble'>Reset</div>
+                <div class='space smallSpace'></div>
+                <div class='save item button green half clickAble'>Save</div>
+            </div>
         </div>
         <div class="appendix">
             <div class="child"></div>
@@ -206,6 +230,24 @@
             <div class='name item button white three'>Tag Name</div>
             <div class='space smallSpace'></div>
             <div class='active item button yellow half clickAble'>Off</div>
+            <div class='space smallSpace'></div>
+            <div class='edit item button yellow half inactive'>Edit</div>
+            <div class='space smallSpace'></div>
+            <br/>
+            <div class="tagEdits displayNone">
+                <div class="label half">Min</div>
+                <div class='textfield min item button white half' contenteditable>0</div>
+                <div class='space smallSpace'></div>
+                <div class="label half">Max</div>
+                <div class='textfield max item button white half' contenteditable>1</div>
+                <div class='space smallSpace'></div>
+                <div class="label half">Unit</div>
+                <div class='textfield unit item button white half' contenteditable></div>
+                <div class='space smallSpace'></div>
+                <div class='reset item button red half clickAble hidden'>Reset</div>
+                <div class='space smallSpace'></div>
+                <div class='save item button green half clickAble hidden'>Save</div>
+            </div>
         </div>
         <div class="appendix">
             <div class="child"></div>
@@ -237,52 +279,54 @@
         domObjects: document.getElementById("contents"),
         templates: document.getElementsByTagName("template")
     }; // the objects and states get injected from the server webFrontend.js
-    
+
+    var expandedTags = {};
+
     var mockBrowseData = {"browseResults":[{"id":"feederPLC.feederPLC.buzzer"},{"id":"feederPLC.feederPLC.conveyor"},{"id":"feederPLC.feederPLC.green"},{"id":"feederPLC.feederPLC.off"},{"id":"feederPLC.feederPLC.on"},{"id":"feederPLC.feederPLC.red"},{"id":"feederPLC.feederPLC.sensor"}],"succeeded":true,"reason":""};
-    
+
     var USE_MOCK_DATA = true; // TODO: test with real kepware server and disable this
-    
+
     var defaultSettings = null;
-    
+
     window.onload = function() {
         init();
     };
-    
+
     function init() {
         console.log(realityServer.hardwareInterface.settings);
         defaultSettings = JSON.parse(JSON.stringify(realityServer.hardwareInterface.settings));
-        
+
         // document.getElementById('title').innerText = realityServer.hardwareInterfaceName + ' settings';
         realityServer.render();
     }
-    
+
     realityServer.render = function() {
         var settings = realityServer.hardwareInterface.settings;
         if (typeof settings === "undefined") {
             return;
         }
-        
+
         console.log('render');
         realityServer.domObjects.innerHTML = ''; // reset
-        
+
         for (let settingsName in settings) {
-            if (settingsName === 'tagsEnabled') { continue; } // special settings for this one
-            
+            if (settingsName === 'tagsInfo') { continue; } // special settings for this one
+
             let thisSettings = settings[settingsName];
             let newElement = this.templates['setting'].content.cloneNode(true);
             newElement.querySelector('.name').innerText = settingsName;
             newElement.querySelector('.value').innerText = thisSettings.value;
-            
+
             if (typeof thisSettings.helpText !== 'undefined') {
                 newElement.querySelector('.helpText').innerText = thisSettings.helpText;
             } else {
                 newElement.querySelector('.helpText').remove();
             }
-            
+
             // implement value updated
             newElement.querySelector('.value').addEventListener('input', function() {
                 console.log('value of ' + settingsName + ' changed to ' + this.innerText);
-                
+
                 var didChange = false;
                 if (thisSettings.type === 'text') {
                     if (this.innerText !== thisSettings.value) {
@@ -296,17 +340,19 @@
                         didChange = true;
                     }
                 }
-                
+
                 if (didChange) {
-                    this.parentElement.querySelector('.save').classList.remove('hidden');
-                    this.parentElement.querySelector('.reset').classList.remove('hidden');
+                    this.parentElement.querySelector('.saveAndReset').classList.remove('displayNone');
+                    // this.parentElement.querySelector('.save').classList.remove('hidden');
+                    // this.parentElement.querySelector('.reset').classList.remove('hidden');
                 } else {
-                    this.parentElement.querySelector('.save').classList.add('hidden');
-                    this.parentElement.querySelector('.reset').classList.add('hidden');
+                    this.parentElement.querySelector('.saveAndReset').classList.add('displayNone');
+                    // this.parentElement.querySelector('.save').classList.add('hidden');
+                    // this.parentElement.querySelector('.reset').classList.add('hidden');
                 }
-                
+
             });
-            
+
             // implement reset button
             newElement.querySelector('.reset').addEventListener('click', function() {
                 realityServer.hardwareInterface.settings[settingsName].value = defaultSettings[settingsName].value;
@@ -328,10 +374,10 @@
                     realityServer.render();
                 });
             });
-            
+
             realityServer.domObjects.appendChild(newElement);
         }
-        
+
         // render the tags from the browse data
         getBrowseResults(function(browseResults) {
             var tagTitleElement = document.createElement('div');
@@ -343,45 +389,160 @@
             }
             realityServer.domObjects.appendChild(tagTitleElement);
 
-            // if (browseResults.length === 0) { return; } // don't add 
+            // if (browseResults.length === 0) { return; } // don't add
             var tagsContainer = document.createElement('div');
             tagsContainer.id = 'tags';
             realityServer.domObjects.appendChild(tagsContainer);
 
-            if (typeof settings.tagsEnabled === 'undefined' || settings.tagsEnabled === 0) {
-                settings.tagsEnabled = {};
+            if (typeof settings.tagsInfo === 'undefined' || settings.tagsInfo === 0) {
+                settings.tagsInfo = {};
             }
 
             browseResults.forEach(function(tagInfo) {
                 let newElement = realityServer.templates['tag'].content.cloneNode(true);
                 newElement.querySelector('.name').innerText = tagInfo.id;
-                
-                if (typeof settings.tagsEnabled[tagInfo.id] === 'undefined') {
-                    settings.tagsEnabled[tagInfo.id] = true;
-                }
-                
-                let activeButton = newElement.querySelector('.active');
 
-                if (settings.tagsEnabled[tagInfo.id]) {
+                if (typeof settings.tagsInfo[tagInfo.id] === 'undefined') {
+                    settings.tagsInfo[tagInfo.id] = {};
+                }
+
+                if (typeof settings.tagsInfo[tagInfo.id].enabled === 'undefined') {
+                    settings.tagsInfo[tagInfo.id].enabled = true;
+                }
+
+                let activeButton = newElement.querySelector('.active');
+                let editButton = newElement.querySelector('.edit');
+
+                if (settings.tagsInfo[tagInfo.id].enabled) {
                     activeButton.classList.remove('yellow');
                     activeButton.classList.add('green');
                     activeButton.innerText = 'On';
+                    editButton.classList.remove('inactive');
+                    editButton.classList.add('clickAble');
+
+                    if (expandedTags[tagInfo.id]) {
+                        let tagEditsContainer = newElement.querySelector('.tagEdits');
+                        tagEditsContainer.classList.remove('displayNone');
+                    }
+
+                    editButton.addEventListener('click', function() {
+                        let tagEditsContainer = this.parentNode.querySelector('.tagEdits');
+                        if (tagEditsContainer.classList.contains('displayNone')) {
+                            tagEditsContainer.classList.remove('displayNone');
+                            expandedTags[tagInfo.id] = true;
+                        } else {
+                            tagEditsContainer.classList.add('displayNone');
+                            delete expandedTags[tagInfo.id];
+                        }
+                    });
+
                 } else {
                     activeButton.classList.remove('green');
                     activeButton.classList.add('yellow');
                     activeButton.innerText = 'Off';
+                    editButton.classList.remove('clickAble');
+                    editButton.classList.add('inactive');
                 }
 
                 // implement toggle button
                 activeButton.addEventListener('click', function() {
-                    var prevValue = settings.tagsEnabled[tagInfo.id];
-                    if (!prevValue) {
-                        settings.tagsEnabled[tagInfo.id] = true;
-                    } else {
-                        settings.tagsEnabled[tagInfo.id] = false;
+                    var prevValue = settings.tagsInfo[tagInfo.id].enabled;
+                    settings.tagsInfo[tagInfo.id].enabled = !prevValue;
+
+                    realityServer.writeHardwareInterfaceSettings(settings, ['tagsInfo'], function(_res) {
+                        console.log('got response... re-render');
+                        realityServer.render();
+                    });
+                });
+
+                let minText = newElement.querySelector('.min');
+                let maxText = newElement.querySelector('.max');
+                let unitText = newElement.querySelector('.unit');
+                let resetButton = newElement.querySelector('.reset');
+                let saveButton = newElement.querySelector('.save');
+
+                // update default text of min, max, and unit to show saved values
+                console.log(settings.tagsInfo[tagInfo.id]);
+
+                // TODO: load this from previously saved settings (if any)
+                const defaultText = {
+                    min: JSON.stringify(settings.tagsInfo[tagInfo.id].min) || '0',
+                    max: JSON.stringify(settings.tagsInfo[tagInfo.id].max) || '1',
+                    unit: settings.tagsInfo[tagInfo.id].unit || ''
+                };
+
+                minText.innerText = defaultText.min;
+                maxText.innerText = defaultText.max;
+                unitText.innerText = defaultText.unit;
+
+                function clearIfTextEquals(defaultText) {
+                    if (this.innerText === defaultText) {
+                        this.innerText = '';
                     }
-                    
-                    realityServer.writeHardwareInterfaceSettings(settings, ['tagsEnabled'], function(res) {
+                    resetButton.classList.remove('hidden');
+                }
+
+                minText.addEventListener('click', function() {
+                    clearIfTextEquals.call(this, defaultText.min);
+                });
+                maxText.addEventListener('click', function() {
+                    clearIfTextEquals.call(this, defaultText.max);
+                });
+                unitText.addEventListener('click', function() {
+                    clearIfTextEquals.call(this, defaultText.unit);
+                });
+
+                resetButton.addEventListener('click', function() {
+                    minText.innerText = defaultText.min;
+                    maxText.innerText = defaultText.max;
+                    unitText.innerText = defaultText.unit;
+
+                    resetButton.classList.add('hidden');
+                    saveButton.classList.add('hidden');
+
+                    // delete saved values for each property
+                    // delete settings.tagsInfo[tagInfo.id].min;
+                    // delete settings.tagsInfo[tagInfo.id].max;
+                    // delete settings.tagsInfo[tagInfo.id].unit;
+
+                    realityServer.writeHardwareInterfaceSettings(settings, ['tagsInfo'], function(_res) {
+                        console.log('got response... re-render');
+                        realityServer.render();
+                    });
+                });
+
+                minText.addEventListener('input', function() {
+                    checkIfCanSave();
+                });
+                maxText.addEventListener('input', function() {
+                    checkIfCanSave();
+                });
+                unitText.addEventListener('input', function() {
+                    checkIfCanSave();
+                });
+
+                function checkIfCanSave() {
+                    let minValue = parseFloat(minText.innerText);
+                    let maxValue = parseFloat(maxText.innerText);
+
+                    if (typeof minValue === 'number' && !isNaN(minValue) &&
+                        typeof maxValue === 'number' && !isNaN(maxValue) &&
+                        minValue < maxValue) {
+                        saveButton.classList.remove('hidden');
+                    } else {
+                        saveButton.classList.add('hidden');
+                    }
+                }
+
+                // TODO: implement save button click, and update defaultText based on new contents
+
+                saveButton.addEventListener('click', function() {
+                    // delete saved values for each property
+                    settings.tagsInfo[tagInfo.id].min = parseFloat(minText.innerText);
+                    settings.tagsInfo[tagInfo.id].max = parseFloat(maxText.innerText);
+                    settings.tagsInfo[tagInfo.id].unit = unitText.innerText;
+
+                    realityServer.writeHardwareInterfaceSettings(settings, ['tagsInfo'], function(_res) {
                         console.log('got response... re-render');
                         realityServer.render();
                     });
@@ -391,12 +552,12 @@
             });
         });
     };
-    
+
     function getBrowseResults(completionHandler) {
-        
+
         if (USE_MOCK_DATA) {
             completionHandler(mockBrowseData.browseResults);
-        
+
         } else {
             // TODO: make this dependent on the settings.ip and settings.port, and refresh it when new values for those are submitted
             realityServer.sendRequest('http://10.10.10.10:39320/iotgateway/browse', 'GET', function(response) {
@@ -412,7 +573,7 @@
             });
         }
     }
-    
+
     realityServer.writeHardwareInterfaceSettings = function(settings, limitToKeys, callback) {
         var body = {
             settings: settings,
@@ -462,7 +623,7 @@
             console.log("could not connect to" + url);
         }
     };
-    
+
 </script>
 
 </body>
