@@ -62,11 +62,17 @@ exports.settings = {
         type: 'text',
         helpText: 'The name of the Reality Object where nodes for each tag will be created.'
     },
-    tagsEnabled: settings('tagsEnabled')
+    frameName: {
+        value: settings('frameName'),
+        type: 'text',
+        helpText: 'The name of the frame on that object where nodes be added.'
+    },
+    tagsInfo: settings('tagsInfo')
 };
 
 if (exports.enabled) {
-    var kepware1 = new Kepware(settings("ip"), settings("name"),  settings("port"),  settings("updateRate"), settings("tagsEnabled"));
+
+    var kepware1 = new Kepware(settings("ip"), settings("name"),  settings("port"),  settings("updateRate"), settings("tagsInfo"));
     kepware1.setup();
 
     /*
@@ -74,7 +80,7 @@ if (exports.enabled) {
          kepware2.setup();
     */
 
-    function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsEnabled) {
+    function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsInfo) {
         this.KepwareData = function() {
             this.name = "";
             this.id = "";
@@ -105,17 +111,17 @@ if (exports.enabled) {
         this.remoteDevice = new this.Client();
         server.enableDeveloperUI(true);
         this.kepwareAddress = "http://" + kepwareServerIP + ":" + kepwareServerPort + "/iotgateway/";
-        
-        console.log("tags enabled: ", kepwareServerTagsEnabled);
+
+        console.log("tags info saved in settings.json: ", kepwareServerTagsInfo);
 
         /**
          * Browse the IoT gateway and create nodes for each found tag. Also starts an update interval.
          */
         this.setup = function () {
-            
+
             this.thisID = {};
             this.remoteDevice.get(this.kepwareAddress + "browse", function (data, _res) {
-                
+
                 for (var i = 0; i < data.browseResults.length; i++) {
                     this.thisID = data.browseResults[i].id;
                     this.kepwareInterfaces[this.thisID] = new this.KepwareData();
@@ -124,27 +130,27 @@ if (exports.enabled) {
 
                     console.log(kepwareServerName +"_"+ this.kepwareInterfaces[this.thisID].name);
 
-                    // enabled by default, unless there is a specific entry in the settings.tagsEnabled saying it is disabled
-                    this.kepwareInterfaces[this.thisID].enabled = (typeof kepwareServerTagsEnabled[this.thisID] !== 'undefined') ? kepwareServerTagsEnabled[this.thisID] : true;
-                    
+                    // enabled by default, unless there is a specific entry in the settings.tagsInfo saying it is disabled
+                    this.kepwareInterfaces[this.thisID].enabled = typeof kepwareServerTagsInfo[this.thisID] === 'undefined' || typeof kepwareServerTagsInfo[this.thisID].enabled === 'undefined' || kepwareServerTagsInfo[this.thisID].enabled;
+
                     // TODO: better frame naming configuration instead of just appending a "1" to the end of the object name
                     if (this.kepwareInterfaces[this.thisID].enabled) {
                         server.addNode(kepwareServerName, kepwareServerName+"1",this.kepwareInterfaces[this.thisID].name, "node");
                         this.setReadList(kepwareServerName, kepwareServerName+"1",this.thisID, this.kepwareInterfaces[this.thisID].name, this.kepwareInterfaces);
                     } else {
-                        // remove node instead of adding if settings.tagsEnabled is disabled for this node
+                        // remove node instead of adding if settings.tagsInfo is disabled for this node
                         server.removeNode(kepwareServerName, kepwareServerName+"1",this.kepwareInterfaces[this.thisID].name);
                     }
-                    
+
                 }
-                
+
                 this.interval = setInterval(this.start, kepwareServerRequestInterval);
-                
+
             }.bind(this)).on('error', function (_err) {
                 this.error();
-                
+
             }.bind(this));
-            
+
         }.bind(this);
 
         /**
@@ -162,19 +168,19 @@ if (exports.enabled) {
                 };
 
                 this.remoteDevice.post(this.kepwareAddress + "write", args, function (data, res) {
-                    
+
                 }).on('error', function (_err) {
                     this.error();
-                    
+
                 }.bind(this));
 
             }.bind(this));
-            
+
         }.bind(this);
 
         /**
          * The update interval that gets called many times per second (defined by settings("updateRate"))
-         * Reads all tags at once from the kepware device. 
+         * Reads all tags at once from the kepware device.
          */
         this.start = function () {
 
@@ -192,69 +198,74 @@ if (exports.enabled) {
                     if (this.kepwareInterfaces[thisID] && !this.kepwareInterfaces[thisID].enabled) {
                         continue; // don't try to update nodes that are disabled (they don't exist!)
                     }
-                    
+
                     this.kepwareInterfaces[thisID].data.s = data.readResults[i].s;
                     this.kepwareInterfaces[thisID].data.r = data.readResults[i].r;
                     this.kepwareInterfaces[thisID].data.v = data.readResults[i].v;
                     this.kepwareInterfaces[thisID].data.t = data.readResults[i].t;
+
                     if (typeof this.kepwareInterfaces[thisID].data.v === "boolean" ) { // converts boolean to 0 or 1 because nodes can only handle numbers
-                        if (this.kepwareInterfaces[thisID].data.v) { this.kepwareInterfaces[thisID].data.v = 1; }
-                        else {this.kepwareInterfaces[thisID].data.v = 0; }
+                        this.kepwareInterfaces[thisID].data.v = this.kepwareInterfaces[thisID].data.v ? 1 : 0;
                     }
                     if (isNaN(this.kepwareInterfaces[thisID].data.v)) {
-                        console.log( this.kepwareInterfaces[thisID].data.v);
+                        console.warn(thisID + ' kepware tag value isNaN ' + this.kepwareInterfaces[thisID].data.v);
                         this.kepwareInterfaces[thisID].data.v = 0; // uses 0 as default node value if NaN
                     }
 
-                    // continuously adjusts min and max based on values it's seen so far
-                    if (this.kepwareInterfaces[thisID].data.v > this.kepwareInterfaces[thisID].data.max) {
-                        this.kepwareInterfaces[thisID].data.max = this.kepwareInterfaces[thisID].data.v;
-                    }
-                    if (this.kepwareInterfaces[thisID].data.v < this.kepwareInterfaces[thisID].data.min) {
-                        this.kepwareInterfaces[thisID].data.min = this.kepwareInterfaces[thisID].data.v;
-                    }
+                    let definedMin = this.kepwareInterfaces[thisID].min;
+                    let definedMax = this.kepwareInterfaces[thisID].max;
+                    let definedUnit = this.kepwareInterfaces[thisID].unit;
 
-                    if (this.kepwareInterfaces[thisID].data.v !== 0) {
-                        // clips sensor readings to the range of 75 to 65535, and then normalizes to range of [0 - 1]
-                        if (this.kepwareInterfaces[thisID].name === "sensor") {
-                            if (this.kepwareInterfaces[thisID].data.v < 75) this.kepwareInterfaces[thisID].data.v = 75;
-                            if (this.kepwareInterfaces[thisID].data.v > 65535) this.kepwareInterfaces[thisID].data.v = 65535;
-                            this.kepwareInterfaces[thisID].data.value = Math.round(server.map(this.kepwareInterfaces[thisID].data.v, 75, 65535, 0, 1) * 1000) / 1000;
-                        } else {
-                            this.kepwareInterfaces[thisID].data.value = Math.round(server.map(this.kepwareInterfaces[thisID].data.v, this.kepwareInterfaces[thisID].data.min, this.kepwareInterfaces[thisID].data.max, 0, 1) * 1000) / 1000;
+                    if (typeof definedMax === 'undefined') {
+                        // continuously adjusts min and max based on values it's seen so far
+                        if (this.kepwareInterfaces[thisID].data.v > this.kepwareInterfaces[thisID].data.max) {
+                            this.kepwareInterfaces[thisID].data.max = this.kepwareInterfaces[thisID].data.v;
                         }
                     } else {
-                        this.kepwareInterfaces[thisID].data.value = 0;
+                        this.kepwareInterfaces[thisID].data.max = definedMax;
                     }
+
+                    if (typeof definedMin === 'undefined') {
+                        // continuously adjusts min and max based on values it's seen so far
+                        if (this.kepwareInterfaces[thisID].data.v < this.kepwareInterfaces[thisID].data.min) {
+                            this.kepwareInterfaces[thisID].data.min = this.kepwareInterfaces[thisID].data.v;
+                        }
+                    } else {
+                        this.kepwareInterfaces[thisID].data.min = definedMin;
+                    }
+
+                    // clip readings to their [min - max] range, and then normalize them to the range of [0 - 1]
+                    if (this.kepwareInterfaces[thisID].data.v < this.kepwareInterfaces[thisID].data.min) {
+                        this.kepwareInterfaces[thisID].data.v = this.kepwareInterfaces[thisID].data.min;
+                    }
+                    if (this.kepwareInterfaces[thisID].data.v > this.kepwareInterfaces[thisID].data.max) {
+                        this.kepwareInterfaces[thisID].data.v = this.kepwareInterfaces[thisID].data.max;
+                    }
+                    this.kepwareInterfaces[thisID].data.value = Math.round(server.map(this.kepwareInterfaces[thisID].data.v, this.kepwareInterfaces[thisID].data.min, this.kepwareInterfaces[thisID].data.max, 0, 1) * 1000) / 1000;
 
                     // if the new value is different than the previous value, write to the node -> propagate value to rest of the system
                     if (this.kepwareInterfaces[thisID].name && (this.kepwareInterfaces[thisID].dataOld.value !== this.kepwareInterfaces[thisID].data.value)) {
 
-                        if(this.kepwareInterfaces[thisID].name === "sensor") {
-                            // the sensor values are hard-coded right now with inches as units, and (min,max) = (0,11.5)
-                            server.write(kepwareServerName, kepwareServerName+"1", // the object's name is kepwareBox1. TODO: check that this generalizes using only the exposed settings
-                                this.kepwareInterfaces[thisID].name,
-                                this.kepwareInterfaces[thisID].data.value, "f", 'inch',
-                                0.0,
-                                11.5)
-                        } else {
-                            // everything other than the sensor just gets written as-is
-                            server.write(kepwareServerName, kepwareServerName+"1",
-                                this.kepwareInterfaces[thisID].name,
-                                this.kepwareInterfaces[thisID].data.value, "f", this.kepwareInterfaces[thisID].name,
-                                this.kepwareInterfaces[thisID].data.min,
-                                this.kepwareInterfaces[thisID].data.max)
-                        }
+                        // write the normalized value to the server
+                        server.write(kepwareServerName,
+                            kepwareServerName + "1", // TODO: make frame name configurable instead of just kepwareBox -> kepwareBox1
+                            this.kepwareInterfaces[thisID].name,
+                            this.kepwareInterfaces[thisID].data.value,
+                            "f", // floating point
+                            definedUnit || this.kepwareInterfaces[thisID].name,
+                            this.kepwareInterfaces[thisID].data.min,
+                            this.kepwareInterfaces[thisID].data.max);
+
                     }
 
                     this.kepwareInterfaces[thisID].dataOld.value = this.kepwareInterfaces[thisID].data.value;
                 }
-                
-            }.bind(this)).on('error', function (err) {
+
+            }.bind(this)).on('error', function (_err) {
                 this.error();
-                
+
             }.bind(this));
-            
+
         }.bind(this);
 
         /**
