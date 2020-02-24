@@ -362,9 +362,9 @@
             // implement save button
             newElement.querySelector('.save').addEventListener('click', function() {
                 if (thisSettings.type === 'text') {
-                    thisSettings.value = this.parentElement.querySelector('.value').innerText;
+                    thisSettings.value = this.parentElement.parentElement.querySelector('.value').innerText;
                 } else if (thisSettings.type === 'number') {
-                    thisSettings.value = parseFloat(this.parentElement.querySelector('.value').innerText);
+                    thisSettings.value = parseFloat(this.parentElement.parentElement.querySelector('.value').innerText);
                 }
                 console.log('new settings for ' + settingsName + ' = ' + thisSettings.value);
                 console.log('TODO: write settings to file');

@@ -36,49 +36,63 @@ var settings = server.loadHardwareInterface(__dirname);
 exports.enabled = settings("enabled");
 exports.configurable = true; // can be turned on/off/adjusted from the web frontend
 
-/**
- * These settings will be exposed to the webFrontend to potentially be modified
- */
-exports.settings = {
-    ip: {
-        value: settings('ip'),
-        type: 'text',
-        helpText: 'The IP address of the KEPServerEX you want to connect to.'
-    },
-    port: {
-        value: settings('port'),
-        type: 'number',
-        default: 39320,
-        helpText: 'The port of the IoT Gateway on the KEPServerEx.'
-    },
-    updateRate: {
-        value: settings('updateRate'),
-        type: 'number',
-        default: 100,
-        helpText: 'How many times per second to stream data into this server from the IoT Gateway.'
-    },
-    name: {
-        value: settings('name'),
-        type: 'text',
-        helpText: 'The name of the Reality Object where nodes for each tag will be created.'
-    },
-    frameName: {
-        value: settings('frameName'),
-        type: 'text',
-        helpText: 'The name of the frame on that object where nodes be added.'
-    },
-    tagsInfo: settings('tagsInfo')
-};
-
 if (exports.enabled) {
 
-    var kepware1 = new Kepware(settings("ip"), settings("name"),  settings("port"),  settings("updateRate"), settings("tagsInfo"));
-    kepware1.setup();
+    var kepware1 = null;
 
-    /*
-      var kepware2 = new Kepware("192.168.56.2", "kepwareBox2", "39320", 100);
-         kepware2.setup();
-    */
+    server.addEventListener('reset', function() {
+        console.log('reset kepware');
+        kepware1 = null;
+        setup();
+    });
+
+    // server.addEventListener('shutdown', function() {
+    //     console.log('shutdown kepware');
+    // });
+
+    function setup() {
+        console.log('setup kepware');
+        settings = server.loadHardwareInterface(__dirname);
+
+        /**
+         * These settings will be exposed to the webFrontend to potentially be modified
+         */
+        exports.settings = {
+            ip: {
+                value: settings('ip'),
+                type: 'text',
+                helpText: 'The IP address of the KEPServerEX you want to connect to.'
+            },
+            port: {
+                value: settings('port'),
+                type: 'number',
+                default: 39320,
+                helpText: 'The port of the IoT Gateway on the KEPServerEx.'
+            },
+            updateRate: {
+                value: settings('updateRate'),
+                type: 'number',
+                default: 100,
+                helpText: 'How many times per second to stream data into this server from the IoT Gateway.'
+            },
+            name: {
+                value: settings('name'),
+                type: 'text',
+                helpText: 'The name of the Reality Object where nodes for each tag will be created.'
+            },
+            frameName: {
+                value: settings('frameName'),
+                type: 'text',
+                helpText: 'The name of the frame on that object where nodes be added.'
+            },
+            tagsInfo: settings('tagsInfo')
+        };
+
+        if (settings('enabled')) {
+            var kepware1 = new Kepware(settings('ip'), settings('name'),  settings('port'),  settings('updateRate'), settings('tagsInfo'));
+            kepware1.setup();
+        }
+    }
 
     function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsInfo) {
         this.KepwareData = function() {
@@ -275,4 +289,6 @@ if (exports.enabled) {
             console.log("cant find kepware server: \033[33m"+ kepwareServerName +"\033[0m with the IP: \033[33m"+ kepwareServerIP+"\033[0m");
         }
     }
+
+    setup();
 }
