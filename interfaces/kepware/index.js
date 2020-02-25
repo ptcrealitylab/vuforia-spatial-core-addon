@@ -234,18 +234,14 @@ if (exports.enabled) {
 
                     if (typeof definedMax === 'undefined') {
                         // continuously adjusts min and max based on values it's seen so far
-                        if (this.kepwareInterfaces[thisID].data.v > this.kepwareInterfaces[thisID].data.max) {
-                            this.kepwareInterfaces[thisID].data.max = this.kepwareInterfaces[thisID].data.v;
-                        }
+                        this.kepwareInterfaces[thisID].data.max = Math.max(1, Math.max(this.kepwareInterfaces[thisID].data.v, this.kepwareInterfaces[thisID].data.max));
                     } else {
                         this.kepwareInterfaces[thisID].data.max = definedMax;
                     }
 
                     if (typeof definedMin === 'undefined') {
                         // continuously adjusts min and max based on values it's seen so far
-                        if (this.kepwareInterfaces[thisID].data.v < this.kepwareInterfaces[thisID].data.min) {
-                            this.kepwareInterfaces[thisID].data.min = this.kepwareInterfaces[thisID].data.v;
-                        }
+                        this.kepwareInterfaces[thisID].data.min = Math.min(0, Math.min(this.kepwareInterfaces[thisID].data.v, this.kepwareInterfaces[thisID].data.min));
                     } else {
                         this.kepwareInterfaces[thisID].data.min = definedMin;
                     }
