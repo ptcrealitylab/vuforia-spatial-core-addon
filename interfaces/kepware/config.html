@@ -343,12 +343,8 @@
 
                 if (didChange) {
                     this.parentElement.querySelector('.saveAndReset').classList.remove('displayNone');
-                    // this.parentElement.querySelector('.save').classList.remove('hidden');
-                    // this.parentElement.querySelector('.reset').classList.remove('hidden');
                 } else {
                     this.parentElement.querySelector('.saveAndReset').classList.add('displayNone');
-                    // this.parentElement.querySelector('.save').classList.add('hidden');
-                    // this.parentElement.querySelector('.reset').classList.add('hidden');
                 }
 
             });
@@ -389,7 +385,6 @@
             }
             realityServer.domObjects.appendChild(tagTitleElement);
 
-            // if (browseResults.length === 0) { return; } // don't add
             var tagsContainer = document.createElement('div');
             tagsContainer.id = 'tags';
             realityServer.domObjects.appendChild(tagsContainer);
@@ -464,7 +459,6 @@
                 // update default text of min, max, and unit to show saved values
                 console.log(settings.tagsInfo[tagInfo.id]);
 
-                // TODO: load this from previously saved settings (if any)
                 const defaultText = {
                     min: JSON.stringify(settings.tagsInfo[tagInfo.id].min) || '0',
                     max: JSON.stringify(settings.tagsInfo[tagInfo.id].max) || '1',
@@ -500,13 +494,7 @@
                     resetButton.classList.add('hidden');
                     saveButton.classList.add('hidden');
 
-                    // delete saved values for each property
-                    // delete settings.tagsInfo[tagInfo.id].min;
-                    // delete settings.tagsInfo[tagInfo.id].max;
-                    // delete settings.tagsInfo[tagInfo.id].unit;
-
                     realityServer.writeHardwareInterfaceSettings(settings, ['tagsInfo'], function(_res) {
-                        console.log('got response... re-render');
                         realityServer.render();
                     });
                 });
@@ -534,8 +522,6 @@
                     }
                 }
 
-                // TODO: implement save button click, and update defaultText based on new contents
-
                 saveButton.addEventListener('click', function() {
                     // delete saved values for each property
                     settings.tagsInfo[tagInfo.id].min = parseFloat(minText.innerText);
@@ -543,7 +529,6 @@
                     settings.tagsInfo[tagInfo.id].unit = unitText.innerText;
 
                     realityServer.writeHardwareInterfaceSettings(settings, ['tagsInfo'], function(_res) {
-                        console.log('got response... re-render');
                         realityServer.render();
                     });
                 });
