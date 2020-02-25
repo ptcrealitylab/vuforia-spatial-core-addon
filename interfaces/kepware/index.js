@@ -46,10 +46,6 @@ if (exports.enabled) {
         setup();
     });
 
-    // server.addEventListener('shutdown', function() {
-    //     console.log('shutdown kepware');
-    // });
-
     function setup() {
         console.log('setup kepware');
         settings = server.loadHardwareInterface(__dirname);
