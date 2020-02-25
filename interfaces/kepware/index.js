@@ -158,6 +158,8 @@ if (exports.enabled) {
 
                 }
 
+                server.pushUpdatesToDevices(kepwareServerName);
+
                 this.interval = setInterval(this.start, kepwareServerRequestInterval);
 
             }.bind(this)).on('error', function (_err) {
