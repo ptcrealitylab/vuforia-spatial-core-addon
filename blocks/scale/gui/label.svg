@@ -1,1 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 100"><defs><style>.cls-1{fill:#008480;}.cls-2{fill:#75fbfd;}.cls-3{opacity:0.5;}</style></defs><title>Asset 9</title><g id="Layer_2" data-name="Layer 2"><g id="UI"><rect class="cls-1" x="38.65" y="42.37" width="20" height="20"/><path class="cls-2" d="M59.65,63.37h-22v-22h22Zm-20-2h18v-18h-18Z"/><rect class="cls-1" x="91.37" y="32.37" width="40" height="40"/><path class="cls-2" d="M132.37,73.37h-42v-42h42Zm-40-2h38v-38h-38Z"/><rect class="cls-2" x="38.63" y="41.59" width="3" height="1" transform="translate(-7.15 8.22) rotate(-10.75)"/><path class="cls-2" d="M46.9,41.32l-.19-1,5.2-1,.19,1Zm10.4-2-.19-1,5.21-1,.18,1Zm10.4-2-.18-1,5.2-1,.19,1Zm10.41-2-.19-1,5.2-1,.19,1Z"/><rect class="cls-2" x="88.39" y="32.15" width="3" height="1" transform="translate(-4.51 17.34) rotate(-10.75)"/><rect class="cls-2" x="89.39" y="70.59" width="1" height="3" transform="translate(2.3 146.96) rotate(-79.25)"/><path class="cls-2" d="M83.12,71.32l-5.2-1,.19-1,5.2,1Zm-10.4-2-5.2-1,.18-1,5.21,1Zm-10.4-2-5.21-1,.19-1,5.2,1Zm-10.41-2-5.2-1,.19-1,5.2,1Z"/><rect class="cls-2" x="39.63" y="61.15" width="1" height="3" transform="translate(-28.91 90.4) rotate(-79.26)"/></g></g></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 246 150" style="enable-background:new 0 0 246 150;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#75FBFD;}
+	.st1{fill:#008480;}
+</style>
+<title>label</title>
+<rect x="120" class="st0" width="6" height="17"/>
+<rect x="120" y="133" class="st0" width="6" height="17"/>
+<g>
+	<rect x="50.5" y="59.8" class="st1" width="31.2" height="31.2"/>
+	<path class="st0" d="M83.3,92.6H49V58.3h34.3V92.6z M52.1,89.5h28.1V61.4H52.1V89.5z"/>
+</g>
+<g>
+	<rect x="132.9" y="44.2" class="st1" width="62.4" height="62.5"/>
+	<path class="st0" d="M196.9,108.2h-65.6V42.6h65.6V108.2z M134.4,105.1h59.3V45.8h-59.3V105.1z"/>
+</g>
+<g>
+	
+		<rect x="50.5" y="58.6" transform="matrix(0.9825 -0.1865 0.1865 0.9825 -10.1478 10.9014)" class="st0" width="4.7" height="1.6"/>
+	<path class="st0" d="M63.4,58.3l-0.3-1.6l8.1-1.6l0.3,1.6L63.4,58.3z M79.7,55.1l-0.3-1.6l8.1-1.6l0.3,1.6L79.7,55.1z M95.9,52
+		l-0.3-1.6l8.1-1.6l0.3,1.6L95.9,52z M112.2,48.9l-0.3-1.6l8.1-1.5l0.3,1.6L112.2,48.9z"/>
+	<rect x="128.2" y="43.9" transform="matrix(0.9825 -0.1865 0.1865 0.9825 -6.037 25.1319)" class="st0" width="4.7" height="1.6"/>
+</g>
+<g>
+	
+		<rect x="129.8" y="103.9" transform="matrix(0.1865 -0.9825 0.9825 0.1865 1.8468 214.6578)" class="st0" width="1.6" height="4.7"/>
+	<path class="st0" d="M120,105.1l-8.1-1.6l0.3-1.6l8.1,1.6L120,105.1z M103.7,102l-8.1-1.6l0.3-1.6l8.1,1.6L103.7,102z M87.5,98.8
+		l-8.1-1.6l0.3-1.6l8.1,1.6L87.5,98.8z M71.2,95.7l-8.1-1.6l0.3-1.6l8.1,1.6L71.2,95.7z"/>
+	
+		<rect x="52.1" y="89.1" transform="matrix(0.1864 -0.9825 0.9825 0.1864 -46.8613 126.358)" class="st0" width="1.6" height="4.7"/>
+</g>
+</svg>

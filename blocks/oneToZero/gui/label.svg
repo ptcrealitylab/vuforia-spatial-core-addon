@@ -1,32 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 100">
-  <defs>
-    <style>
-      .cls-1 {
-        opacity: 0.5;
-      }
-
-      .cls-2 {
-        fill: #75fbfd;
-      }
-    </style>
-  </defs>
-  <title>Asset 52</title>
-  <g id="Layer_2" data-name="Layer 2">
-    <g id="UI">
-      <g>
-        <g>
-          <g class="cls-1">
-            <polygon points="0 0 0 100 37.08 100 170 100 170 66.65 170 0 0 0"/>
-          </g>
-          <g class="cls-1">
-            <path class="cls-2" d="M164,5.94V94.06H6V5.94H164M170,0H0V100H170V0Z"/>
-          </g>
-        </g>
-        <g>
-          <polyline class="cls-2" points="85.17 71.37 85.17 30.37 6.01 30.37 6.01 28.37 87.17 28.37 87.17 71.37"/>
-          <rect class="cls-2" x="87.17" y="69.37" width="76.67" height="2"/>
-        </g>
-      </g>
-    </g>
-  </g>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 246 150" style="enable-background:new 0 0 246 150;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#75FBFD;}
+</style>
+<title>label</title>
+<rect x="120" class="st0" width="6" height="17"/>
+<rect x="120" y="133" class="st0" width="6" height="17"/>
+<g>
+	<polyline class="st0" points="123.5,112.4 123.5,42 0,42 0,38.5 127,38.5 127,112.4 	"/>
+	<rect x="127" y="109" class="st0" width="119" height="3.4"/>
+</g>
 </svg>
