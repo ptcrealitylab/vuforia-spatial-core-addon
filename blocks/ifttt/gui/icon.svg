@@ -1,33 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 100">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 120">
   <defs>
     <style>
       .cls-1 {
-        opacity: 0.5;
+        isolation: isolate;
       }
 
-      .cls-2, .cls-3 {
+      .cls-2 {
         fill: #75fbfd;
-      }
-
-      .cls-3 {
-        font-size: 31px;
-        font-family: Avenir-Heavy, Avenir;
-        font-weight: 800;
       }
     </style>
   </defs>
-  <title>Asset 51</title>
-  <g id="Layer_2" data-name="Layer 2">
-    <g id="UI">
-      <g>
-        <g class="cls-1">
-          <polygon points="0 0 0 100 37.08 100 170 100 170 36.65 170 0 0 0"/>
-        </g>
-        <g class="cls-1">
-          <path class="cls-2" d="M164,6V94H6V6H164m6-6H0V100H170V0Z"/>
-        </g>
-        <text class="cls-3" transform="translate(45.49 60.27)">IFTTT</text>
-      </g>
-    </g>
+  <title>icon</title>
+  <g class="cls-1">
+    <path class="cls-2" d="M56.55,43.72h6.63V73.8H56.55Z"/>
+    <path class="cls-2" d="M69.46,43.72H89.65v6.12H76.09V56H88.63v6.12H76.09V73.8H69.46Z"/>
+    <path class="cls-2" d="M103.11,49.58H94.53V43.72h23.79v5.86h-8.58V73.8h-6.63Z"/>
+    <path class="cls-2" d="M130.39,49.58h-8.58V43.72H145.6v5.86H137V73.8h-6.63Z"/>
+    <path class="cls-2" d="M157.67,49.58h-8.59V43.72h23.8v5.86h-8.59V73.8h-6.62Z"/>
   </g>
 </svg>
