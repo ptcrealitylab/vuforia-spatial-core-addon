@@ -14,10 +14,6 @@
         .centered {
             text-align: center;
         }
-        .fullframe {
-            width: 568px;
-            height: 320px;
-        }
         #title {
             font-size: 24px;
             margin-top: 20px;
@@ -45,9 +41,6 @@
             /*background-color: rgba(0,132,128,0.3);*/
             background-color: rgba(0,66,64,0.7);
         }
-        /*.aligned {*/
-        /*    align-self: ;*/
-        /*}*/
         #containerDoubleBorder {
             position: absolute;
             left: 0;
@@ -82,10 +75,6 @@
             align-content: center;
             flex-direction: row;
         }
-        /*p {*/
-        /*    margin-block-end: 0;*/
-        /*    margin-block-start: 0;*/
-        /*}*/
         .line {
             min-height: 10px;
         }
@@ -108,12 +97,7 @@
 
 <div id="container">
     <div id="title" class="fullwidth centered">Tutorial (Part 2)</div>
-    <!--    <div id="gifContainer">-->
-    <!--        <img id="gif" src="resources/01_drawLine-1-2.gif" class="fullframe">-->
-    <!--    </div>-->
-    <div id="description" class="centered">
-<!--        Link two nodes together by dragging a line between them. Dots will flow from the first to the second.-->
-    </div>
+    <div id="description" class="centered"></div>
     <div id="buttonContainer">
         <div id="prevButton" class="button">
             <div>
@@ -131,10 +115,8 @@
 </div>
 <div id="containerDoubleBorder"></div>
 
-
 <script>
-
-    var newStep0 = {
+    var step0 = {
         lines: [
             'Tap and hold on a frame to drag it around.',
             'While holding it, you can also walk around to move it with your device\'s position.'
@@ -142,7 +124,7 @@
         next: 'button'
     };
 
-    var newStep1 = {
+    var step1 = {
         lines: [
             'Drag a frame onto the trash icon to delete it.\n(on the right edge of the screen)',
             '/*trash-icon*/',
@@ -160,7 +142,7 @@
         next: 'button'
     };
 
-    var newStep2 = {
+    var step2 = {
         lines: [
             'Some frames can be linked together in the Programming Mode.',
             'For example, you can connect a switch frame to a display frame to turn the display on or off.',
@@ -179,7 +161,7 @@
         next: 'button'
     };
 
-    var newStep3 = {
+    var step3 = {
         lines: [
             'This tutorial frame has a programming node called "step 4".',
             'To complete Step 4, add a switch from the pocket\n(look for this icon):',
@@ -198,17 +180,15 @@
         next: 'node'
     };
 
-    var newStep4 = {
+    var step4 = {
         lines: [
             'Nice work! You can draw lines between any nodes to link them together. You can try adding a variety of frames from the pocket and linking them together to see how they can be combined.',
             'To delete a link between nodes, just swipe through it to cut it.'
         ],
         next: 'button'
     };
-
-    // var steps = [step0, step1, step2];
-
-    var steps = [newStep0, newStep1, newStep2, newStep3, newStep4];
+    
+    var steps = [step0, step1, step2, step3, step4];
 
     var currentStep = 0;
 
@@ -217,9 +197,6 @@
         if (stepNumber >= steps.length) { stepNumber = steps.length - 1; }
 
         var stepInfo = steps[stepNumber];
-        // document.getElementById('title').innerText = stepInfo.title;
-        // document.getElementById('gif').src = stepInfo.imageSrc;
-        // document.getElementById('description').innerText = stepInfo.description;
 
         document.getElementById('description').innerHTML = '';
 
@@ -277,10 +254,6 @@
         if (prevStepNumber < 0) { prevStepNumber = steps.length - 1; }
         renderStep(prevStepNumber);
     }
-
-    // document.addEventListener('pointerup', function() {
-    //     nextStep();
-    // });
 
     document.getElementById('nextButton').addEventListener('pointerup', function() {
         nextStep();
