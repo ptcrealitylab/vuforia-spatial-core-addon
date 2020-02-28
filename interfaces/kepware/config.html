@@ -476,13 +476,10 @@
                 }
 
                 minText.addEventListener('click', function() {
-                    clearIfTextEquals.call(this, defaultText.min);
+                    clearIfTextEquals.call(this, '0');
                 });
                 maxText.addEventListener('click', function() {
-                    clearIfTextEquals.call(this, defaultText.max);
-                });
-                unitText.addEventListener('click', function() {
-                    clearIfTextEquals.call(this, defaultText.unit);
+                    clearIfTextEquals.call(this, '1');
                 });
 
                 resetButton.addEventListener('click', function() {
