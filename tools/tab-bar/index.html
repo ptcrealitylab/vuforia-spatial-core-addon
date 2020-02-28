@@ -70,6 +70,8 @@
     var tabBar;
     var realityInterface = new RealityInterface();
 
+    realityInterface.initNode('selection', 'node', 0, 30, 0.75);
+
     realityInterface.addReadListener('selection', function(e) {
         if (!tabBar) { return; }
         var unclipped = Math.floor(e.value * tabBar.labels.length);
@@ -102,9 +104,6 @@
 
         tabBar = new TabBar(tabLabels);
         document.body.appendChild(tabBar.container);
-
-        realityInterface.initNode('selection', 'node', 0, 50, 0.75);
-        // TODO: initNode for each tab?
     }
 
     function TabBar(labels) {
