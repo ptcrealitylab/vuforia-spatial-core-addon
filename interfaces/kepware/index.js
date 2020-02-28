@@ -224,9 +224,9 @@ if (exports.enabled) {
                         this.kepwareInterfaces[thisID].data.v = 0; // uses 0 as default node value if NaN
                     }
 
-                    let definedMin = this.kepwareInterfaces[thisID].min;
-                    let definedMax = this.kepwareInterfaces[thisID].max;
-                    let definedUnit = this.kepwareInterfaces[thisID].unit;
+                    let definedMin = kepwareServerTagsInfo[thisID].min;
+                    let definedMax = kepwareServerTagsInfo[thisID].max;
+                    let definedUnit = kepwareServerTagsInfo[thisID].unit;
 
                     if (typeof definedMax === 'undefined') {
                         // continuously adjusts min and max based on values it's seen so far
