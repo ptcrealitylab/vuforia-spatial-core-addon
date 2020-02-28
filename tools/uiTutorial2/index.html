@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>UI Tutorial</title>
+    <title>UI Tutorial 2</title>
     <style>
         body {
             font-family: BrutalType-Bold, Brutal Type, "Avenir", "Futura", Helvetica Neue, Helvetica, Arial, sans-serif;
@@ -107,7 +107,7 @@
 <body style="width: 578px; height: 430px;">
 
 <div id="container">
-    <div id="title" class="fullwidth centered">Tutorial (Part 1)</div>
+    <div id="title" class="fullwidth centered">Tutorial (Part 2)</div>
     <!--    <div id="gifContainer">-->
     <!--        <img id="gif" src="resources/01_drawLine-1-2.gif" class="fullframe">-->
     <!--    </div>-->
@@ -134,70 +134,81 @@
 
 <script>
 
-    // var step0 = {
-    //     imageSrc: 'resources/01_drawLine-1-2.gif',
-    //     title: 'Draw Line',
-    //     description: 'You can connect any two nodes by dragging a line between them.'
-    // };
-    //
-    // var step1 = {
-    //     imageSrc: 'resources/02_cutLine-2.gif',
-    //     title: 'Cut Line',
-    //     description: 'To delete a link, you can swipe through it to cut it.'
-    // };
-    //
-    // var step2 = {
-    //     imageSrc: 'resources/03_moveNode.gif',
-    //     title: 'Move Node',
-    //     description: 'If you tap and hold on a node for long enough, you can reposition it by dragging it around.'
-    // };
-
     var newStep0 = {
         lines: [
-            'Welcome to Vuforia Toolbox!',
-            'Toolbox gives you a set of tools to create AR content, interact with it, and connect it to your physical environment.'
+            'Tap and hold on a frame to drag it around.',
+            'While holding it, you can also walk around to move it with your device\'s position.'
         ],
         next: 'button'
     };
 
     var newStep1 = {
         lines: [
-            'The app has 5 buttons on the right edge of the screen.',
-            'The top button is the AR Content Mode.\n(you are in this mode right now)',
-            'The second button is the Programming Mode.\n(we will explain this later)',
-            'Tap these buttons to toggle between these modes.'
+            'Drag a frame onto the trash icon to delete it.\n(on the right edge of the screen)',
+            '/*trash-icon*/',
+            'If you delete this Tutorial Part 2 frame by accident, you can drop in a new one from the pocket.',
+            'Go ahead and delete the Tutorial Part 1 frame, if you haven\'t already.'
+        ],
+        images: [
+            {
+                searchText: '/*trash-icon*/',
+                imageSrc: './resources/trash-icon-cyan-2.svg',
+                width: '40px',
+                height: '40px'
+            }
         ],
         next: 'button'
     };
 
     var newStep2 = {
         lines: [
-            'The third button is called the Pocket.',
-            'Tap on the pocket to see a collection of AR widgets, called Frames, that you can drop into the world.'
+            'Some frames can be linked together in the Programming Mode.',
+            'For example, you can connect a switch frame to a display frame to turn the display on or off.',
+            /*Or you can connect a joystick frame to a graph frame to see the value of the joystick over time.',*/
+            'To link nodes together, draw a line from one node to the other\n(note: the direction of the line matters)',
+            '/*linking-animation*/'
+        ],
+        images: [
+            {
+                searchText: '/*linking-animation*/',
+                imageSrc: './resources/01_drawLine-1-2.gif',
+                width: '100px',
+                height: '60px'
+            }
         ],
         next: 'button'
     };
 
     var newStep3 = {
         lines: [
-            'The second part of this tutorial is contained in a different frame.',
-            'Open the pocket and look for this frame icon:',
-            '/*icon-1*/',
-            'Tap on that icon to add the Tutorial Part 2 frame to the world.'
+            'This tutorial frame has a programming node called "step 4".',
+            'To complete Step 4, add a switch from the pocket\n(look for this icon):',
+            '/*switch-icon*/',
+            'Then switch to Programming Mode, and draw a line from the switch\'s "value" node to the tutorial frame\'s "step 4" node.',
+            'When the frames are linked together, switch back to View Mode and press the On button.'
         ],
         images: [
             {
-                searchText: '/*icon-1*/',
-                imageSrc: './resources/tutorial-icon-2.svg',
-                width: '120px',
-                height: '120px'
+                searchText: '/*switch-icon*/',
+                imageSrc: './resources/switch-icon.gif',
+                width: '60px',
+                height: '60px'
             }
-        ]
+        ],
+        next: 'node'
+    };
+
+    var newStep4 = {
+        lines: [
+            'Nice work! You can draw lines between any nodes to link them together. You can try adding a variety of frames from the pocket and linking them together to see how they can be combined.',
+            'To delete a link between nodes, just swipe through it to cut it.'
+        ],
+        next: 'button'
     };
 
     // var steps = [step0, step1, step2];
 
-    var steps = [newStep0, newStep1, newStep2, newStep3];
+    var steps = [newStep0, newStep1, newStep2, newStep3, newStep4];
 
     var currentStep = 0;
 
@@ -218,7 +229,7 @@
         });
         addLine(document.getElementById('description'), '');
 
-        if (stepNumber === (steps.length-1)) {
+        if (stepNumber === (steps.length-1) || stepInfo.next === 'node') {
             document.getElementById('nextButton').style.display = 'none';
         } else {
             document.getElementById('nextButton').style.display = '';
@@ -287,6 +298,15 @@
             realityInterface.enableCustomInteractionMode();
             // these divs will accept touch events - everything else will just let you drag the frame around
             realityInterface.setInteractableDivs([document.getElementById('prevButton'), document.getElementById('nextButton')]);
+
+            realityInterface.initNode('step 4', 'node', 0, 0);
+
+            realityInterface.addReadListener('step 4', function(e) {
+                if (e.value >= 0.5 && currentStep === 3) {
+                    nextStep();
+                }
+            })
+
         } catch (e) {
             console.warn('error loading Reality Interface');
         }
