@@ -14,10 +14,6 @@
         .centered {
             text-align: center;
         }
-        .fullframe {
-            width: 568px;
-            height: 320px;
-        }
         #title {
             font-size: 24px;
             margin-top: 20px;
@@ -45,9 +41,6 @@
             /*background-color: rgba(0,132,128,0.3);*/
             background-color: rgba(0,66,64,0.7);
         }
-        /*.aligned {*/
-        /*    align-self: ;*/
-        /*}*/
         #containerDoubleBorder {
             position: absolute;
             left: 0;
@@ -82,10 +75,6 @@
             align-content: center;
             flex-direction: row;
         }
-        /*p {*/
-        /*    margin-block-end: 0;*/
-        /*    margin-block-start: 0;*/
-        /*}*/
         .line {
             min-height: 10px;
         }
@@ -108,12 +97,7 @@
 
 <div id="container">
     <div id="title" class="fullwidth centered">Tutorial (Part 1)</div>
-    <!--    <div id="gifContainer">-->
-    <!--        <img id="gif" src="resources/01_drawLine-1-2.gif" class="fullframe">-->
-    <!--    </div>-->
-    <div id="description" class="centered">
-<!--        Link two nodes together by dragging a line between them. Dots will flow from the first to the second.-->
-    </div>
+    <div id="description" class="centered"></div>
     <div id="buttonContainer">
         <div id="prevButton" class="button">
             <div>
@@ -131,28 +115,8 @@
 </div>
 <div id="containerDoubleBorder"></div>
 
-
 <script>
-
-    // var step0 = {
-    //     imageSrc: 'resources/01_drawLine-1-2.gif',
-    //     title: 'Draw Line',
-    //     description: 'You can connect any two nodes by dragging a line between them.'
-    // };
-    //
-    // var step1 = {
-    //     imageSrc: 'resources/02_cutLine-2.gif',
-    //     title: 'Cut Line',
-    //     description: 'To delete a link, you can swipe through it to cut it.'
-    // };
-    //
-    // var step2 = {
-    //     imageSrc: 'resources/03_moveNode.gif',
-    //     title: 'Move Node',
-    //     description: 'If you tap and hold on a node for long enough, you can reposition it by dragging it around.'
-    // };
-
-    var newStep0 = {
+    var step0 = {
         lines: [
             'Welcome to Vuforia Toolbox!',
             'Toolbox gives you a set of tools to create AR content, interact with it, and connect it to your physical environment.'
@@ -160,7 +124,7 @@
         next: 'button'
     };
 
-    var newStep1 = {
+    var step1 = {
         lines: [
             'The app has 5 buttons on the right edge of the screen.',
             'The top button is the AR Content Mode.\n(you are in this mode right now)',
@@ -170,7 +134,7 @@
         next: 'button'
     };
 
-    var newStep2 = {
+    var step2 = {
         lines: [
             'The third button is called the Pocket.',
             'Tap on the pocket to see a collection of AR widgets, called Frames, that you can drop into the world.'
@@ -178,7 +142,7 @@
         next: 'button'
     };
 
-    var newStep3 = {
+    var step3 = {
         lines: [
             'The second part of this tutorial is contained in a different frame.',
             'Open the pocket and look for this frame icon:',
@@ -194,10 +158,8 @@
             }
         ]
     };
-
-    // var steps = [step0, step1, step2];
-
-    var steps = [newStep0, newStep1, newStep2, newStep3];
+    
+    var steps = [step0, step1, step2, step3];
 
     var currentStep = 0;
 
@@ -206,9 +168,6 @@
         if (stepNumber >= steps.length) { stepNumber = steps.length - 1; }
 
         var stepInfo = steps[stepNumber];
-        // document.getElementById('title').innerText = stepInfo.title;
-        // document.getElementById('gif').src = stepInfo.imageSrc;
-        // document.getElementById('description').innerText = stepInfo.description;
 
         document.getElementById('description').innerHTML = '';
 
@@ -266,10 +225,6 @@
         if (prevStepNumber < 0) { prevStepNumber = steps.length - 1; }
         renderStep(prevStepNumber);
     }
-
-    // document.addEventListener('pointerup', function() {
-    //     nextStep();
-    // });
 
     document.getElementById('nextButton').addEventListener('pointerup', function() {
         nextStep();
