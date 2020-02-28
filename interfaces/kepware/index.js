@@ -9,31 +9,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/*
- *  PHILIPS HUE CONNECTOR
- *
- * This hardware interface can communicate with philips Hue lights. The config.json file specifies the connection information
- * for the lamps in your setup. A light in this config file has the following attributes:
- * {
- * "host":"localhost",                  // ip or hostname of the philips Hue bridge
- * "url":"/api/newdeveloper/lights/1",  // base path of the light on the bridge, replace newdeveloper with a valid username (see http://www.developers.meethue.com/documentation/getting-started)
- * "id":"Light1",                       // the name of the RealityInterface
- * "port":"80"                          // port the hue bridge is listening on (80 on all bridges by default)
- *
- * }
- *
- * Some helpful resources on the Philips Hue API:
- * http://www.developers.meethue.com/documentation/getting-started
- * http://www.developers.meethue.com/documentation/lights-api
- *
- * TODO: Add some more functionality, i.e. change color or whatever the philips Hue API offers
- */
-
 //Enable this hardware interface
 var server = require('@libraries/hardwareInterfaces');
 var settings = server.loadHardwareInterface(__dirname);
 
-exports.enabled = settings("enabled");
+exports.enabled = settings('enabled');
 exports.configurable = true; // can be turned on/off/adjusted from the web frontend
 
 if (exports.enabled) {
@@ -92,27 +72,27 @@ if (exports.enabled) {
 
     function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsInfo) {
         this.KepwareData = function() {
-            this.name = "";
-            this.id = "";
+            this.name = '';
+            this.id = '';
             this.data = {
-                "id": "",
-                "s": true,
-                "r": "",
-                "v": 0,
-                "t": 0,
-                "min": 10000,
-                "max":0,
-                "value":0
+                'id': '',
+                's': true,
+                'r': '',
+                'v': 0,
+                't': 0,
+                'min': 10000,
+                'max': 0,
+                'value': 0
             };
             this.dataOld = {
-                "id": "",
-                "s": true,
-                "r": "",
-                "v": 0,
-                "t": 0,
-                "min": 10000,
-                "max":0,
-                "value":0
+                'id': '',
+                's': true,
+                'r': '',
+                'v': 0,
+                't': 0,
+                'min': 10000,
+                'max': 0,
+                'value': 0
             };
             this.enabled = true;
         };
@@ -120,9 +100,9 @@ if (exports.enabled) {
         this.Client = require('node-rest-client').Client;
         this.remoteDevice = new this.Client();
         server.enableDeveloperUI(true);
-        this.kepwareAddress = "http://" + kepwareServerIP + ":" + kepwareServerPort + "/iotgateway/";
+        this.kepwareAddress = 'http://' + kepwareServerIP + ':' + kepwareServerPort + '/iotgateway/';
 
-        console.log("tags info saved in settings.json: ", kepwareServerTagsInfo);
+        console.log('tags info saved in settings.json: ', kepwareServerTagsInfo);
 
         /**
          * Browse the IoT gateway and create nodes for each found tag. Also starts an update interval.
@@ -130,7 +110,7 @@ if (exports.enabled) {
         this.setup = function () {
 
             this.thisID = {};
-            this.remoteDevice.get(this.kepwareAddress + "browse", function (data, _res) {
+            this.remoteDevice.get(this.kepwareAddress + 'browse', function (data, _res) {
 
                 for (var i = 0; i < data.browseResults.length; i++) {
                     this.thisID = data.browseResults[i].id;
@@ -138,18 +118,18 @@ if (exports.enabled) {
                     this.kepwareInterfaces[this.thisID].id = data.browseResults[i].id;
                     this.kepwareInterfaces[this.thisID].name = this.thisID.substr(this.thisID.lastIndexOf('.') + 1);
 
-                    console.log(kepwareServerName +"_"+ this.kepwareInterfaces[this.thisID].name);
+                    console.log(kepwareServerName +'_'+ this.kepwareInterfaces[this.thisID].name);
 
                     // enabled by default, unless there is a specific entry in the settings.tagsInfo saying it is disabled
                     this.kepwareInterfaces[this.thisID].enabled = typeof kepwareServerTagsInfo[this.thisID] === 'undefined' || typeof kepwareServerTagsInfo[this.thisID].enabled === 'undefined' || kepwareServerTagsInfo[this.thisID].enabled;
 
-                    // TODO: better frame naming configuration instead of just appending a "1" to the end of the object name
+                    // TODO: better frame naming configuration instead of just appending a '1' to the end of the object name
                     if (this.kepwareInterfaces[this.thisID].enabled) {
-                        server.addNode(kepwareServerName, kepwareServerName+"1",this.kepwareInterfaces[this.thisID].name, "node");
-                        this.setReadList(kepwareServerName, kepwareServerName+"1",this.thisID, this.kepwareInterfaces[this.thisID].name, this.kepwareInterfaces);
+                        server.addNode(kepwareServerName, kepwareServerName+'1',this.kepwareInterfaces[this.thisID].name, 'node');
+                        this.setReadList(kepwareServerName, kepwareServerName+'1',this.thisID, this.kepwareInterfaces[this.thisID].name, this.kepwareInterfaces);
                     } else {
                         // remove node instead of adding if settings.tagsInfo is disabled for this node
-                        server.removeNode(kepwareServerName, kepwareServerName+"1",this.kepwareInterfaces[this.thisID].name);
+                        server.removeNode(kepwareServerName, kepwareServerName+'1',this.kepwareInterfaces[this.thisID].name);
                     }
 
                 }
@@ -158,8 +138,8 @@ if (exports.enabled) {
 
                 this.interval = setInterval(this.start, kepwareServerRequestInterval);
 
-            }.bind(this)).on('error', function (_err) {
-                this.error();
+            }.bind(this)).on('error', function (err) {
+                this.error(err);
 
             }.bind(this));
 
@@ -176,10 +156,10 @@ if (exports.enabled) {
 
                 var args = {
                     data: [{id:node, v :  kepwareInterfaces[node].data.value}],
-                    headers: { "Content-Type": "application/json" }
+                    headers: { 'Content-Type': 'application/json' }
                 };
 
-                this.remoteDevice.post(this.kepwareAddress + "write", args, function (data, res) {
+                this.remoteDevice.post(this.kepwareAddress + 'write', args, function (data, res) {
 
                 }).on('error', function (_err) {
                     this.error();
@@ -191,17 +171,17 @@ if (exports.enabled) {
         }.bind(this);
 
         /**
-         * The update interval that gets called many times per second (defined by settings("updateRate"))
+         * The update interval that gets called many times per second (defined by settings('updateRate'))
          * Reads all tags at once from the kepware device.
          */
         this.start = function () {
 
-            var argstring = "?";
+            var argstring = '?';
             for (var key in this.kepwareInterfaces) {
-                argstring += "ids="+ key +"&";
+                argstring += 'ids='+ key +'&';
             }
 
-            this.remoteDevice.get(this.kepwareAddress + "read"+argstring, function (data, res) {
+            this.remoteDevice.get(this.kepwareAddress + 'read'+argstring, function (data, res) {
                 // parsed response body as js object
 
                 for (var i = 0; i < data.readResults.length; i++) {
@@ -216,7 +196,7 @@ if (exports.enabled) {
                     this.kepwareInterfaces[thisID].data.v = data.readResults[i].v;
                     this.kepwareInterfaces[thisID].data.t = data.readResults[i].t;
 
-                    if (typeof this.kepwareInterfaces[thisID].data.v === "boolean" ) { // converts boolean to 0 or 1 because nodes can only handle numbers
+                    if (typeof this.kepwareInterfaces[thisID].data.v === 'boolean' ) { // converts boolean to 0 or 1 because nodes can only handle numbers
                         this.kepwareInterfaces[thisID].data.v = this.kepwareInterfaces[thisID].data.v ? 1 : 0;
                     }
                     if (isNaN(this.kepwareInterfaces[thisID].data.v)) {
@@ -256,10 +236,10 @@ if (exports.enabled) {
 
                         // write the normalized value to the server
                         server.write(kepwareServerName,
-                            kepwareServerName + "1", // TODO: make frame name configurable instead of just kepwareBox -> kepwareBox1
+                            kepwareServerName + '1', // TODO: make frame name configurable instead of just kepwareBox -> kepwareBox1
                             this.kepwareInterfaces[thisID].name,
                             this.kepwareInterfaces[thisID].data.value,
-                            "f", // floating point
+                            'f', // floating point
                             definedUnit || this.kepwareInterfaces[thisID].name,
                             this.kepwareInterfaces[thisID].data.min,
                             this.kepwareInterfaces[thisID].data.max);
@@ -269,8 +249,8 @@ if (exports.enabled) {
                     this.kepwareInterfaces[thisID].dataOld.value = this.kepwareInterfaces[thisID].data.value;
                 }
 
-            }.bind(this)).on('error', function (_err) {
-                this.error();
+            }.bind(this)).on('error', function (err) {
+                this.error(err);
 
             }.bind(this));
 
@@ -279,8 +259,9 @@ if (exports.enabled) {
         /**
          * If there's ever an error with connecting to the IoT gateway, print debug information.
          */
-        this.error = function() {
-            console.log("cant find kepware server: \033[33m"+ kepwareServerName +"\033[0m with the IP: \033[33m"+ kepwareServerIP+"\033[0m");
+        this.error = function(err) {
+            console.error('kepware error', err);
+            console.log('cant find kepware server: \033[33m'+ kepwareServerName +'\033[0m with the IP: \033[33m'+ kepwareServerIP+'\033[0m');
         }
     }
 
