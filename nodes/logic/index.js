@@ -73,25 +73,10 @@ exports.setup = function (object,frame, node, activeBlockProperties){
 
 };
 
+exports.render = function (objectId, frameId, nodeId, thisNode, callback) {
+    for (var key in thisNode.data) {
+        thisNode.processedData[key] = thisNode.data[key];
+    }
 
-exports.render = function (objectID, frameID, linkID, inputData, callback) {
-    var outputData = {};
-    var key;
-        for (key in inputData) {
-            outputData[key] = inputData[key];
-        }
-    callback(objectID, frameID, linkID, outputData);
+    callback(objectId, frameId, nodeId, thisNode);
 };
-/* // example for delay
- exports.render = function (objectID, linkID, inputData, callback) {
- var outputData = {};
- for(key in inputData)
- {
- outputData[key] = inputData[key];
- }
-
- setTimeout(function() {
- callback(objectID, linkPositionID, outputData);
- }, 1000);
- };
- */
