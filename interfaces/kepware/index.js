@@ -59,7 +59,7 @@ if (exports.enabled) {
             frameName: {
                 value: settings('frameName'),
                 type: 'text',
-                helpText: 'The name of the frame on that object where nodes be added.'
+                helpText: 'The name of the frame on that object where nodes will be added.'
             },
             tagsInfo: settings('tagsInfo')
         };
@@ -204,9 +204,9 @@ if (exports.enabled) {
                         this.kepwareInterfaces[thisID].data.v = 0; // uses 0 as default node value if NaN
                     }
 
-                    let definedMin = kepwareServerTagsInfo[thisID].min;
-                    let definedMax = kepwareServerTagsInfo[thisID].max;
-                    let definedUnit = kepwareServerTagsInfo[thisID].unit;
+                    let definedMin = (typeof kepwareServerTagsInfo[thisID] !== 'undefined') ? kepwareServerTagsInfo[thisID].min : undefined;
+                    let definedMax = (typeof kepwareServerTagsInfo[thisID] !== 'undefined') ? kepwareServerTagsInfo[thisID].max : undefined;
+                    let definedUnit = (typeof kepwareServerTagsInfo[thisID] !== 'undefined') ? kepwareServerTagsInfo[thisID].unit : undefined;
 
                     if (typeof definedMax === 'undefined') {
                         // continuously adjusts min and max based on values it's seen so far
