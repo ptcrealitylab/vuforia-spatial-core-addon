@@ -67,12 +67,12 @@ exports.setup = function (object,frame, node, activeBlockProperties){
 
 };
 
-exports.render = function (object, frame, node, thisNode, callback) {
+exports.render = function (objectId, frameId, nodeId, thisNode, callback) {
     for (var key in thisNode.data) {
         thisNode.processedData[key] = thisNode.data[key];
     }
 
-    callback(object, frame, node, thisNode);
+    callback(objectId, frameId, nodeId, thisNode);
 };
 
 /* // example for delay
