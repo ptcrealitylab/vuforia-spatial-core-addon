@@ -54,6 +54,7 @@ exports.enabled = false;
 exports.configurable = false;
 
 if (exports.enabled) {
+    console.error('PowerMate is broken until node-powermate gets upgraded to a newer node-hid version');
     var PowerMate = require('node-powermate');
     var powermate = new PowerMate();
 
