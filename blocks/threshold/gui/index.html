@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Setup Slider</title>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <script src="../../../objectDefaultFiles/object.js"></script>
+    <script src="../../../objectDefaultFiles/logicNodeSettings.js"></script>
 </head>
 <body>
 <div id="number"><span id="numbervalue">0 ms</span><br>
@@ -51,10 +51,7 @@
         document.getElementById("smaller").checked = true;
     }
 
-    // todo this needs to wait until the reality editor has sent the initial data.
-    var thresholdValue = logic.readPublicData("threshold", 0.5); // value and default if not existing (optional)
-    number.innerHTML = "threshold: " + thresholdValue.toFixed(3);
-    slider.value = thresholdValue*1000;
+    updateWithSavedValue(logic.readPublicData("threshold", 0.5)); // value and default if not existing (optional)
 
     slider.addEventListener("input", function () {
         var value = slider.value / 1000;
@@ -92,6 +89,15 @@
             sendValue = true;
         logic.writePublicData("digital",  sendValue);
     }, false);
+
+    logic.addReadPublicDataListener("threshold", function(savedValue) {
+        updateWithSavedValue(savedValue);
+    });
+
+    function updateWithSavedValue(savedValue) {
+        number.innerHTML = "threshold: " + savedValue.toFixed(3);
+        slider.value = savedValue * 1000;
+    }
 
 
 </script>

@@ -83,7 +83,7 @@ var generalProperties = {
     nameInput : ["in", "", "", ""],
     nameOutput : ["out", "", "", ""],
     // should match the folder name
-    type : "IFTTT"
+    type : "ifttt"
 };
 
 exports.properties = generalProperties;

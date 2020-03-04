@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Setup Slider</title>
     <link rel="stylesheet" type="text/css" href="style.css">
-    <script src="../../../objectDefaultFiles/object.js"></script>
+    <script src="../../../objectDefaultFiles/logicNodeSettings.js"></script>
 </head>
 <body>
 <div class="number" id="loading" style="display: inline;"></div>
@@ -37,7 +37,7 @@
         document.getElementById('done').style.display = "inline";
         console.log(delayValue);
         writeNumber(delayValue);
-    slider.value = delayValue;
+        slider.value = delayValue;
     });
 
     function writeNumber(value){
