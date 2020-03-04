@@ -13,10 +13,12 @@ class SocketInterface{
 
         // Create an eventEmitter object
         this.eventEmitter = new events.EventEmitter();
-
-        this._isURmoving = false;
-
-        console.log('\nSocket: trying to connect...\n');
+        
+        this._isAlive = false;      // Is socket connection successful?
+        this.isRobotOK = true;      // If robot is in protective stop or emergency stop this will be false
+        this._isURmoving = false;   // Is robot moving?
+        
+        console.log('UR: Socket trying to connect...\n');
 
         this.client = new net.Socket();
 
@@ -26,7 +28,8 @@ class SocketInterface{
 
         }, function () {
 
-            console.log('UR3E CONNECTED');
+            console.log('\x1b[95m%s\x1b[0m', '\nUR: SOCKET CONNECTION SUCCESSFUL AT ', '\x1b[32m', hostIP, ':', port, '\n');
+            this._isAlive = true;
 
         }.bind(this));
 
@@ -39,7 +42,7 @@ class SocketInterface{
 
             TCPindex = 0;   // New TCP package, reset TCPindex
 
-            if (URindex >= URsize) {
+            if (URindex => URsize) {
                 URsize = data.readUIntBE(0, 4);
                 pack = Buffer.alloc(URsize);                            // create a new buffer to allocate all the UR packet
                 URindex = 0;
@@ -61,6 +64,11 @@ class SocketInterface{
                 }
             }
 
+        }.bind(this));
+        
+        this.client.on('error', function(data) {
+            this._isAlive = false;
+            console.log('\x1b[36m', "\nUR: Could not connect to UR's Server Socket. Is the robot on? ☹ ");
         }.bind(this));
 
         const self = this;
@@ -98,9 +106,31 @@ class SocketInterface{
                     console.log('isEmergencyStopped', isEmergencyStopped);
 
                     var isProtectiveStopped = data.readUIntBE(22, 1);
-                    console.log('isProtectiveStopped', isEmergencyStopped);
+                    console.log('isProtectiveStopped', isProtectiveStopped);
+                    
+                    
                      */
 
+                    var isProtectiveStopped = data.readUIntBE(22, 1);   // UR Protective Stop
+                    var isEmergencyStopped = data.readUIntBE(21, 1);    // UR Emergency Stop
+                    
+                    if (isProtectiveStopped || isEmergencyStopped) {
+                        if (this.isRobotOK){
+
+                            this.isRobotOK = false;
+                            this.eventEmitter.emit('ur_error');
+                            
+                        }
+                    } else {
+                        if (!this.isRobotOK){
+
+                            this.isRobotOK = true;
+                            this.eventEmitter.emit('ur_ready');
+
+                        }
+                    }
+                    
+                    
                     var isProgramRunning = data.readUIntBE(23, 1);              // This indicates if the robot arm is moving
                     //console.log('isProgramRunning', isProgramRunning);
                     if (!this._isURmoving){

@@ -45,7 +45,7 @@
 var server = require('@libraries/hardwareInterfaces');
 var settings = server.loadHardwareInterface(__dirname);
 
-var events = require('events');
+//var events = require('events');
 
 const { WebSocketInterface } = require('./websocketInterface');
 const { RestAPIInterface } = require('./restapiInterface');
@@ -53,38 +53,32 @@ const { RestAPIServer } = require('./restapiserver');
 const { CustomMaths } = require('./customMaths');
 const { SocketInterface } = require('./socketInterface');
 
-exports.enabled = false;
-exports.configurable = true; // can be turned on/off/adjusted from the web frontend
+exports.enabled = true;
 
 if (exports.enabled) {
 
     let enableMIRConnection = true;
-    console.log('\nMIR Connection: ', enableMIRConnection,'\n');
+    console.log('MIR Connection: ', enableMIRConnection);
 
     server.enableDeveloperUI(true);
     server.removeAllNodes('MIR', 'kineticAR'); // We remove all existing nodes from the Frame
 
     // ROBOT IP
-    //const hostIP = "192.168.12.20"; 
-    const hostIP = "10.10.10.112";              // reality demo 5G
+    // const hostIP = "192.168.12.20";
+    const hostIP = "10.10.10.30";              // reality demo 5G
     const port = 9090;
 
-    //const benIP = "10.10.10.110";
-    const benIP = "127.0.0.1";
-    const benPort = 8080;
-    let websocketToBen = new SocketInterface(benIP, benPort);
+    // store position of object in real time for others to access
+    const objectUpdateIP = "127.0.0.1";
+    const objectUpdatePort = 8080;
+    let websocketObjectUpdate = new SocketInterface(objectUpdateIP, objectUpdatePort);
 
-    let eventEmitter = new events.EventEmitter();
+    //let eventEmitter = new events.EventEmitter();
 
     let maths = new CustomMaths();
 
     // MIR100 WEBSOCKET
     let websocket, restapi, serverRest = null;
-    if (enableMIRConnection){
-        websocket = new WebSocketInterface(hostIP, port);
-        restapi = new RestAPIInterface(hostIP);
-        serverRest = new RestAPIServer(3030);   // Create server for others to access robot data
-    }
 
     // MIR100 REST API INFO
     const restAddress = "http://" + hostIP + "/api/v2.0.0";
@@ -107,11 +101,11 @@ if (exports.enabled) {
     let activeCheckpointName = null;        // Current active checkpoint
 
     const groundPlaneScaleFactor = 1000;    // In mm
-    let lastPositionAR = {x:0, y:0};        // Variable to keep the last position of the robot in AR
-    let lastDirectionAR = {x:0, y:0};       // Variable to keep the last direction of the robot in AR
-    let currentPositionMIR = {x:0, y:0};    // Current position of the robot in her MIR map
+    let lastPositionAR = {x: 0, y: 0};        // Variable to keep the last position of the robot in AR
+    let lastDirectionAR = {x: 0, y: 0};       // Variable to keep the last direction of the robot in AR
+    let currentPositionMIR = {x: 0, y: 0};    // Current position of the robot in her MIR map
     let currentOrientationMIR = 0;          // Current orientation of the robot in his MIR map
-    let initPositionMIR = {x:0, y:0};
+    let initPositionMIR = {x: 0, y: 0};
     let initOrientationMIR = 0;
     let initOrientationAR = 0;
     let initialSync = false;
@@ -119,12 +113,11 @@ if (exports.enabled) {
     let mirFollowUser = false;
     let mapGUID = "";                       // Mission GUID needed for REST calls
 
-    // INITIAL REQUESTS
-    if (enableMIRConnection) restRequest(endpoints.missions).then(processMissions).catch(error => console.error(error));
-    //if (enableMIRConnection) restRequest(endpoints.maps).then(processMaps).catch(error => console.error(error));
-
     // Request Information to the MIR100
-    function restRequest(endpoint){ return restapi.getData(restAddress + endpoint);}
+    function restRequest(endpoint){
+            //console.log(endpoint);
+            return restapi.getData(restAddress + endpoint);
+    }
 
     server.addNode("MIR", "kineticAR", "kineticNode1", "storeData");     // Node for occlusion data
     server.addNode("MIR", "kineticAR", "kineticNode2", "storeData");     // Node for the data path. Follow Checkpoints
@@ -147,16 +140,15 @@ if (exports.enabled) {
         lastDirectionAR.x = data.robotInitDirection['x'];
         lastDirectionAR.y = data.robotInitDirection['z'];
 
-        //console.log("LAST POSITION AR: ", lastPositionAR);              //       { x: -332.3420, y: 482.1173, z: 1749.54107 }
-        //console.log("LAST DIRECTION AR: ", lastDirectionAR);            //       { x: -0.84, y: -0.00424 }
+        console.log("LAST POSITION AR: ", lastPositionAR);              //       { x: -332.3420, y: 482.1173, z: 1749.54107 }
+        console.log("LAST DIRECTION AR: ", lastDirectionAR);            //       { x: -0.84, y: -0.00424 }
 
         initOrientationMIR = currentOrientationMIR;                         // Get orientation at this moment in time
         initOrientationAR =  (-1) * maths.signed_angle([1,0], [lastDirectionAR.x, lastDirectionAR.y]) * 180 / Math.PI;
         initPositionMIR.x = currentPositionMIR.x;
         initPositionMIR.y = currentPositionMIR.y;
         initialSync = true;
-
-
+        
     });
 
     server.addPublicDataListener("MIR", "kineticAR", "kineticNode4","ClearPath",function (data) {
@@ -166,11 +158,13 @@ if (exports.enabled) {
         pathData.forEach(path => {
             path.checkpoints.forEach(checkpoint => {
                 server.removeNode("MIR", "kineticAR", checkpoint.name);
-                server.pushUpdatesToDevices("MIR");
+                //server.pushUpdatesToDevices("MIR");
             });
             path.checkpoints = [];
         });
 
+        server.pushUpdatesToDevices("MIR");
+        
         inMotion = false;
         activeCheckpointName = null;
 
@@ -202,15 +196,16 @@ if (exports.enabled) {
 
                                 if (serverCheckpoint.posX !== frameCheckpoint.posX) serverCheckpoint.posX = frameCheckpoint.posX;
                                 if (serverCheckpoint.posY !== frameCheckpoint.posY) serverCheckpoint.posY = frameCheckpoint.posY;
+                                if (serverCheckpoint.posZ !== frameCheckpoint.posZ) serverCheckpoint.posZ = frameCheckpoint.posZ;
                                 if (serverCheckpoint.orientation !== frameCheckpoint.orientation) serverCheckpoint.orientation = frameCheckpoint.orientation;
 
-                                server.moveNode("MIR", "kineticAR", frameCheckpoint.name, frameCheckpoint.posX, frameCheckpoint.posY, 0.3,[
+                                server.moveNode("MIR", "kineticAR", frameCheckpoint.name, frameCheckpoint.posX, frameCheckpoint.posZ, 0.3,[
                                     1, 0, 0, 0,
                                     0, 1, 0, 0,
                                     0, 0, 1, 0,
-                                    0, 0, 0, 1
+                                    0, 0, frameCheckpoint.posY * 2, 1
                                 ], true);
-                                server.pushUpdatesToDevices("MIR");
+                                //server.pushUpdatesToDevices("MIR");
 
                                 //console.log('server checkpoint: ', serverCheckpoint);
 
@@ -223,16 +218,16 @@ if (exports.enabled) {
 
                             server.addNode("MIR", "kineticAR", frameCheckpoint.name, "node");
 
-                            console.log('NEW ' + frameCheckpoint.name + ' | position: ', frameCheckpoint.posX, frameCheckpoint.posY);
+                            console.log('NEW ' + frameCheckpoint.name + ' | position: ', frameCheckpoint.posX, frameCheckpoint.posZ);
 
-                            server.moveNode("MIR", "kineticAR", frameCheckpoint.name, frameCheckpoint.posX, frameCheckpoint.posY, 0.3,[
+                            server.moveNode("MIR", "kineticAR", frameCheckpoint.name, frameCheckpoint.posX, frameCheckpoint.posZ, 0.3,[
                                 1, 0, 0, 0,
                                 0, 1, 0, 0,
                                 0, 0, 1, 0,
-                                0, 0, 0, 1
+                                0, 0, frameCheckpoint.posY * 2, 1
                             ], true);
 
-                            server.pushUpdatesToDevices("MIR");
+                            //server.pushUpdatesToDevices("MIR");
 
                             //console.log(' ************** Add read listener to ', frameCheckpoint.name);
 
@@ -258,7 +253,9 @@ if (exports.enabled) {
             }
         });
 
-        console.log("\nCurrent PATH DATA in SERVER: ", JSON.stringify(pathData), '\n');
+        console.log("Current PATH DATA in SERVER: ", JSON.stringify(pathData));
+
+        server.pushUpdatesToDevices("MIR");
 
     });
 
@@ -281,7 +278,7 @@ if (exports.enabled) {
                 activeCheckpointName = checkpointTriggered.name;
                 checkpointTriggered.active = 1; // This checkpoint gets activated
 
-                let missionData = computeMIRCoordinatesTo(checkpointTriggered.posX, checkpointTriggered.posY, checkpointTriggered.orientation);
+                let missionData = computeMIRCoordinatesTo(checkpointTriggered.posX, checkpointTriggered.posZ, checkpointTriggered.orientation);
 
                 let newAddress = restAddress + "/mission_queue";
 
@@ -393,85 +390,89 @@ if (exports.enabled) {
 
         if (data !== undefined){
             mirStatus = data['position'];
-            currentPositionMIR.x = mirStatus['x'];
-            currentPositionMIR.y = mirStatus['y'];
-            currentOrientationMIR = mirStatus['orientation'];
+            
+            if (mirStatus !== undefined){
+                currentPositionMIR.x = mirStatus['x'];
+                currentPositionMIR.y = mirStatus['y'];
+                currentOrientationMIR = mirStatus['orientation'];
 
-            // Send info to rest server for others to access it.
-            serverRest.RobotStatus = mirStatus;
+                // Send info to rest server for others to access it.
+                serverRest.RobotStatus = mirStatus;
 
-            //console.log(mirStatus);
+                //console.log(mirStatus);
 
-            //console.log("   -   -   -   ROBOT POS: ", dataStatus);
-            /*console.log("********************************");
-            console.log("   -   -   -   ROBOT NAME: " + data['robot_name']);
-            console.log("   -   -   -   mission_queue_id: " + data['mission_queue_id']);
-            console.log("   -   -   -   mission_queue_url: " + data['mission_queue_url']);
-            console.log("   -   -   -   mission_text: " + data['mission_text']);
-            console.log("   -   -   -   mode_id: " + data['mode_id']);
-            console.log("   -   -   -   state_id: " + data['state_id']);
-            console.log("   -   -   -   state_text: " + data['state_text']);*/
+                //console.log("   -   -   -   ROBOT POS: ", dataStatus);
+                /*console.log("********************************");
+                console.log("   -   -   -   ROBOT NAME: " + data['robot_name']);
+                console.log("   -   -   -   mission_queue_id: " + data['mission_queue_id']);
+                console.log("   -   -   -   mission_queue_url: " + data['mission_queue_url']);
+                console.log("   -   -   -   mission_text: " + data['mission_text']);
+                console.log("   -   -   -   mode_id: " + data['mode_id']);
+                console.log("   -   -   -   state_id: " + data['state_id']);
+                console.log("   -   -   -   state_text: " + data['state_text']);*/
 
-            const state_id = parseInt(data['state_id']);
+                const state_id = parseInt(data['state_id']);
 
-            switch(state_id){
-                case 3:
-                    if (mir_current_state !== 3){
+                switch(state_id){
+                    case 3:
+                        if (mir_current_state !== 3){
 
-                        if (mir_mission_interrupted){
+                            if (mir_mission_interrupted){
 
-                            console.log('ALL MISSIONS STOPPED DUE TO INTERRUPTION');
+                                console.log('ALL MISSIONS STOPPED DUE TO INTERRUPTION');
 
-                            mir_mission_interrupted = false;
+                                mir_mission_interrupted = false;
 
-                            mir_current_state = 3;
+                                mir_current_state = 3;
 
-                            inMotion = false;
+                                inMotion = false;
 
-                        } else {
-
-                            console.log("MIR CHANGED STATE TO READY!");
-                            inMotion = false;
-
-                            // MIR has finished mission. Send a 0 to current checkpoint
-                            
-                            if (activeCheckpointName !== null){
-                                console.log("\nSetting active checkpoint to 0", activeCheckpointName);
-                                server.write("MIR", "kineticAR", activeCheckpointName, 0);
                             } else {
-                                console.log("No checkpoint active. Active checkpoint is NULL");
+
+                                console.log("MIR CHANGED STATE TO READY!");
+                                inMotion = false;
+
+                                // MIR has finished mission. Send a 0 to current checkpoint
+
+                                if (activeCheckpointName !== null){
+                                    console.log("Setting active checkpoint to 0", activeCheckpointName);
+                                    server.write("MIR", "kineticAR", activeCheckpointName, 0);
+                                } else {
+                                    console.log("No checkpoint active. Active checkpoint is NULL");
+                                }
+
+                                mir_current_state = 3;
                             }
-
-                            mir_current_state = 3;
                         }
-                    }
-                    break;
-                case 4:
-                    // pause
-                    //console.log("PAUSE");
-                    break;
-                case 5:
-                    if (mir_current_state !== 5){
-                        console.log("MIR CHANGED STATE TO EXECUTING!");
+                        break;
+                    case 4:
+                        // pause
+                        //console.log("PAUSE");
+                        break;
+                    case 5:
+                        if (mir_current_state !== 5){
+                            console.log("MIR CHANGED STATE TO EXECUTING!");
 
-                        mir_current_state = 5;
+                            mir_current_state = 5;
 
-                        inMotion = true;        // When robot starts moving
-                    }
-                    break;
+                            inMotion = true;        // When robot starts moving
+                        }
+                        break;
 
-                case 10:
-                    // emergency stop
-                    console.log("EMERGENCY STOP!");
-                    break;
+                    case 10:
+                        // emergency stop
+                        console.log("EMERGENCY STOP!");
+                        break;
 
-                case 11:
-                    // manual control
-                    //console.log("MANUAL CONTROL");
-                    break;
-                default:
-                // code block
+                    case 11:
+                        // manual control
+                        //console.log("MANUAL CONTROL");
+                        break;
+                    default:
+                    // code block
+                }
             }
+            
         }
     }
 
@@ -493,7 +494,7 @@ if (exports.enabled) {
             if (obj.name === 'FLOOR17'){
                 mapGUID = obj.guid;
 
-                restRequest('/maps/' + mapGUID).then(processMap).catch(error => console.error(error));
+                if (restapi.isAlive) restRequest('/maps/' + mapGUID).then(processMap).catch(error => console.error(error));
             }
         }
     }
@@ -505,16 +506,17 @@ if (exports.enabled) {
 
             require("fs").writeFile("out.png", data['map'], 'base64', function(err) {
                 if (err) throw err;
-                console.log('Map File Saved!\n');
+                console.log('Map File Saved!');
             });
         }
     }
-    
+
+    /*
     function processPaths(data){
 
         console.log('Path Data: ', data);
 
-        /*
+        
         for(var i = 0; i < data.length; i++) {  // loop through all objects in array
 
             let obj = data[i];
@@ -537,7 +539,7 @@ if (exports.enabled) {
                 .catch(error => console.error(error));
 
         }
-        */
+        
 
     }
 
@@ -546,6 +548,8 @@ if (exports.enabled) {
         console.log(data);
 
     }
+    
+     */
 
 
     function sendOcclusionPosition(){
@@ -607,46 +611,85 @@ if (exports.enabled) {
             objectKey: "MIRA5el60nk4klg",
             position: {
                 x: newARPosition.x * 1000, // 1000 = 1 meter in world space
-                y: newARPosition.y * 1000,
+                y: - newARPosition.y * 1000,
                 z: 0
             },
             rotationInRadians: maths.degrees_to_radians(newARAngle), // right now this API only supports rotation about the vertical axis. use the other API to pass a full rotation matrix.
             editorId: 'testID' // the actual value doesn't matter but it needs to have one
         };
-        websocketToBen.send(JSON.stringify(messageBody));
+        websocketObjectUpdate.send(JSON.stringify(messageBody));
 
         return newARPosition;
 
     }
+    
+    /*
+    *   1 - connect to websocket
+    *   2 - if fail, go back to 1
+    *   3 - if success, continue with rest api
+     */
+    function connectWebsocket(){
+        
+            console.log('MIR: CONNECT WEBSOCKET');
+        
+            websocket = new WebSocketInterface(hostIP, port);
 
+            websocket.eventEmitter.on('ok', function(){
+                console.log('MIR connection successful');
+                startRESTRequests();    // Start REST requests
+                
+            }, false);
 
-    // UPDATE FUNCTION
+            websocket.eventEmitter.on('ko', function(){
+                console.log('MIR connection failed');
+                connectWebsocket(); // Try again until success
+            }, false);
+    }
+    
+    function startRESTRequests(){
+        /* INITIAL REQUESTS */
+        
+        restapi = new RestAPIInterface(hostIP);
+        serverRest = new RestAPIServer(3030);   // Create server for others to access robot data
+
+        restRequest(endpoints.missions).then(function (data) {
+
+            processMissions(data);
+            requestStatus();
+
+        }).catch(error => console.warn('\x1b[36m%s\x1b[0m', "MIR: Could not process Missions. REST request failed. ☹ "));
+    }
+
+    /*
+    ** Recursively ask for status
+     */
+    function requestStatus(){
+        restRequest(endpoints.status).then(function (data){
+            processStatus(data);
+
+            // call restRequest again
+            requestStatus();
+
+        }).catch(error => console.error(error));
+    }
+    
+    /* UPDATE FUNCTION */
     function updateEvery(i, time) {
         setTimeout(() => {
 
-            // We request status in a loop forever
-            if (enableMIRConnection) {
-
-                restRequest(endpoints.status).then(processStatus).catch(error => console.error(error));
-
-                //if (inMotion) restRequest(endpoints.maps + "/" + mapGUID).then(processPaths).catch(error => console.error(error));
-                //if (inMotion) restRequest("/path_guides_positions").then(processPaths).catch(error => console.error(error));
-
-                if (initialSync) sendOcclusionPosition();
-            }
-
+            if (enableMIRConnection && initialSync) sendOcclusionPosition();
+           
             updateEvery(++i, time);
         }, time)
     }
 
+    if (enableMIRConnection) connectWebsocket();
     updateEvery(0, 100);
 
     server.addEventListener("reset", function () {
-
     });
 
     server.addEventListener("shutdown", function () {
-
     });
 
 }
