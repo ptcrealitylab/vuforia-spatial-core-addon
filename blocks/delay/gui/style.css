@@ -4,7 +4,6 @@ body {
 input[type=range] {
     background-color: transparent;
     -webkit-appearance: none;
-
 }
 
 input[type=range]::-webkit-slider-runnable-track {

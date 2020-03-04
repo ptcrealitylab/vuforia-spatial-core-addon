@@ -91,29 +91,24 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
-
     if (index === 0) {
-        if(thisBlock.data[0].value > 0.5 ){
-            if(thisBlock.publicData.toggle !== false) {
-
+        // if the first input receives a high value and the switch is on, turns the switch off and outputs a 1 from the first output
+        if (thisBlock.data[0].value > 0.5) {
+            if (thisBlock.publicData.toggle !== false) {
                 thisBlock.publicData.toggle = false;
                 thisBlock.processedData[0].value = 1;
                 return callback(object, frame, node, block, index, thisBlock);
-
             }
         }
-    }
-
-    else if (index === 1) {
-        if(thisBlock.data[1].value > 0.5 ){
+    } else if (index === 1) {
+        // if the second input receives a high value and the switch is off, turns the switch on and outputs a 0 from the first output
+        if (thisBlock.data[1].value > 0.5) {
             if(thisBlock.publicData.toggle !== true) {
-
                 thisBlock.publicData.toggle = true;
                 thisBlock.processedData[0].value = 0;
                 return callback(object, frame, node, block, index, thisBlock);
             }
         }
-
     }
 };
 

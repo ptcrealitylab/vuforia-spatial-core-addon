@@ -91,24 +91,22 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
-
     if (index === 0) {
-        if(thisBlock.data[0].value > 0.5 ){
-            if(thisBlock.publicData.toggle !== false) {
-
+        // if the first input receives a high value, and the toggle was flipped towards the second input, flip it back to the first and emit a 1 from the first output and a 0 from the second
+        if (thisBlock.data[0].value > 0.5) {
+            if (thisBlock.publicData.toggle !== false) {
                 thisBlock.publicData.toggle = false;
                 thisBlock.processedData[0].value = 1;
                 thisBlock.processedData[1].value = 0;
                 return callback(object, frame, node, block, index, thisBlock);
-
             }
         }
     }
 
     else if (index === 1) {
-        if(thisBlock.data[1].value > 0.5 ){
-            if(thisBlock.publicData.toggle !== true) {
-
+        // if the second input receives a high value, and the toggle was flipped towards the first input, flip it back to the second and emit a 1 from the second output and a 0 from the first
+        if (thisBlock.data[1].value > 0.5) {
+            if (thisBlock.publicData.toggle !== true) {
                 thisBlock.publicData.toggle = true;
                 thisBlock.processedData[0].value = 0;
                 thisBlock.processedData[1].value = 1;
@@ -117,13 +115,12 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
         }
 
     } else if (index === 2) {
-
+        // if the third input receives data, and the toggle is flipped towards the second input, output the third input from the third output. if the toggle is flipped to the first input, do nothing
         if (thisBlock.publicData.toggle === true) {
             thisBlock.processedData[2] = thisBlock.data[2];
             return callback(object, frame, node, block, index, thisBlock);
         }
     }
-
 };
 
 /**

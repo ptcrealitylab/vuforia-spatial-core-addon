@@ -51,10 +51,7 @@
         document.getElementById("smaller").checked = true;
     }
 
-    // todo this needs to wait until the reality editor has sent the initial data.
-    var thresholdValue = logic.readPublicData("threshold", 0.5); // value and default if not existing (optional)
-    number.innerHTML = "threshold: " + thresholdValue.toFixed(3);
-    slider.value = thresholdValue*1000;
+    updateWithSavedValue(logic.readPublicData("threshold", 0.5)); // value and default if not existing (optional)
 
     slider.addEventListener("input", function () {
         var value = slider.value / 1000;
@@ -93,7 +90,14 @@
         logic.writePublicData("digital",  sendValue);
     }, false);
 
+    logic.addReadPublicDataListener("threshold", function(savedValue) {
+        updateWithSavedValue(savedValue);
+    });
 
+    function updateWithSavedValue(savedValue) {
+        number.innerHTML = "threshold: " + savedValue.toFixed(3);
+        slider.value = savedValue * 1000;
+    }
 </script>
 </body>
 </html>
