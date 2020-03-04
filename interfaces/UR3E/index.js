@@ -49,7 +49,6 @@ const { SocketInterface } = require('./socketClient');
 const { CustomMaths } = require('./customMaths');
 
 exports.enabled = false;
-exports.configurable = true; // can be turned on/off/adjusted from the web frontend
 
 if (exports.enabled) {
 
@@ -59,7 +58,7 @@ if (exports.enabled) {
     server.enableDeveloperUI(true);
     server.removeAllNodes('UR3E', 'kineticAR');   // We remove all existing nodes from the Frame
 
-    const hostIP = "10.10.10.108";                                      // UR IP
+    const hostIP = "10.10.10.122";                                      // UR IP
     const port = 30002;
 
     let maths = new CustomMaths();
@@ -90,6 +89,14 @@ if (exports.enabled) {
 
             server.write("UR3E", "kineticAR", activeCheckpointName, 0);
 
+        }, false);
+
+        socket.eventEmitter.on('ur_error', function(){
+            console.log('\x1b[36m%s\x1b[0m', "\nUR: Something is wrong with the robot ☹ \n");
+        }, false);
+
+        socket.eventEmitter.on('ur_ready', function(){
+            console.log('\x1b[32m%s\x1b[0m', "\nUR: the robot is ready! 💟 ");
         }, false);
     }
 
@@ -227,10 +234,13 @@ if (exports.enabled) {
 
                 let offsetZ = 0.170;
 
-                socket.moveURto(checkpointTriggered.posXUR * 0.001, checkpointTriggered.posYUR * 0.001, offsetZ + checkpointTriggered.posZUR * 0.001, 0, Math.PI, 0);
+                if (socket.isRobotOK) socket.moveURto(checkpointTriggered.posXUR * 0.001, checkpointTriggered.posYUR * 0.001, offsetZ + checkpointTriggered.posZUR * 0.001, 0, Math.PI, 0);
                 //socket.moveURto(checkpointTriggered.posXUR * 0.001, checkpointTriggered.posYUR * 0.001, 0.3, 0, Math.PI, 0);
 
                 inMotion = true;
+
+                // Alert frame of new checkpoint goal
+                server.writePublicData("UR3E", "kineticAR", "kineticNode1", "CheckpointTriggered", checkpointIdx);
 
             } else {
                 console.log('WARNING: This checkpoint was already active!');

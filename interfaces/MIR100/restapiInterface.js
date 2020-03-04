@@ -14,6 +14,7 @@ class restapiInterface {
         const restAddress = "http://mir.com/api/v2.0.0";
         this._authorization = "Basic ZGlzdHJpYnV0b3I6NjJmMmYwZjFlZmYxMGQzMTUyYzk1ZjZmMDU5NjU3NmU0ODJiYjhlNDQ4MDY0MzNmNGNmOTI5NzkyODM0YjAxNA==";
 
+        this.getData = this.getData.bind(this);
     }
 
     // Example GET method implementation:
@@ -32,10 +33,11 @@ class restapiInterface {
             },
             redirect: "follow", // manual, *follow, error
             referrer: "no-referrer", // no-referrer, *client
-        })
-            .then(response => response.json(), function (response) {
-                console.log("ERROR: ", response);
-            }); // parses JSON response into native Javascript objects
+        }).then(response => response.json(), response => {  // parses JSON response into native Javascript objects
+            //console.log("ERROR: ", response);
+            console.log('\x1b[36m%s\x1b[0m', "\nMIR: Couldn't GET data from REST API. Are you sure MIR robot is ON? ☹ ");
+        });
+        
     }
 
     // Example GET method implementation:
