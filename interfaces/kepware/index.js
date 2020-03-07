@@ -260,8 +260,8 @@ if (exports.enabled) {
          * If there's ever an error with connecting to the IoT gateway, print debug information.
          */
         this.error = function(err) {
-            console.error('kepware error', err);
-            console.log('cant find kepware server: \033[33m'+ kepwareServerName +'\033[0m with the IP: \033[33m'+ kepwareServerIP+'\033[0m');
+          //  console.error('kepware error', err); // todo err just outputs a gigantic json object. Needs some more specifics.
+            console.error('cant find kepware server: \033[33m'+ kepwareServerName +'\033[0m with the IP: \033[33m'+ kepwareServerIP+'\033[0m');
         }
     }
 
