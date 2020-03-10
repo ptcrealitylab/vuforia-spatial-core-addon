@@ -60,22 +60,22 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "seesaw",
+    name: 'seesaw',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 3,
-    privateData : {},
+    blockSize: 3,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {toggle: true},
+    publicData: {toggle: true},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, true, true, false],
+    activeInputs: [true, true, true, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, true, true, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, true, true, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["in", "in", "in", ""],
-    nameOutput : ["digital out", "digital out", "out", ""],
+    nameInput: ['in', 'in', 'in', ''],
+    nameOutput: ['digital out', 'digital out', 'out', ''],
     // should match the folder name
-    type : "seesaw"
+    type: 'seesaw'
 };
 
 exports.properties = generalProperties;
@@ -101,9 +101,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
                 return callback(object, frame, node, block, index, thisBlock);
             }
         }
-    }
-
-    else if (index === 1) {
+    } else if (index === 1) {
         // if the second input receives a high value, and the toggle was flipped towards the first input, flip it back to the second and emit a 1 from the second output and a 0 from the first
         if (thisBlock.data[1].value > 0.5) {
             if (thisBlock.publicData.toggle !== true) {
@@ -126,7 +124,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

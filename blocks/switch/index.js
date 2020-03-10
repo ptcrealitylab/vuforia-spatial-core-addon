@@ -60,25 +60,23 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "switch",
+    name: 'switch',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 2,
-    privateData : {},
+    blockSize: 2,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {switchType : "toggle", switch: false, toggle: false},
+    publicData: {switchType: 'toggle', switch: false, toggle: false},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, true, false, false],
+    activeInputs: [true, true, false, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, true, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, true, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["in", "stream in", "", ""],
-    nameOutput : ["out", "stream out", "", ""],
+    nameInput: ['in', 'stream in', '', ''],
+    nameOutput: ['out', 'stream out', '', ''],
     // should match the folder name
-    type : "switch"
+    type: 'switch'
 };
-
-var switchValue = 0;
 
 exports.properties = generalProperties;
 
@@ -94,10 +92,10 @@ exports.properties = generalProperties;
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
 
-    if(thisBlock.publicData.switchType ===  "toggle"){
+    if (thisBlock.publicData.switchType ===  'toggle') {
 
-        if(thisBlock.data[0].value > 0.5 ){
-            if(thisBlock.publicData.toggle !== true) {
+        if (thisBlock.data[0].value > 0.5 ) {
+            if (thisBlock.publicData.toggle !== true) {
                 thisBlock.publicData.toggle = true;
 
                 thisBlock.publicData.switch = !thisBlock.publicData.switch;
@@ -108,21 +106,20 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
         }
 
     } else {
-        if(thisBlock.data[0].value > 0.5){
+        if (thisBlock.data[0].value > 0.5) {
             thisBlock.publicData.switch = true;
         } else {
             thisBlock.publicData.switch = false;
         }
     }
 
-    if(thisBlock.publicData.switch) {
+    if (thisBlock.publicData.switch) {
         for (var key in thisBlock.data[index]) {
             thisBlock.processedData[index][key] = thisBlock.data[index][key];
         }
 
         if (index === 0)   thisBlock.processedData[index].value = 1;
-    }
-    else {
+    } else {
         thisBlock.processedData[index].value = 0;
     }
 
@@ -132,7 +129,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

@@ -54,15 +54,15 @@
  **/
 
 var generalProperties = {
-    name : "counter",
-    privateData : {},
-    publicData : {count: 0, lastTick:false},
-    type : "node"
+    name: 'counter',
+    privateData: {},
+    publicData: {count: 0, lastTick: false},
+    type: 'node'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };
@@ -70,9 +70,9 @@ exports.setup = function (object,frame, node, activeBlockProperties){
 exports.render = function (object, frame, node, thisNode, callback) {
 
     for (var key in thisNode.data) {
-        if(key === "value"){
+        if (key === 'value') {
 
-            if(thisNode.data.value >=0.5 && thisNode.publicData.lastTick === false){
+            if (thisNode.data.value >= 0.5 && thisNode.publicData.lastTick === false) {
 
                 thisNode.publicData.lastTick = true;
                 thisNode.publicData.count++;
@@ -80,7 +80,7 @@ exports.render = function (object, frame, node, thisNode, callback) {
                 thisNode.processedData.unitMax = thisNode.publicData.count;
                 thisNode.processedData.unitMin = 0;
                 callback(object, frame, node, thisNode);
-            } else if(thisNode.data.value <=0.4 && thisNode.publicData.lastTick === true) {
+            } else if (thisNode.data.value <= 0.4 && thisNode.publicData.lastTick === true) {
                 thisNode.publicData.lastTick = false;
             }
         }

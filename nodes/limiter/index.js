@@ -54,27 +54,27 @@
  **/
 
 var generalProperties = {
-    name : "node",
-    privateData : {},
-    publicData : {max: 1},
-    type : "node"
+    name: 'node',
+    privateData: {},
+    publicData: {max: 1},
+    type: 'node'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };
 
 exports.render = function (object, frame, node, thisNode, callback) {
     for (var key in thisNode.data) {
-        if(key === "value"){
+        if (key === 'value') {
             if (thisNode.data.value < thisNode.publicData.max) {
                 thisNode.processedData.value = 1.0;
             } else {
                 thisNode.processedData.value = 0.0;
-            };
+            }
         } else {
             thisNode.processedData[key] = thisNode.data[key];
         }

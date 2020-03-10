@@ -60,22 +60,22 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "duplex",
+    name: 'duplex',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 3,
-    privateData : {},
+    blockSize: 3,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {},
+    publicData: {},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, true, true, false],
+    activeInputs: [true, true, true, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["in", "low in", "high in", ""],
-    nameOutput : ["out", "", "", ""],
+    nameInput: ['in', 'low in', 'high in', ''],
+    nameOutput: ['out', '', '', ''],
     // should match the folder name
-    type : "duplex"
+    type: 'duplex'
 };
 
 exports.properties = generalProperties;
@@ -92,7 +92,7 @@ exports.properties = generalProperties;
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback) {
 
-    if(thisBlock.data[0].value > 0.5 ) {
+    if (thisBlock.data[0].value > 0.5 ) {
         // Copy values from high input to out
         copyValuesToOutput(thisBlock, 2);
     } else {
@@ -112,7 +112,7 @@ function copyValuesToOutput(thisBlock, index) {
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

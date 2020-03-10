@@ -54,21 +54,21 @@
  **/
 
 var generalProperties = {
-    name : "default",
-    blockSize : 1,
-    privateData : {},
-    publicData : {},
-    activeInputs : [true, false, false, false],
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
-    nameInput : ["in", "", "", ""],
-    nameOutput : ["out", "", "", ""],
-    type : "default"
+    name: 'default',
+    blockSize: 1,
+    privateData: {},
+    publicData: {},
+    activeInputs: [true, false, false, false],
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
+    nameInput: ['in', '', '', ''],
+    nameOutput: ['out', '', '', ''],
+    type: 'default'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, block, thisBlock, callback){
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

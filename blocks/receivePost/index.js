@@ -59,26 +59,24 @@
  * gui/index.html is the optional settings menu that pops up when you tap on the block
  */
 
-var request = require('request');
-
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "receivePost",
+    name: 'receivePost',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 1,
-    privateData : {},
+    blockSize: 1,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {endpointUrl : "http://192.168.1.12:8082/test"},
+    publicData: {endpointUrl: 'http://192.168.1.12:8082/test'},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, false, false, false],
+    activeInputs: [true, false, false, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["in", "", "", ""],
-    nameOutput : ["out", "", "", ""],
+    nameInput: ['in', '', '', ''],
+    nameOutput: ['out', '', '', ''],
     // should match the folder name
-    type : "receivePost"
+    type: 'receivePost'
 };
 
 exports.properties = generalProperties;
@@ -106,7 +104,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);
