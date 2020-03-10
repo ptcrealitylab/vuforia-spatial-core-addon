@@ -53,15 +53,15 @@
  * @note the callback has the same structure then the initial prototype, however inputData has changed to outputData
  **/
 var generalProperties = {
-    name : "invisible",
-    privateData : {},
-    publicData : {},
-    type : "invisible"
+    name: 'invisible',
+    privateData: {},
+    publicData: {},
+    type: 'invisible'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };
@@ -70,9 +70,9 @@ exports.setup = function (object,frame, node, activeBlockProperties){
 exports.render = function (objectID, frameID, linkID, inputData, callback) {
     var outputData = {};
     var key;
-        for (key in inputData) {
-            outputData[key] = inputData[key];
-        }
+    for (key in inputData) {
+        outputData[key] = inputData[key];
+    }
     callback(objectID, frameID, linkID, outputData);
 };
 

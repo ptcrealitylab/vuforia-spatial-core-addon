@@ -60,15 +60,15 @@
  */
 
 var generalProperties = {
-    name : "logic",
-    privateData : {},
-    publicData : {},
-    type : "logic"
+    name: 'logic',
+    privateData: {},
+    publicData: {},
+    type: 'logic'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };

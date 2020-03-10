@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 var Frames = Object.freeze({
     buttonOff: 'buttonOff',
     buttonOn: 'buttonOn',

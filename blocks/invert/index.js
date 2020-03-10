@@ -60,22 +60,22 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "invert",
+    name: 'invert',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 1,
-    privateData : {},
+    blockSize: 1,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {},
+    publicData: {},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, false, false, false],
+    activeInputs: [true, false, false, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["in", "", "", ""],
-    nameOutput : ["out", "", "", ""],
+    nameInput: ['in', '', '', ''],
+    nameOutput: ['out', '', '', ''],
     // should match the folder name
-    type : "invert"
+    type: 'invert'
 };
 
 exports.properties = generalProperties;
@@ -93,8 +93,8 @@ exports.properties = generalProperties;
 exports.render = function (object, frame, node, block, index, thisBlock, callback) {
 
     for (var key in thisBlock.data[index]) {
-        if(key === "value"){
-            thisBlock.processedData[index].value = 1-thisBlock.data[index].value;
+        if (key === 'value') {
+            thisBlock.processedData[index].value = 1 - thisBlock.data[index].value;
         } else {
             thisBlock.processedData[index][key] = thisBlock.data[index][key];
         }
@@ -105,7 +105,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

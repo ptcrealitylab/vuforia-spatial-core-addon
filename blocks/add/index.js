@@ -60,22 +60,22 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "add",
+    name: 'add',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 2,
-    privateData : {},
+    blockSize: 2,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {},
+    publicData: {},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, true, false, false],
+    activeInputs: [true, true, false, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["A", "B", "", ""],
-    nameOutput : ["A + B", "", "", ""],
+    nameInput: ['A', 'B', '', ''],
+    nameOutput: ['A + B', '', '', ''],
     // should match the folder name
-    type : "add"
+    type: 'add'
 };
 
 exports.properties = generalProperties;
@@ -116,7 +116,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);
