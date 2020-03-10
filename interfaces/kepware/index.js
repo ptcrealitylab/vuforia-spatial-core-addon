@@ -18,7 +18,7 @@ exports.configurable = true; // can be turned on/off/adjusted from the web front
 
 if (exports.enabled) {
 
-    var kepware1 = null;
+    let kepware1 = null;
 
     server.addEventListener('reset', function() {
         console.log('reset kepware');
@@ -26,7 +26,7 @@ if (exports.enabled) {
         setup();
     });
 
-    function setup() {
+    function setup() { // eslint-disable-line no-inner-declarations
         console.log('setup kepware');
         settings = server.loadHardwareInterface(__dirname);
 
@@ -65,12 +65,18 @@ if (exports.enabled) {
         };
 
         if (settings('enabled')) {
-            var kepware1 = new Kepware(settings('ip'), settings('name'),  settings('port'),  settings('updateRate'), settings('tagsInfo'));
+            kepware1 = new Kepware(settings('ip'), settings('name'),  settings('port'),  settings('updateRate'), settings('tagsInfo'));
             kepware1.setup();
         }
     }
 
-    function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsInfo) {
+    /**
+     * @param {string} kepwareServerIP
+     * @param {string} kepwareServerName
+     * @param {number} kepwareServerRequestInterval
+     * @param {Object} kepwareServerTagsInfo
+     */
+    function Kepware (kepwareServerIP, kepwareServerName, kepwareServerPort, kepwareServerRequestInterval, kepwareServerTagsInfo) { // eslint-disable-line no-inner-declarations
         this.KepwareData = function() {
             this.name = '';
             this.id = '';
@@ -118,18 +124,18 @@ if (exports.enabled) {
                     this.kepwareInterfaces[this.thisID].id = data.browseResults[i].id;
                     this.kepwareInterfaces[this.thisID].name = this.thisID.substr(this.thisID.lastIndexOf('.') + 1);
 
-                    console.log(kepwareServerName +'_'+ this.kepwareInterfaces[this.thisID].name);
+                    console.log(kepwareServerName + '_' + this.kepwareInterfaces[this.thisID].name);
 
                     // enabled by default, unless there is a specific entry in the settings.tagsInfo saying it is disabled
                     this.kepwareInterfaces[this.thisID].enabled = typeof kepwareServerTagsInfo[this.thisID] === 'undefined' || typeof kepwareServerTagsInfo[this.thisID].enabled === 'undefined' || kepwareServerTagsInfo[this.thisID].enabled;
 
                     // TODO: better frame naming configuration instead of just appending a '1' to the end of the object name
                     if (this.kepwareInterfaces[this.thisID].enabled) {
-                        server.addNode(kepwareServerName, kepwareServerName+'1',this.kepwareInterfaces[this.thisID].name, 'node');
-                        this.setReadList(kepwareServerName, kepwareServerName+'1',this.thisID, this.kepwareInterfaces[this.thisID].name, this.kepwareInterfaces);
+                        server.addNode(kepwareServerName, kepwareServerName + '1', this.kepwareInterfaces[this.thisID].name, 'node');
+                        this.setReadList(kepwareServerName, kepwareServerName + '1', this.thisID, this.kepwareInterfaces[this.thisID].name, this.kepwareInterfaces);
                     } else {
                         // remove node instead of adding if settings.tagsInfo is disabled for this node
-                        server.removeNode(kepwareServerName, kepwareServerName+'1',this.kepwareInterfaces[this.thisID].name);
+                        server.removeNode(kepwareServerName, kepwareServerName + '1', this.kepwareInterfaces[this.thisID].name);
                     }
 
                 }
@@ -148,18 +154,18 @@ if (exports.enabled) {
         /**
          * When new data arrives at the node from a linked node, write the result to the kepware device using the IoT gateway.
          */
-        this.setReadList = function(object, frame, node, name, kepwareInterfaces){
+        this.setReadList = function(object, frame, node, name, kepwareInterfaces) {
 
-            server.addReadListener(object,frame, name, function (data) {
+            server.addReadListener(object, frame, name, function (data) {
 
                 kepwareInterfaces[node].data.value = data.value;
 
                 var args = {
-                    data: [{id:node, v :  kepwareInterfaces[node].data.value}],
+                    data: [{id: node, v: kepwareInterfaces[node].data.value}],
                     headers: { 'Content-Type': 'application/json' }
                 };
 
-                this.remoteDevice.post(this.kepwareAddress + 'write', args, function (data, res) {
+                this.remoteDevice.post(this.kepwareAddress + 'write', args, function (_data, _res) {
 
                 }).on('error', function (_err) {
                     this.error();
@@ -178,10 +184,10 @@ if (exports.enabled) {
 
             var argstring = '?';
             for (var key in this.kepwareInterfaces) {
-                argstring += 'ids='+ key +'&';
+                argstring += 'ids=' + key + '&';
             }
 
-            this.remoteDevice.get(this.kepwareAddress + 'read'+argstring, function (data, res) {
+            this.remoteDevice.get(this.kepwareAddress + 'read' + argstring, function (data, _res) {
                 // parsed response body as js object
 
                 for (var i = 0; i < data.readResults.length; i++) {
@@ -259,10 +265,10 @@ if (exports.enabled) {
         /**
          * If there's ever an error with connecting to the IoT gateway, print debug information.
          */
-        this.error = function(err) {
-          //  console.error('kepware error', err); // todo err just outputs a gigantic json object. Needs some more specifics.
-            console.error('cant find kepware server: \033[33m'+ kepwareServerName +'\033[0m with the IP: \033[33m'+ kepwareServerIP+'\033[0m');
-        }
+        this.error = function(_err) {
+            //  console.error('kepware error', err); // todo err just outputs a gigantic json object. Needs some more specifics.
+            console.error('cant find kepware server: \033[33m' + kepwareServerName + '\033[0m with the IP: \033[33m' + kepwareServerIP + '\033[0m');
+        };
     }
 
     setup();

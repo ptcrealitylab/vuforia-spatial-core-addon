@@ -63,22 +63,22 @@
 
 var generalProperties = {
     // display name underneath icon in block menu
-    name : "strictThreshold",
+    name: 'strictThreshold',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
-    blockSize : 1,
-    privateData : {},
+    blockSize: 1,
+    privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
-    publicData : {threshold : 0.5, direction:">", digital:true},
+    publicData: {threshold: 0.5, direction: '>', digital: true},
     // sets which input indices of the block can have links drawn to them
-    activeInputs : [true, false, false, false],
+    activeInputs: [true, false, false, false],
     // sets which output indices of the block can have links drawn from them
-    activeOutputs : [true, false, false, false],
-    iconImage : "icon.png",
+    activeOutputs: [true, false, false, false],
+    iconImage: 'icon.png',
     // not currently used anywhere, but helpful for developer reference
-    nameInput : ["stream in", "", "", ""],
-    nameOutput : ["stream out", "", "", ""],
+    nameInput: ['stream in', '', '', ''],
+    nameOutput: ['stream out', '', '', ''],
     // should match the folder name
-    type : "strictThreshold"
+    type: 'strictThreshold'
 };
 
 exports.properties = generalProperties;
@@ -98,12 +98,12 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
     // Checks if the input value exceeds the threshold
 
     var pass = false;
-    if (thisBlock.publicData.direction === ">") {
-        if(thisBlock.data[0].value > thisBlock.publicData.threshold){
+    if (thisBlock.publicData.direction === '>') {
+        if (thisBlock.data[0].value > thisBlock.publicData.threshold) {
             pass = true;
         }
-    } else if(thisBlock.publicData.direction === "<") {
-        if(thisBlock.data[0].value < thisBlock.publicData.threshold){
+    } else if (thisBlock.publicData.direction === '<') {
+        if (thisBlock.data[0].value < thisBlock.publicData.threshold) {
             pass = true;
         }
     }
@@ -116,7 +116,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
     // If in digital mode, output 1, otherwise output the input
 
     if (pass) {
-        if(thisBlock.publicData.digital) {
+        if (thisBlock.publicData.digital) {
             thisBlock.processedData[0].value = 1;
         }
         callback(object, frame, node, block, index, thisBlock);
@@ -126,7 +126,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
 /**
  * @todo: not working yet
  */
-exports.setup = function (object,frame, node, block, thisBlock, callback) {
+exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback) {
 // add code here that should be executed once.
     // var publicData thisBlock.publicData;
     // callback(object, frame, node, block, index, thisBlock);

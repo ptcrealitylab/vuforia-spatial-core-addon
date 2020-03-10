@@ -54,15 +54,15 @@
  **/
 
 var generalProperties = {
-    name : "node",
-    privateData : {},
-    publicData : {data: {}},
-    type : "node"
+    name: 'node',
+    privateData: {},
+    publicData: {data: {}},
+    type: 'node'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };

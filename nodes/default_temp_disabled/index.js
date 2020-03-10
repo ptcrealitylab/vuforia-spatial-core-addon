@@ -54,15 +54,15 @@
  **/
 
 var generalProperties = {
-    name : "default",
-    privateData : {},
-    publicData : {},
-    type : "default"
+    name: 'default',
+    privateData: {},
+    publicData: {},
+    type: 'default'
 };
 
 exports.properties = generalProperties;
 
-exports.setup = function (object,frame, node, activeBlockProperties){
+exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };
@@ -70,11 +70,9 @@ exports.setup = function (object,frame, node, activeBlockProperties){
 
 var outputData = {};
 exports.render = function (objectID, frameID, linkID, inputData, callback) {
-    var outputData = outputData;
-    var key;
-        for (var key in inputData) {
-            outputData[key] = inputData[key];
-        }
+    for (var key in inputData) {
+        outputData[key] = inputData[key];
+    }
 
     callback(objectID, frameID, linkID, outputData);
 };
