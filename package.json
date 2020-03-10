@@ -29,7 +29,7 @@
     "request": "^2.*",
     "serialport": "^8.0.7",
     "shelljs": "^0.8.3",
-    "smtp-server": "^1.16.1",
+    "smtp-server": "^3.5.0",
     "socket.io": "~2.3.0",
     "socket.io-client": "~2.3.0",
     "wedo2": "^1.5.10",
