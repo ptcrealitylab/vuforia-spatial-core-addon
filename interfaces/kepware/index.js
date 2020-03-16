@@ -1,15 +1,11 @@
 /**
- * Created by Carsten on 12/06/15.
- * Modified by Peter Som de Cerff (PCS) on 12/21/15
- *
- * Copyright (c) 2015 Carsten Strunk
+ * Copyright (c) 2018 PTC
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-//Enable this hardware interface
 var server = require('@libraries/hardwareInterfaces');
 var settings = server.loadHardwareInterface(__dirname);
 
