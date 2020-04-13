@@ -13,6 +13,7 @@ exports.enabled = settings('enabled');
 exports.configurable = true; // can be turned on/off/adjusted from the web frontend
 
 if (exports.enabled) {
+    const fetch = require('node-fetch');
 
     let kepware1 = null;
 
@@ -99,8 +100,6 @@ if (exports.enabled) {
             this.enabled = true;
         };
         this.kepwareInterfaces = {};
-        this.Client = require('node-rest-client').Client;
-        this.remoteDevice = new this.Client();
         server.enableDeveloperUI(true);
         this.kepwareAddress = 'http://' + kepwareServerIP + ':' + kepwareServerPort + '/iotgateway/';
 
@@ -112,8 +111,9 @@ if (exports.enabled) {
         this.setup = function () {
 
             this.thisID = {};
-            this.remoteDevice.get(this.kepwareAddress + 'browse', function (data, _res) {
-
+            fetch(this.kepwareAddress + 'browse').then(res => {
+                return res.json();
+            }).then(data => {
                 for (var i = 0; i < data.browseResults.length; i++) {
                     this.thisID = data.browseResults[i].id;
                     this.kepwareInterfaces[this.thisID] = new this.KepwareData();
@@ -140,11 +140,9 @@ if (exports.enabled) {
 
                 this.interval = setInterval(this.start, kepwareServerRequestInterval);
 
-            }.bind(this)).on('error', function (err) {
+            }).catch(err => {
                 this.error(err);
-
-            }.bind(this));
-
+            });
         }.bind(this);
 
         /**
@@ -156,17 +154,18 @@ if (exports.enabled) {
 
                 kepwareInterfaces[node].data.value = data.value;
 
-                var args = {
-                    data: [{id: node, v: kepwareInterfaces[node].data.value}],
-                    headers: { 'Content-Type': 'application/json' }
+                const options = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([{id: node, v: kepwareInterfaces[node].data.value}]),
                 };
 
-                this.remoteDevice.post(this.kepwareAddress + 'write', args, function (_data, _res) {
-
-                }).on('error', function (_err) {
-                    this.error();
-
-                }.bind(this));
+                fetch(this.kepwareAddress + 'write', options).then(() => {
+                }).catch(err => {
+                    this.error(err);
+                });
 
             }.bind(this));
 
@@ -183,7 +182,9 @@ if (exports.enabled) {
                 argstring += 'ids=' + key + '&';
             }
 
-            this.remoteDevice.get(this.kepwareAddress + 'read' + argstring, function (data, _res) {
+            fetch(this.kepwareAddress + 'read' + argstring).then(res => {
+                return res.json();
+            }).then(data => {
                 // parsed response body as js object
 
                 for (var i = 0; i < data.readResults.length; i++) {
@@ -251,10 +252,9 @@ if (exports.enabled) {
                     this.kepwareInterfaces[thisID].dataOld.value = this.kepwareInterfaces[thisID].data.value;
                 }
 
-            }.bind(this)).on('error', function (err) {
+            }).catch(err => {
                 this.error(err);
-
-            }.bind(this));
+            });
 
         }.bind(this);
 
