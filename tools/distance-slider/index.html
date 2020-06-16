@@ -93,7 +93,9 @@
 
     realityInterface.subscribeToMatrix();
     realityInterface.addMatrixListener(function(modelView, _projection) {
-        if (!isPointerDown) { return; }
+
+      //This tool should be always on
+      //  if (!isPointerDown) { return; }
 
         // var scaleFactor = Math.abs(modelView[0]); // distance is relative to scale of frame
         var scaleFactor_IGNORED = 1; // distance is relative to scale of frame
