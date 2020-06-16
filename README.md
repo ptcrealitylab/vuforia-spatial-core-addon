@@ -1,4 +1,4 @@
-# Vuforia Spatial Edge Server Code Add-on
+# Vuforia Spatial Edge Server Core Add-on
 
 This is the core-addon for the Vuforia Spatial Edge Server. It provides a
 baseline set of blocks, interfaces, nodes, and tools to the Edge Server. The
