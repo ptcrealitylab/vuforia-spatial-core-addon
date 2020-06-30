@@ -24,9 +24,11 @@
     var rendererHeight = screen.width;
     var aspectRatio = rendererWidth / rendererHeight;
 
-    var hue = 0;
     var saturation = 0.75;
     var lightness = 0.6;
+    
+    const defaultHue = Math.random();
+    var hue = defaultHue;
 
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
@@ -87,7 +89,7 @@
 
         // make the frame fullscreen within the reality editor,
         // and subscribe to the modelview and projection matrices
-        realityInterface.initNode('hue', 'node', -50, -50, undefined, 0);
+        // realityInterface.initNode('hue', 'node', -50, -50, undefined, 0);
         realityInterface.initNode('saturation', 'node', 0, 0, undefined, 0.75);
         realityInterface.initNode('lightness', 'node', 50, 50, undefined, 0.6);
 
@@ -127,15 +129,15 @@
                     // lightness = 0.75;
                 } else {
                     console.log('red ball is NOT moving');
-                    hue = 0;
+                    hue = defaultHue; //0;
                     saturation = 0.75;
                     lightness = 0.6;
                 }
             });
 
-            realityInterface.addReadListener('hue', function(e) {
-                hue = e.value;
-            });
+            // realityInterface.addReadListener('hue', function(e) {
+            //     hue = e.value;
+            // });
 
             realityInterface.addReadListener('saturation', function(e) {
                 saturation = e.value;
@@ -228,7 +230,7 @@
 
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
-                console.log('renderer.render (' + workerId + ')');
+                // console.log('renderer.render (' + workerId + ')');
             }
         }
 
