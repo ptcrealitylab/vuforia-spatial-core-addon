@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <script src="objectDefaultFiles/object.js"></script>
+      <script src="objectDefaultFiles/pep.min.js"></script>
+      <script src="objectDefaultFiles/envelopeContents.js"></script>
+      <meta charset="UTF-8">
+      <title>triangle-wave</title>
+      <style>
+      </style>
+  </head>
+  <body style="width: 284px; height: 284px">
+    <svg width="284px" height="284px" viewBox="0 0 284 284" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+            <g id="icon-copy-3">
+                <g id="Group">
+                    <rect id="Rectangle" stroke="rgb(45,255,255)" stroke-width="11" fill="rgba(0,0,0,0.5)" x="5.5" y="5.5" width="273" height="273" rx="70"></rect>
+                    <polyline id="Path" stroke="#00FF02" stroke-width="5" points="12 135.5 71 254 142 23 214 254 272 135.5"></polyline>
+                </g>
+            </g>
+        </g>
+    </svg>
+    <script>
+        var path = document.querySelector('#Path');
+        var startTime = Date.now();
+        var speed = 1;
+        var powered = false;
+        var waveFunc = (t) => {
+            return Math.abs(((t + Math.PI) % (Math.PI * 2) - Math.PI) / Math.PI) * 2 - 1; // abs of saw wave, then stretched
+        };
+        
+        path.setAttribute('stroke', '#999999');
+
+        try {
+            var realityInterface = new RealityInterface();
+            realityInterface.initNode('speed', 'node', -25, 25);
+            realityInterface.initNode('power', 'node', -25, -25);
+            realityInterface.initNode('output', 'node', 25, 0);
+
+            var _envelopeContents = new EnvelopeContents(realityInterface, document.body);
+        } catch (e) {
+            console.warn('Reality Interface is not accessible');
+        }
+        
+        try {
+            realityInterface.addReadListener('power', function (e) { // This ensures the wave continues smooth movement when changing speeds
+                powered = e.value >= 0.5;
+                if (powered) {
+                  path.setAttribute('stroke', '#00FF02');
+                } else {
+                  path.setAttribute('stroke', '#999999');
+                }
+            });
+            realityInterface.addReadListener('speed', function (e) { // This ensures the wave continues smooth movement when changing speeds
+                var oldSpeed = speed;
+                speed = e.value;
+                if (speed === 0 || oldSpeed === 0) {
+                  return;
+                }
+                var time = Date.now() - startTime;
+                time = time * oldSpeed / speed;
+                startTime = Date.now() - time;
+            });
+        } catch (e) {
+            console.warn('Reality Interface is not accessible');
+        }
+        
+        function getValue() {
+          if (powered) {
+            return (waveFunc((Date.now() - startTime)*2*speed*(2*Math.PI)/1000))/2+0.5; // Max speed is two cycles per second
+          }
+          return 0.5;
+        }
+        
+        function updateWave() {
+          realityInterface.write("output", getValue());
+        }
+        setInterval(updateWave, 1000/30); // updates output 30 times a second
+    </script>
+  </body>
+</html>
