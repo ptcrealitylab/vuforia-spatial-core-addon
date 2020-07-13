@@ -64,6 +64,7 @@ var generalProperties = {
     name: 'receivePost',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
     blockSize: 1,
+    category: 5,
     privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
     publicData: {endpointUrl: 'http://192.168.1.12:8082/test'},
