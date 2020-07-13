@@ -65,6 +65,7 @@ var generalProperties = {
     name: 'scale',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
     blockSize: 1,
+    category: 4,
     privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
     publicData: {scale: 1},

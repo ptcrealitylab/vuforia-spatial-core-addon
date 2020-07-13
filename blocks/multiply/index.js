@@ -65,6 +65,7 @@ var generalProperties = {
     name: 'multiply',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
     blockSize: 2,
+    category: 4,
     privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
     publicData: {},

@@ -63,6 +63,7 @@ var generalProperties = {
     name: 'duplex',
     // set this to how wide the block should be - (the bigger of # inputs and # outputs)
     blockSize: 3,
+    category: 3,
     privateData: {},
     // these properties are accessible to user modification via the block's settings menu (gui/index.html)
     publicData: {},
