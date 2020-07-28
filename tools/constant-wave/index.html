@@ -12,10 +12,10 @@
   <body style="width: 284px; height: 284px">
     <svg width="284px" height="284px" viewBox="0 0 284 284" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-            <g id="icon">
+            <g id="icon-copy-5">
                 <g id="Group">
                     <rect id="Rectangle" stroke="rgb(45,255,255)" stroke-width="11" fill="rgba(0,0,0,0.5)" x="5.5" y="5.5" width="273" height="273" rx="70"></rect>
-                    <path d="M12,135.5 C51,135.5 39,254 71,254 C103,254 103,23 142,23 C181,23 183,254 214,254 C245,254 228,135.5 272,135.5" id="Path" stroke="#00FF02" stroke-width="5"></path>
+                    <path d="M12,142.5 C51,142.5 228,142.5 272,142.5" id="Path" stroke="#00FF02" stroke-width="5"></path>
                 </g>
             </g>
         </g>
@@ -31,7 +31,7 @@
             realityInterface.initNode('speed', 'node', -25, 10);
             realityInterface.initNode('power', 'node', -25, -10);
             realityInterface.initNode('output', 'signal', 25, 0);
-            realityInterface.writePublicData('output', 'wave', 'sin');
+            realityInterface.writePublicData('output', 'wave', 'constant');
 
             var _envelopeContents = new EnvelopeContents(realityInterface, document.body);
         } catch (e) {
