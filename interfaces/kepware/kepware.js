@@ -42,6 +42,11 @@ const monitoringParameters = {
     queueSize: 1
 };
 
+// These are the default security options used by Kepware.
+// In theory, someone could set up their system to use a different security
+//     scheme and we'd want to adapt to that.
+// This is only used for the discovery endpoint, as the discovery endpoint tells
+//     us how to connect to the OPC UA endpoints.
 const endpointOptions = {
     clientName: "SpatialToolbox",
     connectionStrategy: connectionStrategy,
@@ -54,15 +59,16 @@ const endpointOptions = {
 
 class Kepware {
     constructor(_discoveryUrl, _credentials, _onItemAdd, _onItemUpdate, _onItemRemove) {
-        this.discoveryUrl = _discoveryUrl;
+        this.discoveryUrl = _discoveryUrl; // URL of discovery server
         this.credentials = _credentials; // {userName, password}
-        this.onItemAdd = _onItemAdd; // Callback function
-        this.onItemUpdate = _onItemUpdate; // Callback function
-        this.onItemRemove = _onItemRemove; // Callback function
+        this.onItemAdd = _onItemAdd; // Callback function(item, permissions) | permissions = {canRead: boolean, canWrite: boolean}
+        this.onItemUpdate = _onItemUpdate; // Callback function(item, result) | call result.value.value to get value
+        this.onItemRemove = _onItemRemove; // Callback function(item)
         this.monitoredItems = {}; // Keeps track of items
         this.disconnected = false;
     }
     
+    // Handles closing connections and removing subscriptions to updates.
     disconnect() {
         this.disconnected = true;
         if (this.refreshItemsInterval) {
@@ -104,6 +110,8 @@ class Kepware {
         });
     }
     
+    // Need to connect to discovery endpoint first to determine how to connect
+    //     to OPC UA endpoint.
     connect() {
         if (this.disconnected) return;
         console.log(`Attempting connection to OPC UA discovery endpoint at ${this.discoveryUrl}`);
@@ -132,6 +140,9 @@ class Kepware {
         });
     }
     
+    // Connects to an OPC UA endpoint after the discovery process.
+    // Loops through all available endpoints until it connects successfully.
+    // Could benefit from allowing the user to choose an endpoint to connect to.
     clientConnect() {
         if (this.disconnected) return;
         console.log(`Attempting connection to OPC UA endpoint at ${this.endpointUrl}`);
@@ -146,7 +157,7 @@ class Kepware {
                 this.clientConnect(); // Won't loop endlessly, because hostname now has `.`
             } else {
                 console.error(`Failed to connect to OPC UA endpoint at ${this.endpointUrl}\n${err}`);
-                this.endpointIndex += 1;
+                this.endpointIndex += 1; // On failure to connect, try the next endpoint
                 if (this.endpointIndex < this.endpointUrls.length) {
                     this.endpointUrl = this.endpointUrls[this.endpointIndex];
                     this.clientConnect();
@@ -155,12 +166,14 @@ class Kepware {
         });
     }
     
+    // Sets up an OPC UA session with the endpoint to enable subscriptions and
+    //     other access to data.
     createSession() {
         if (this.disconnected) return;
         this.client.createSession(this.credentials).then(session => {
+          if (this.disconnected) return;
             this.session = session;
             console.log(`Logged in to OPC UA endpoint session as ${this.credentials.userName}`);
-            if (this.disconnected) return;
             this.subscription = ClientSubscription.create(session, subscriptionParameters);
             this.subscription.on("started", function() {
                 console.log("OPC UA subscription started");
@@ -172,12 +185,14 @@ class Kepware {
         }, err => console.error(`Failed to create OPC UA endpoint session\n${err}`));
     }
     
+    // Reads the value of a tag.
     readItem(item) {
         return this.session.readVariableValue(item.nodeId).then(result => {
             return result.value.value;
         }, err => console.error(`Failed to read value from ${item.nodeId}\n${err}`));
     }
     
+    // Writes a value to a tag.
     writeItem(item, value) {
         this.session.getBuiltInDataType(item.nodeId).then(dataType => {
             this.session.writeSingleNode(item.nodeId, new Variant({dataType: dataType, value:value})).then(statusCode => {
@@ -186,12 +201,18 @@ class Kepware {
         }, err => console.error(`Failed to get data type for ${item.nodeId}\n${err}`));
     }
 
-    monitorItem(item, callback) {
+    // Creates a subscription to read updates for an item, and calls callbacks
+    //     accordingly.
+    monitorItem(item) {
         const monitoredItem = ClientMonitoredItem.create(this.subscription, {nodeId: item.nodeId, attributeId: AttributeIds.value}, monitoringParameters, TimestampsToReturn.Neither);
-        monitoredItem.on("changed", result => callback(item, result));
+        monitoredItem.on("changed", result => this.onItemUpdate(item, result));
         return {item: item, monitor: monitoredItem};
     }
     
+    // Keeps track of tags available at the OPC UA endpoint and calls callbacks
+    //     to allow the interface to instantiate or remove nodes accordingly.
+    // Folder structure over OPC UA is
+    //     ObjectsFolder > [Channel] > [Device] > [Tag]
     refreshItems() {
         if (this.disconnected) return;
         this.findAllVariables('ObjectsFolder').then(variables => {
@@ -221,7 +242,7 @@ class Kepware {
             }
             variables.map(variable => {
                 setTimeout(() => {
-                    this.monitoredItems[variable.nodeId.value] = this.monitorItem(variable, this.onItemUpdate);
+                    this.monitoredItems[variable.nodeId.value] = this.monitorItem(variable);
                     this.session.read({nodeId:variable.nodeId, attributeId: AttributeIds.UserAccessLevel}).then(data => {
                         const permissions = {
                             canRead: data.value.value % 2 == 1,
@@ -234,6 +255,7 @@ class Kepware {
         }, err => console.error(`Failed to find variables\n${err}`));
     }
 
+    // Recursively returns all tags (variables) found on the OPC UA endpoint.
     findAllVariables(nodeId) {
         return this.session.browse(nodeId).then(result => {
             const variables = result.references.filter(ref => {
@@ -251,6 +273,7 @@ class Kepware {
         });
     }
     
+    // Helper function to split up nodeIds into distinct parts.
     static parseId(nodeId) {
         const split = nodeId.value.split('.');
         if (split.length === 3) {
