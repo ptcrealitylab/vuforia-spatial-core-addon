@@ -64,7 +64,7 @@ scripts are more niche but a simple "hello world" example looks like this:
 
 ## Using the Kepware Interface
 
-The Kepware Interface is compatible both with [KEPServerEX](https://www.kepware.com/en-us/products/kepserverex/) and [Kepware Edge](https://www.kepware.com/en-us/products/thingworx-kepware-edge/).
+The Kepware Interface is compatible with both [KEPServerEX](https://www.kepware.com/en-us/products/kepserverex/) and [Kepware Edge](https://www.kepware.com/en-us/products/thingworx-kepware-edge/).
 To connect to a server: enable the interface in the Spatial Toolbox Web UI,
 enter your user credentials for the Kepware Server in the interface settings,
 and add your client certificate to the list of trusted certificates using your

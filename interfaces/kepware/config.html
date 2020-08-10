@@ -226,9 +226,21 @@
 <body>
 
 <div id="introduction">
-    Kepware is a tool to connect with a wide variety of industrial machinery. Visit <a href="https://www.kepware.com">www.kepware.com</a> for more information and to get a license for the software.
+    The Kepware Interface is compatible with both
+    <a href="https://www.kepware.com/en-us/products/kepserverex/">KEPServerEX</a>
+    and
+    <a href="https://www.kepware.com/en-us/products/thingworx-kepware-edge/">Kepware Edge</a>.
     <br><br>
-    Once you have a KEPServerEX or Kepware Edge server running, you can configure it here:
+    To connect to a server:
+    <ul>
+      <li>Enable the interface in the Spatial Toolbox Web UI</li>
+      <li>Enter your user credentials for the Kepware Server in the interface settings</li>
+      <li>
+        Add your client certificate to the list of trusted certificates using your
+        server's configuration tools. The client certificate can be found in
+        <code style="background-color: #000000; color: #dddddd; border-radius: 5px;">vuforia-spatial-core-addon/node_modules/node-opcua-client/certificates</code>.
+      </li>
+    </ul>
 </div>
 
 <div id="contents">
