@@ -18,7 +18,7 @@ exports.configurable = true; // can be turned on/off/adjusted from the web front
 if (exports.enabled) {
     const onItemAdd = (item, permissions) => {
         const parsedId = Kepware.parseId(item.nodeId);
-        const objectName = `${settings('name')}.${parsedId.deviceName}`;
+        const objectName = `${settings('name')}_${parsedId.deviceName}`;
         const frameName = parsedId.groupName;
         const nodeName = parsedId.tagName;
         if (permissions.canRead) {
