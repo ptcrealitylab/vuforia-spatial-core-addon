@@ -201,6 +201,8 @@
     }
 
     let _then = 0;
+    let done = false;
+
     // Draw the scene repeatedly
     render = function(_now) {
         // now *= 0.001;  // convert to seconds
@@ -230,7 +232,20 @@
 
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
-                // console.log('renderer.render (' + workerId + ')');
+                if (done && realGl) {
+                  for (let proxy of proxies) {
+                    proxy.__uncloneableObj = null;
+                    delete proxy.__uncloneableObj;
+                  }
+                  proxies = [];
+                  realRenderer.dispose();
+                  realRenderer.forceContextLoss();
+                  realRenderer.context = null;
+                  realRenderer.domElement = null;
+                  realRenderer = null;
+                  realGl = null;
+                }
+                done = true;
             }
         }
 
