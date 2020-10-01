@@ -2,6 +2,6 @@ dropzone.js
 /interfaces/MIR100/index_old.js
 /interfaces/robot
 *.min.js
-/tools/machine-gltf/resources
-/tools/pushMe/resources
-/tools/sphere/resources
+/tools/*/resources
+/tools/path
+/tools/path_old
