@@ -30,6 +30,8 @@
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
 
+    var cube;
+
     window.addEventListener('load', function() {
         
         // create a fullscreen webgl renderer for the threejs content and add to the dom
@@ -69,7 +71,15 @@
         mesh = THREE.SceneUtils.createMultiMaterialObject( geometry, materials );
         threejsContainerObj.add( mesh );
         mesh.position.setZ(150);
+        mesh.children[0].material.color.setHSL( hue, saturation, lightness );
 
+        // var geometry2 = new THREE.BoxGeometry( 10, 10, 10 );
+        // var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        // cube = new THREE.Mesh( geometry2, material2 );
+        // threejsContainerObj.add( cube );
+        // cube.position.setZ(150);
+        // cube.position.setX(150);
+        
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
         spotLight.position.set(-30, -30, 150);
@@ -143,6 +153,9 @@
     });
     
     function touchDecider(eventData) {
+
+        //console.log('TOUCH! ', eventData);
+        
         //1. sets the mouse position with a coordinate system where the center
         //   of the screen is the origin
         mouse.x = ( eventData.x / window.innerWidth ) * 2 - 1;
@@ -154,6 +167,14 @@
         //3. compute intersections
         var intersects = raycaster.intersectObjects( scene.children, true );
 
+        // if (intersects.length > 0){
+        //     cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
+        //     threejsContainerObj.worldToLocal(cube.position);
+        //     console.log(cube.position);
+        // }
+
+        console.log('intersects: ', intersects);
+        
         return intersects.length > 0;
     }
 
@@ -175,8 +196,8 @@
         if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
             // update models with newest values from the reality editor
             mesh.children[0].material.color.setHSL( hue, saturation, lightness );
-            mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-            mesh.rotation.y += 0.01;
+            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            //mesh.rotation.y += 0.01;
             // update model view matrix
             setMatrixFromArray(threejsContainerObj.matrix, modelViewMatrix);
             // render the scene

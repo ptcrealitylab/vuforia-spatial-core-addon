@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 1. Include envelopeContents.js instead of envelope.js -->
+    <script src="objectDefaultFiles/envelopeContents.js"></script>
+    <meta charset="UTF-8">
+    <title>Sequential Envelope Contents</title>
+    <style>
+        #container {
+            width: 290px;
+            height: 290px;
+            border: 5px solid black;
+            border-radius: 50%;
+        }
+        #number {
+            color: white;
+            font-size: 150px;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 300px;
+            height: 300px;
+            text-align: center;
+            line-height: 300px;
+        }
+    </style>
+</head>
+
+<body style="width: 300px; height: 300px">
+<div id="container">
+    <!-- 2. Add a div inside the container to display the number in the sequence-->
+    <div id="number"></div>
+</div>
+
+<script>
+    let container = document.getElementById('container');
+    let numberField = document.getElementById('number');
+    
+    let spatialInterface = new SpatialInterface();
+
+    // 3. Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
+    let envelopeContents = new EnvelopeContents(spatialInterface, document.getElementById('container'));
+
+    // 4. Whenever a tool is added or removed from the envelope, this function will trigger for 
+    //    every tool contained by the envelope, and recalculate its position in the sequence
+    envelopeContents.onOrderUpdated(function(event) {
+        console.log('onOrderUpdated');
+        let index = event.index;
+        let total = event.total;
+        numberField.innerText = (index + 1) + ' / ' + total;
+    });
+
+    // everything else is identical to the randomColor tool from the tutorial on the website
+    
+    spatialInterface.initNode('hue', 'node', 0, 0);
+
+    spatialInterface.addReadListener('hue', function(event) {
+        let newHue = Math.round(event.value * 255);
+        setColor(newHue);
+    });
+    
+    container.addEventListener('pointerup', function() {
+        let newHue = Math.round(Math.random() * 255);
+        setColor(newHue);
+        spatialInterface.write('hue', newHue/255);
+    });
+
+    function setColor(hue) {
+        container.style.backgroundColor = 'hsl(' + hue + ', 90%, 70%)';
+    }
+</script>
+</body>
+</html>

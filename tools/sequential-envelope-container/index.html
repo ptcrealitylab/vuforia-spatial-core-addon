@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 1. Import the Envelope Container APIs -->
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <meta charset="UTF-8">
+    <title>Sequential Envelope Container</title>
+    <style>
+        @font-face {
+            font-family: 'Brutal Type';
+            src: url('resources/BrutalType.otf');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Brutal Type';
+            src: url('resources/BrutalType-Bold.otf');
+            font-weight: bold;
+            font-style: normal;
+        }
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 300px;
+            height: 300px;
+            font-size: 24px;
+            text-align: center;
+            overflow: visible;
+        }
+        /* semi-transparent blue fullscreen div */
+        #rootElementWhenOpen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            /* gets overwritten by the envelope APIs to be fullscreen but this is a default */
+            width: 736px;
+            height: 414px;
+            background-color: rgba(0, 255, 255, 0.3);
+            color: white;
+        }
+        /* small cyan icon div */
+        #rootElementWhenClosed {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 300px;
+            border-radius: 10px;
+            background-color: rgba(0, 255, 255, 0.8);
+        }
+        .block {
+            width: 200px;
+            height: 200px;
+            border: 10px solid white;
+            color: white;
+            background-color: rgba(0,0,0,0.7);
+            position: absolute;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            line-height: 190px;
+            font-size: 60px;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+        .small {
+            width: 120px;
+            height: 120px;
+            line-height: 120px;
+        }
+        .smaller {
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            font-size: 20px;
+        }
+        .sleek {
+            border-width: 0;
+            color: white;
+        }
+        .dashedOutline {
+            border: 3px dashed white;
+            background-color: transparent;
+        }
+        .step {
+            background-color: rgba(0,255,255,0.3);
+            color: cyan;
+            font-size: 45px;
+            font-weight: bold;
+            border: none;
+        }
+        .completed {
+            background-color: rgba(0,255,0,0.3);
+            color: rgb(0,255,0);
+        }
+        .animatedX {
+            transition: left 0.25s ease-out;
+        }
+        #navigation {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        #navArrow {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100px;
+            height: 100px;
+            border: 5px solid cyan;
+        }
+        #navCanvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 768px;
+            height: 414px;
+            pointer-events: none;
+            background-color: transparent;
+            border: 2px solid red;
+        }
+        
+    </style>
+</head>
+<body>
+<div id="rootElementWhenOpen">
+    <div id="openContainer"></div>
+    <div id="navigation">
+        <canvas id="navCanvas" width="768px" height="414px"></canvas>
+    </div>
+</div>
+<div id="rootElementWhenClosed">Closed</div>
+</body>
+<script>
+    let spatialInterface = new SpatialInterface();
+    //realityInterface.initNode('storage', 'storeData');
+
+    var frameMetadata = {}; // holds info about each step, such as isCompleted
+    
+    var canvasUsed = false; // flag to only clear canvas if it has content
+    var manuallySetStepNumber = 0;
+    var didManuallySetStepNumber = false; // if we tap on a specific step number, jumps to that instead of first one
+
+    var stepButtonWidth = 80; // properties to render the row step number icons
+    var stepStartPositionMap = {}; // important for reordering steps, keeps track of where they should all end up
+
+
+    // 4. Include 'sequential-envelope-contents' in the list of the names of tools that can go inside this envelope
+    let compatibleToolTypes = ['checkpoint'];
+    let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
+    let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
+    var openContainer = document.getElementById('openContainer'); // holds all programatically generate elements when step is expanded
+
+    // 5. Designate this tool as an envelope, automatically enabling all the associated features
+    //    The last parameter is true because we want to keep track of the order tools are added
+    let isStackable = false;
+    let areToolsOrdered = true;
+    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, 
+        rootElementWhenClosed, isStackable, areToolsOrdered);
+    
+    function init() {
+        render(); // render immediately, but will likely render again with updated data due to event listeners
+
+        // 6. Whenever a tool is added, removed, or when the envelope finishes loading, update the visuals
+        envelope.onFrameAdded(render);
+        envelope.onFrameDeleted(render);
+        envelope.onOpen(render);
+        envelope.onClose(render);
+        envelope.onPublicDataLoaded(render);
+    }
+    
+    init();
+    
+    
+    function render() {
+        rootElementWhenOpen.innerText = 'Contains ' + 
+            Object.keys(envelope.containedFrames).length + ' tools';
+        
+        if (!envelope.isOpen) {
+            // only show 'Start Procedure' button if you've added any steps
+            //var numFrames = envelope.frameIdOrdering.length;
+            //document.getElementById('playButton').style.display = (numFrames === 0) ? 'none' : '';
+            
+        } else {
+
+            // reset container on every re-render, by removing all its children
+            var first = openContainer.firstElementChild;
+            while (first) {
+                first.remove();
+                first = openContainer.firstElementChild;
+            }
+
+            // only clear the canvas when needed
+            if (canvasUsed) {
+                var canvas = document.getElementById('navCanvas');
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, envelope.screenDimensions.width, envelope.screenDimensions.height);
+                canvasUsed = false;
+            }
+
+            // add a row of step numbers at the bottom edge of the screen based on how many steps have been added
+            renderStepIcons();
+        }
+    }
+
+    function renderStepIcons() {
+        
+        
+        envelope.frameIdOrdering.forEach(function(id) {
+            if (typeof frameMetadata[id] === 'undefined') {
+                frameMetadata[id] = {};
+            }
+        });
+
+        // TODO: adjust the visuals of the envelope [X] button when all steps are completed
+        //var areAllCompleted = true;
+        // envelope.frameIdOrdering.forEach(function(id) {
+        //     if (!frameMetadata[id].isCompleted) {
+        //         areAllCompleted = false;
+        //     }
+        // });
+        // if (envelope.frameIdOrdering.length === 0) {
+        //     areAllCompleted = false;
+        // }
+        // if (areAllCompleted) { console.log('all steps completed!'); }
+
+        var margin = 10;
+        var stepButtonTop = (envelope.screenDimensions.height - stepButtonWidth - margin);
+        var numSteps = envelope.frameIdOrdering.length;
+        stepStartPositionMap = {};
+        
+        envelope.frameIdOrdering.forEach(function(id, index) {
+            var stepNumber = index + 1;
+            
+            console.log('step number: ', stepNumber);
+            
+            var stepButton = createDiv('stepButton' + stepNumber, ['block', 'smaller', 'step', 'animatedX'], stepNumber, openContainer);
+            stepButton.setAttribute("data-step-number", stepNumber);
+            stepButton.style.top = stepButtonTop + 'px';
+            // position each step button so that the row is centered and they each have a margin between them
+            stepButton.style.left = envelope.screenDimensions.width/2 - ((stepButtonWidth + margin)/2) * numSteps + (stepButtonWidth + margin) * index + 'px';
+            // cache the center position of each to use when dragging them around to re-order
+
+            console.log('step button: ', stepButton);
+            console.log('stepButton.getClientRects(): ', stepButton.getClientRects()[0]);
+            
+            stepStartPositionMap[stepNumber] = parseInt(stepButton.style.left) + stepButton.getClientRects()[0].width/2;
+            // if completed, turns them green instead of blue
+            if (frameMetadata[id].isCompleted) {
+                stepButton.classList.add('completed');
+            }
+        });
+    }
+
+    // // listen for isStepCompleted messages and screenPosition messages from steps
+    // envelope.onMessageFromContainedFrame(function(message) {
+    //     // update completion status of steps in response to isStepCompleted messages
+    //     if (envelope.isOpen && !isSessionEditing) {
+    //         if (typeof message.isStepCompleted !== 'undefined') {
+    //             if (typeof frameMetadata[message.sourceFrame] === 'undefined') {
+    //                 frameMetadata[message.sourceFrame] = {};
+    //             }
+    //             if (message.isStepCompleted && !frameMetadata[message.sourceFrame].isCompleted) {
+    //                 didManuallySetStepNumber = false; // otherwise can get stuck on same step when you manually set
+    //             }
+    //             if (frameMetadata[message.sourceFrame].isCompleted !== message.isStepCompleted) {
+    //                 frameMetadata[message.sourceFrame].isCompleted = message.isStepCompleted;
+    //                 render(); // only need to re-render if new completion state is different
+    //             }
+    //         }
+    //     }
+
+
+    /**
+     * Resets completion status of each step, and sends a message to collapse their UI if they are expanded
+     */
+    // function resetStepProgress() {
+    //     currentStepNumber = 0;
+    //     didManuallySetStepNumber = false;
+    //     manuallySetStepNumber = 0;
+    //     Object.values(frameMetadata).forEach(function(frameData) {
+    //         frameData.isCompleted = false;
+    //     });
+    //     // for (var stepNumber = 1; stepNumber <= envelope.frameIdOrdering.length; stepNumber++) {
+    //     //     collapseStep(stepNumber);
+    //     // }
+    //     render();
+    // }
+
+ 
+    // 7. Add a touch event that opens up the envelope into fullscreen mode when the icon is tapped
+    rootElementWhenClosed.addEventListener('pointerup', function() {
+        rootElementWhenClosed.innerText = 'Try to open';
+        envelope.open();
+    });
+
+    
+
+    /**
+     * Calculates which is the earliest step that hasn't tbeen completed yet. Or returns the manual step number, if you
+     * specifically tapped on one of the buttons.
+     */
+     function computeCurrentStepNumber() {
+        if (didManuallySetStepNumber) { // when you tap on one of the step buttons, override the auto calculation
+            return manuallySetStepNumber;
+        }
+
+        // walk through each step in order, starting from the first, and return as soon as you find one that isn't completed
+        var firstUncompletedStep = null;
+        envelope.frameIdOrdering.forEach(function(id, index) {
+            if (firstUncompletedStep) return; // only get the first one
+            if (!frameMetadata[id].isCompleted) {
+                firstUncompletedStep = index+1;
+            }
+        });
+        return firstUncompletedStep;
+    }
+
+    /**
+     * Shortcut for creating a div with certain style and contents, and possibly adding to a parent element
+     * Any parameter can be omitted (pass in null) to ignore those effects
+     * @param {string|null} id
+     * @param {string|Array.<string>|null} classList
+     * @param {string|null} innerHTML
+     * @param {HTMLElement|null} parentToAddTo
+     * @return {HTMLDivElement}
+     */
+     function createDiv(id, classList, innerHTML, parentToAddTo) {
+        var preExistingDiv = document.getElementById(id);
+        var div = preExistingDiv ? preExistingDiv : document.createElement('div');
+        if (id) {
+            div.id = id;
+        }
+        if (classList) {
+            if (typeof classList === 'string') {
+                div.className = classList;
+            } else if (typeof classList === 'object') {
+                classList.forEach(function(className) {
+                    div.classList.add(className);
+                });
+            }
+        }
+        if (innerHTML) {
+            div.innerHTML = innerHTML;
+        }
+        if (parentToAddTo) {
+            parentToAddTo.appendChild(div);
+        }
+        return div;
+    }
+</script>
+</html>
+
