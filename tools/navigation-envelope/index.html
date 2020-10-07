@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Import the Envelope Container APIs -->
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/THREE.MeshLine.js"></script>
+    <script src="thirdPartyCode/graph.js"></script>
+    <script src="pathfinding.js"></script>
+    <script src="splineRendering.js"></script>
+    <script src="objectDefaultFiles/gl-worker.js"></script>
+    <meta charset="UTF-8">
+    <title>Navigation Envelope</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 1000px;
+            height: 500px;
+            font-size: 24px;
+            text-align: center;
+            overflow: visible;
+        }
+        /* semi-transparent blue fullscreen div */
+        #rootElementWhenOpen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            /* gets overwritten by the envelope APIs to be fullscreen but this is a default */
+            width: 2436px;
+            height: 1125px;
+            color: white;
+        }
+        /* small cyan icon div */
+        #rootElementWhenClosed {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1000px;
+            height: 500px;
+            overflow: visible;
+        }
+        #canvas {
+            width: 2436px;
+            height: 1125px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+        }
+        #smallIcon {
+            position: absolute;
+            left: 150px;
+            top: 150px;
+            width: 200px;
+            height: 200px;
+            transition: all 500ms;
+        }
+        .fadeoutSmallIcon {
+            opacity: 0;
+            transform: scale(3.0);
+        }
+        #bigIcon {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            width: 300px;
+            height: 300px;
+            transition: all 500ms;
+        }
+        .fadeoutBigIcon {
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        .extraBig {
+            /*transform: scale(1.5) rotate(120deg);*/
+            transform: rotate(120deg);
+        }
+        #graphics {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            width: 300px;
+            height: 300px;
+            transition: all 500ms;
+        }
+        .fadeoutGraphics {
+            transform: scale(0.1);
+            opacity: 0;
+        }
+        #details {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            z-index: -1;
+            transition: all 500ms;
+        }
+        .fadeoutDetails {
+            opacity: 0;
+        }
+        #mainDetailText {
+            position: absolute;
+            left: 300px;
+            top: 80px;
+            line-height: 85px;
+            font-size: 42px;
+            font-weight: 500; /* semi-bold */
+        }
+        #subDetailText {
+            position: absolute;
+            left: 300px;
+            top: 172px;
+            line-height: 45px;
+            color: cyan;
+        }
+        #editNameIcon {
+            position: absolute;
+            left: 623px;
+            top: 71px;
+            padding: 30px;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+<!-- Create a rootElementWhenOpen with the UI that shows when it is in fullscreen 2D mode -->
+<div id="rootElementWhenOpen">
+    <canvas id="canvas" width="2436px" height="1125px"></canvas>
+</div>
+<!-- Create a rootElementWhenClosed with the UI that shows when it minimized into an icon -->
+<div id="rootElementWhenClosed">
+    <div id="close">
+        <img id="bigIcon" src="resources/large-icon.svg" width="300px" height="300px">
+        <img id="graphics" src="resources/pathfinding-icon.svg" width="300px" height="300px">
+        <div id="details">
+            <img id="detailsIcon" src="resources/icon-extension.svg" width="858px" height="300px">
+            <div id="mainDetailText">UN-NAMED PATH</div>
+            <div id="subDetailText">0 POINTS OF INTEREST</div>
+            <img id="editNameIcon" src="resources/pencil-icon-107.svg" width="42px" height="46px">
+        </div>
+    </div>
+    <div id="far">
+        <img id="smallIcon" src="resources/small-icon.svg" width="100px" height="100px">
+    </div>
+</div>
+</body>
+<script>
+    
+    /******** THREEJS CODE ********/
+
+    let realRenderer, renderer;
+    let spatialInterface;
+    
+    let camera, scene, splineRenderer, cube;
+    let mainContainerObj, groundPlaneContainerObj;
+    let isProjectionMatrixSet = false, isGroundPlaneTracked = false;
+    
+    let rendererWidth = screen.height; // width is height because landscape orientation
+    let rendererHeight = screen.width; // height is width
+    var aspectRatio = rendererWidth / rendererHeight;
+
+    // 11. This is just a helper function to set a three.js matrix using an array
+    function setMatrixFromArray(matrix, array) {
+        matrix.set( array[0], array[4], array[8], array[12],
+            array[1], array[5], array[9], array[13],
+            array[2], array[6], array[10], array[14],
+            array[3], array[7], array[11], array[15]);
+    }
+    
+    spatialInterface = new SpatialInterface();
+    spatialInterface.useWebGlWorker();
+
+    // create a threejs camera and scene
+    camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
+    scene = new THREE.Scene();
+
+    mainContainerObj = new THREE.Object3D();
+    mainContainerObj.matrixAutoUpdate = false;
+    scene.add(mainContainerObj);
+
+    groundPlaneContainerObj = new THREE.Object3D();
+    groundPlaneContainerObj.matrixAutoUpdate = false;
+    scene.add(groundPlaneContainerObj);
+
+    console.log('add cube');
+    /*var geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
+    var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+    cube = new THREE.Mesh( geometrycube, material );
+    groundPlaneContainerObj.add( cube );
+    cube.position.set(0,0,0);
+
+    const materialcube_x = new THREE.MeshBasicMaterial( {color: 0xff0000} ); // x - red
+    let dummy_x = new THREE.Mesh( geometrycube, materialcube_x );
+    groundPlaneContainerObj.add(dummy_x);
+    dummy_x.position.set(20,0,0);
+
+    const materialcube_z = new THREE.MeshBasicMaterial( {color: 0x0000ff} ); // z - blue
+    let dummy_z = new THREE.Mesh( geometrycube, materialcube_z );
+    groundPlaneContainerObj.add(dummy_z);
+    dummy_z.position.set(0,0,20);
+
+    const materialcube_y = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); // y - green
+    let dummy_y = new THREE.Mesh( geometrycube, materialcube_y );
+    groundPlaneContainerObj.add(dummy_y);
+    dummy_y.position.set(0,20,0);*/
+
+    splineRenderer = new SplineRender(groundPlaneContainerObj);
+    
+    function main() {
+        
+        // create a fullscreen webgl renderer for the threejs content and add to the dom
+        realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+        realRenderer.setPixelRatio( window.devicePixelRatio );
+        realRenderer.setSize( rendererWidth, rendererHeight );
+        // document.body.appendChild( realRenderer.domElement );
+        realGl = realRenderer.getContext();
+        
+        // create a fullscreen webgl renderer for the threejs content and add to the dom
+        renderer = new THREE.WebGLRenderer( { context: gl, canvas: canvas, alpha: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( rendererWidth, rendererHeight );
+        document.body.appendChild( renderer.domElement );
+        
+    };
+    
+    /****** ******/
+    
+    // Define a list of the names of tools that can go inside this envelope
+    let compatibleToolTypes = ['navigation-obstacle', 'navigation-point-of-interest', 'navigation-point-of-interest-2d', 'navigation-obstacle-2d'];
+    
+    let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
+    let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
+    //let canvas = document.getElementById('canvas');
+    //let ctx = canvas.getContext('2d');
+
+    let smallIcon = document.getElementById('smallIcon');
+    let bigIcon = document.getElementById('bigIcon');
+    let graphics = document.getElementById('graphics');
+    let details = document.getElementById('details');
+    let mainDetailText = document.getElementById('mainDetailText');
+    let subDetailText = document.getElementById('subDetailText');
+    let editNameIcon = document.getElementById('editNameIcon');
+    
+    let screenWidth = 2436;
+    let screenHeight = 1125; // TODO: get via API
+    
+    let defaultName = 'UN-NAMED PATH';
+    let name = defaultName;
+    let numPointsOfInterest = 0;
+    
+    // Designate this tool as an envelope by, automatically enabling all the associated features
+    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed);
+
+    // The pathfinder object maintains a graph composed of points of interest and obstacles and computes shortest paths
+    let pathfinder = new Pathfinder();
+    const CAMERA_ID = 'CAMERA';
+    pathfinder.addPointOfInterest(CAMERA_ID);
+    
+    let targetedPointOfInterest = null;
+    let distancesToCenter = {};
+    
+    let shouldRender = false;
+
+    let THRESHOLD_VERY_CLOSE = 600; // less than 500 = close
+    let THRESHOLD_CLOSE = 1600; // less than 1000 = medium
+    // anything bigger than this is considered far
+    // if you want another level, try 2400 for veryFar
+
+    let DISTANCES = Object.freeze({
+        veryClose: 'veryClose',
+        close: 'close',
+        far: 'far'
+    });
+
+    let currentDistance = DISTANCES.close;
+
+    spatialInterface.onRealityInterfaceLoaded(function() {
+
+        spatialInterface.getScreenDimensions(function(width, height) {
+            screenWidth = width;
+            screenHeight = height;
+            //     canvas.width = screenWidth + 'px';
+            //     canvas.height = screenHeight + 'px';
+            //     canvas.style.width = screenWidth + 'px';
+            //     canvas.style.height = screenHeight + 'px';
+        });
+        
+        spatialInterface.addMatrixListener(renderScene);
+
+        spatialInterface.addGroundPlaneMatrixListener(function(groundPlaneMatrix, projectionMatrix) {
+
+            if (isProjectionMatrixSet) {                                                // don't turn into else statement, both can happen
+
+                setMatrixFromArray(groundPlaneContainerObj.matrix, groundPlaneMatrix);  // update model view matrix
+                groundPlaneContainerObj.visible = true;
+
+                if (!isGroundPlaneTracked) console.log('surface tracked');
+                isGroundPlaneTracked = true;
+
+                // Update Camera node position:
+                
+                let groundPlaneCoordinates = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);    // world coordinates
+                groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
+                
+                pathfinder.updateNodePosition(CAMERA_ID, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);    // Update camera node position
+                //cube.position.set(groundPlaneCoordinates.x, 0, groundPlaneCoordinates.z);
+
+            }
+
+        });
+    });
+
+    let lastProjectionMatrix = null;
+    let lastModelViewMatrix = null;
+
+    function renderScene(modelView, _projection) {
+        
+        lastProjectionMatrix = _projection;
+        lastModelViewMatrix = modelView;
+        
+    }
+    
+    
+
+    function renderIcon(distance, forceRender) {
+        if (distance === currentDistance && !forceRender) { return; } // don't re-render redundantly
+        
+        currentDistance = distance;
+
+        if (distance === DISTANCES.close || distance === DISTANCES.veryClose) {
+            if (distance === DISTANCES.veryClose) {
+                // render a preview with info related to what's inside
+                if (!bigIcon.classList.contains('extraBig')) {
+                    bigIcon.classList.add('extraBig');
+                }
+
+                if (details.classList.contains('fadeoutDetails')) {
+                    details.classList.remove('fadeoutDetails');
+                }
+
+                mainDetailText.textContent = name.toUpperCase();
+                let fontSize = 42; // pixels
+                if (name.length > 9) { // (max width = 42 * 9 = 378) => (W = 42 * length) => (378/length = fontSize)
+                    fontSize = (42 * 9) / name.length;
+                }
+                mainDetailText.style.fontSize = fontSize + 'px';
+                
+                let numPointsOfInterest = (pathfinder.pointsOfInterest.length-1);
+                let plural = numPointsOfInterest === 1 ? '' : 'S';
+                subDetailText.textContent = numPointsOfInterest + ' POINT' + plural + ' OF INTEREST';
+            } else {
+                if (bigIcon.classList.contains('extraBig')) {
+                    bigIcon.classList.remove('extraBig');
+                }
+
+                if (!details.classList.contains('fadeoutDetails')) {
+                    details.classList.add('fadeoutDetails');
+                }
+            }
+
+            // render the hexagon icon with details
+            if (!smallIcon.classList.contains('fadeoutSmallIcon')) {
+                smallIcon.classList.add('fadeoutSmallIcon');
+            }
+
+            if (bigIcon.classList.contains('fadeoutBigIcon')) {
+                bigIcon.classList.remove('fadeoutBigIcon');
+                graphics.classList.remove('fadeoutGraphics');
+            }
+
+        } else if (distance === DISTANCES.far) {
+            // render a small hexagon
+            if (smallIcon.classList.contains('fadeoutSmallIcon')) {
+                smallIcon.classList.remove('fadeoutSmallIcon');
+            }
+
+            if (!bigIcon.classList.contains('fadeoutBigIcon')) {
+                bigIcon.classList.add('fadeoutBigIcon');
+                graphics.classList.add('fadeoutGraphics');
+            }
+
+            if (bigIcon.classList.contains('extraBig')) {
+                bigIcon.classList.remove('extraBig');
+            }
+            
+            if (!details.classList.contains('fadeoutDetails')) {
+                details.classList.add('fadeoutDetails');
+            }
+        }
+    }
+
+    let isListeningForKeyboard = false;
+    
+    function onKeyUp(e) {
+        if (!isListeningForKeyboard) { return; }
+        
+        var isCharacter = !!e.key.match(/^[a-zA-Z0-9]$/);
+
+        if (isCharacter) {
+            name = name + e.key;
+        } else {
+            if (e.key === "Backspace") {
+                name = name.slice(0, -1); // remove last character
+            } else if (e.key === " ") {
+                name = name + "\u00a0"; // special space character doesn't get escaped
+                // resetScroll();
+                // setTimeout(function() {
+                //     resetScroll(); // also do it after a slight delay
+                // }, 100);
+            }
+        }
+
+        renderIcon(currentDistance, true);
+        
+        // resizeText();
+        spatialInterface.writePublicData("storage", "name",  name);
+    }
+
+    spatialInterface.onKeyboardClosed(function() {
+        isListeningForKeyboard = false; // stop listening once the keyboard closes
+        if (name === '') {
+            name = defaultName;
+            renderIcon(currentDistance, true);
+        }
+    });
+
+    spatialInterface.addReadPublicDataListener('storage', "name", function (e) {
+        if (typeof e === 'string') {
+            name = e;
+            if (name === '') {
+                name = defaultName;
+            }
+            renderIcon(currentDistance, true);
+        }
+    });
+
+    spatialInterface.onKeyUp(onKeyUp);
+    
+    // Add a touch event that opens up the envelope into fullscreen mode when the icon is tapped
+    rootElementWhenClosed.addEventListener('pointerup', function(e) {
+        
+        console.log('pointer up');
+        
+        if (currentDistance === DISTANCES.close || currentDistance === DISTANCES.veryClose) {
+
+            console.log('close pointer');
+
+            // if overlapping pencil icon
+            let pencilRect = editNameIcon.getClientRects()[0];
+            if (e.pageX > pencilRect.left && e.pageX < pencilRect.right &&
+                e.pageY > pencilRect.top && e.pageY < pencilRect.bottom) {
+                console.log('edit name');
+
+                isListeningForKeyboard = true;
+                
+                if (name === defaultName) {
+                    name = '';
+                    renderIcon(currentDistance, true);
+                }
+                
+                spatialInterface.openKeyboard();
+                
+            } else {
+                console.log('open!');
+                envelope.open();
+            }
+                
+
+        }
+    });
+    
+    // This is the "onload" for the envelope - inside this, containedFrames will be correct
+    envelope.onPublicDataLoaded(function() {
+        
+        // Subscribe to positions of all contained tools
+        envelope.forEachFrame(function(frameId, frameData) {
+            subscribeToFramePosition(frameId, frameData);
+
+            if (frameData.type === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
+                pathfinder.addObstacle(frameId);
+                
+            } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+                pathfinder.addPointOfInterest(frameId);
+                renderIcon(currentDistance, true);
+            }
+        });
+    });
+
+    // Subscribe to the positions of any new frames as they get added
+    // {objectId: string, frameId: string, frameType: string}
+    envelope.onFrameAdded(function(frameAddedMessage) {
+        
+        let frameId = frameAddedMessage.frameId;
+        let frameData = envelope.containedFrames[frameId];
+        subscribeToFramePosition(frameId, frameData);
+
+        if (frameData.type === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
+            pathfinder.addObstacle(frameId);
+            
+        } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+            
+            pathfinder.addPointOfInterest(frameId);
+            renderIcon(currentDistance, true);
+        }
+    });
+    
+    envelope.onFrameDeleted(function(frameDeletedMessage) {
+        let frameId = frameDeletedMessage.frameId;
+        let frameType = frameDeletedMessage.frameType;
+        if (frameType === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
+            pathfinder.removeObstacle(frameId);
+        } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+            pathfinder.removePointOfInterest(frameId);
+            renderIcon(currentDistance, true);
+        }
+    });
+    
+    // TODO: figure out if I need to properly unsubscribe or not... maybe not?
+    // {objectId: string, frameId: string, frameType: string}
+    // envelope.onFrameDeleted(function(frameDeletedMessage) { });
+    
+    function subscribeToFramePosition(frameId, frameData) {
+        console.log('subscribe to position of ' + frameId + ' (type = ' + frameData.type + ')');
+        
+        let shouldSubscribe3d = true;
+        envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
+            if (!envelope.isOpen) { return; } // don't waste time computing paths and rendering if not open
+            
+            let avgDimension = (displayWidth+displayHeight)/2;
+            
+            //pathfinder.updateNodePosition(frameId, centerX, centerY, centerZ);
+            //pathfinder.updateNodeRadius(frameId, avgDimension/2);
+            
+            let groundPlaneCoordinates = new THREE.Vector3(worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
+            groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
+            
+            //pathfinder.updateNodePosition(frameId, worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
+            
+            pathfinder.updateNodePosition(frameId, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);
+            pathfinder.updateNodeRadius(frameId, 50); // consider scale to be homogeneous
+
+            if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+                let distanceToCenterOfScreen = {
+                    x: Math.abs(centerX - screenWidth/2),
+                    y: Math.abs(centerY - screenHeight/2),
+                    z: centerZ
+                };
+                distancesToCenter[frameId] = distanceToCenterOfScreen;
+            }
+            
+            //shouldRender = true;
+        }, shouldSubscribe3d);
+    }
+
+    let _then = 0;
+    let done = false;
+
+    // Draw the scene repeatedly
+    render = function(_now) {
+        
+        if (!lastModelViewMatrix) return;
+        
+        // if (!shouldRender) {
+        //     requestAnimationFrame(render);
+        //     return;
+        // }
+
+        var scaleFactor = Math.abs(lastModelViewMatrix[0]);
+        var zDistance = Math.abs(lastModelViewMatrix[14]);
+
+        let scaledDistance = zDistance/scaleFactor;
+
+        if (scaledDistance < THRESHOLD_VERY_CLOSE) {
+            renderIcon(DISTANCES.veryClose);
+        } else if (scaledDistance < THRESHOLD_CLOSE) {
+            renderIcon(DISTANCES.close);
+        } else {
+            renderIcon(DISTANCES.far);
+        }
+        
+        // 9. only set the projection matrix for the camera 1 time, since it stays the same
+        if (!isProjectionMatrixSet && lastProjectionMatrix && lastProjectionMatrix.length === 16) {
+
+            setMatrixFromArray(camera.projectionMatrix, lastProjectionMatrix);
+            isProjectionMatrixSet = true;
+        }
+
+        // 10. Every frame, set the position of the containerObj to the modelViewMatrix
+        if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16 && envelope.isOpen) {
+            setMatrixFromArray(mainContainerObj.matrix, lastModelViewMatrix);
+            //renderer.render(scene, camera);
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+                
+                done = false;
+                
+                if (done && realGl) {
+                    for (let proxy of proxies) {
+                        proxy.__uncloneableObj = null;
+                        delete proxy.__uncloneableObj;
+                    }
+                    proxies = [];
+                    realRenderer.dispose();
+                    realRenderer.forceContextLoss();
+                    realRenderer.context = null;
+                    realRenderer.domElement = null;
+                    realRenderer = null;
+                    realGl = null;
+                }
+                done = true;
+            }
+            
+        }
+        mainContainerObj.visible = envelope.isOpen;
+        
+        try {
+            
+            // clear the canvas
+            //ctx.clearRect(0, 0, 736, 414);
+            
+            // send a message to the frame that is closest to the center of the screen
+            highlightTargetedFrame();
+
+            let allShortestPaths = {};
+            let edgesInAnyShortestPath = {};
+            let edgesInTargetedPath = {};
+            allShortestPaths[CAMERA_ID] = {};
+            
+            let pathPoints = {};
+
+            // compute the path from the CAMERA to each point-of-interest tool and draw lines along the "edges" between each of the "nodes" on the path
+            pathfinder.pointsOfInterest.forEach(function(nodeB) {
+                if (nodeB.id === CAMERA_ID) { return; } // don't draw line to self
+                
+                // actually compute the path from the CAMERA to the green circle using the pathfinder's computeShortestPath method
+                let thisPath = pathfinder.computeShortestPath(CAMERA_ID, nodeB.id);
+                allShortestPaths[CAMERA_ID][nodeB.id] = thisPath;
+
+                // Camera position = nodeA in first edge
+                let newPos = new THREE.Vector3(thisPath.edges[0].nodeA.x, thisPath.edges[0].nodeA.y, thisPath.edges[0].nodeA.z);
+                
+                let positions = [newPos];
+                
+                // render the path
+                thisPath.edges.forEach(function(edge) {
+                    
+                    // by default each edge is a transparent blue
+                    edgesInAnyShortestPath[edge.id] = edge; // not necessary for this demo, but storing this for old demo
+                    //ctx.strokeStyle = 'rgba(0,255,255,0.3)';
+                    //ctx.lineWidth = 5;
+                    
+                    if (nodeB.id === targetedPointOfInterest) {
+                        // if the tool is the "target" one, highlight the line
+                        edgesInTargetedPath[edge.id] = edge; // not necessary for this demo, but storing this for old demo
+                        //ctx.strokeStyle = 'rgba(0,255,255,1.0)';
+                        //ctx.lineWidth = 8;
+                        
+                    }
+
+                    newPos = new THREE.Vector3(edge.nodeB.x, edge.nodeB.y, edge.nodeB.z);
+                    positions.push(newPos);
+
+                    // I'm rendering by looping over thisPath.edges, but it can also be done by looping over thisPath.nodes
+                    //ctx.beginPath();
+                    //ctx.moveTo(edge.nodeA.x, edge.nodeA.y); // edge.nodeA.z also exists, I'm just not using it
+                    //ctx.lineTo(edge.nodeB.x, edge.nodeB.y);
+                    //ctx.stroke();
+                });
+                
+                splineRenderer.updateSpline(nodeB.id, positions);
+                
+                //console.log('NODE: ', nodeB.id, ' | positions: ', positions);
+                
+            });
+
+            //shouldRender = false;
+            //requestAnimationFrame(render); // loop
+        } catch (e) {
+            console.error('error in render function', e);
+            //requestAnimationFrame(render);
+        }
+    };
+    
+    /*
+    Example of how to use pathfinder:
+    
+    let destinationFrameId = '_WORLD_testworldTugczj5qin9snavigation-point-of-interest-2d2oFhn2hbmf1pr'; // can get from envelope.containedFrames
+    let path = pathfinder.computeShortestPath(CAMERA_ID, destinationFrameId);
+    console.log(path.nodes); // this is an ordered array starting from the beginning and ending with the destination
+    
+    for (var i = 0; i < path.nodes.length; i++) {
+        console.log(path.nodes[i].x, path.nodes[i].y, path.nodes[i].z);
+    }
+    
+    // can also look at edges instead of nodes
+    console.log(path.edges);
+    
+    for (var i = 0; i < path.edges.length; i++) {
+        console.log('line segment starts at ' + path.edges[i].nodeA.x +',' + path.edges[i].nodeA.y + ',' + path.edges[i].nodeA.z);
+        console.log('line segment goes to ' + path.edges[i].nodeB.x +',' + path.edges[i].nodeB.y + ',' + path.edges[i].nodeB.z);
+    }
+    
+     */
+    
+    function highlightTargetedFrame() {
+        // determine if targeted PoI has changed
+        let closestDistanceToCenter = {
+            frameId: null,
+            distance: 1000000000,
+            zPos: 0
+        };
+        
+        for (let frameId in distancesToCenter) {
+            
+            let distanceInfo = distancesToCenter[frameId];
+            let distance = Math.sqrt(distanceInfo.x * distanceInfo.x + distanceInfo.y * distanceInfo.y);
+            
+            console.log('FRAME DISTANCE: ', frameId, distance);
+            
+            if (distance < closestDistanceToCenter.distance) {
+                closestDistanceToCenter.frameId = frameId;
+                closestDistanceToCenter.distance = distance;
+                closestDistanceToCenter.zPos = distanceInfo.z
+            }
+        }
+        
+        //console.log('CLOSEST: ', closestDistanceToCenter.frameId, targetedPointOfInterest);
+        
+        if (closestDistanceToCenter.frameId && closestDistanceToCenter.frameId !== targetedPointOfInterest) {
+            
+            // send message to previous target (if any) to un-highlight
+            if (targetedPointOfInterest) {
+                
+                console.log('UNHIGHLIGHT: ', targetedPointOfInterest);
+                
+                splineRenderer.highlightSpline(targetedPointOfInterest, false);
+                envelope.sendMessageToFrameWithId(targetedPointOfInterest, {
+                    highlightTarget: false
+                });
+            }
+
+            targetedPointOfInterest = closestDistanceToCenter.frameId;
+
+            console.log('HIGHLIGHT: ', targetedPointOfInterest);
+            console.log('should target new tool: ' + targetedPointOfInterest);
+
+            splineRenderer.highlightSpline(targetedPointOfInterest, true);
+            
+            // send message to new target to highlight
+            envelope.sendMessageToFrameWithId(targetedPointOfInterest, {
+                highlightTarget: true
+            });
+        }
+        distancesToCenter = {};
+    }
+    
+</script>
+</html>
