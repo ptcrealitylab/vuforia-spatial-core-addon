@@ -274,9 +274,7 @@
     let currentDistance = DISTANCES.close;
 
     spatialInterface.onRealityInterfaceLoaded(function() {
-        
-        spatialInterface.setStickyFullScreenOn();
-        
+
         spatialInterface.addMatrixListener(function(modelView, _projection) {
             var scaleFactor = Math.abs(modelView[0]);
             var zDistance = Math.abs(modelView[14]);
@@ -447,6 +445,11 @@
     });
 
     spatialInterface.onKeyUp(onKeyUp);
+
+    let wasClosedIconPressed = false;
+    rootElementWhenClosed.addEventListener('pointerdown', function(e) {
+        wasClosedIconPressed = true;
+    });
     
     // Add a touch event that opens up the envelope into fullscreen mode when the icon is tapped
     rootElementWhenClosed.addEventListener('pointerup', function(e) {
@@ -473,12 +476,25 @@
                 spatialInterface.openKeyboard();
                 
             } else {
-                console.log('open!');
-                envelope.open();
-            }
-                
 
+                if (wasClosedIconPressed) {
+                    console.log('open!');
+                    envelope.open();
+                }
+            }
         }
+
+        wasClosedIconPressed = false;
+    });
+    
+    envelope.onClose(function() {
+        spatialInterface.setStickinessOff();
+        document.getElementById('canvas').style.display = 'none';
+    });
+    
+    envelope.onOpen(function() {
+        spatialInterface.setStickyFullScreenOn();
+        document.getElementById('canvas').style.display = '';
     });
     
     // This is the "onload" for the envelope - inside this, containedFrames will be correct
