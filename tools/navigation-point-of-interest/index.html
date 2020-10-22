@@ -31,6 +31,8 @@
 
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
+    
+    let toolScale = 1.0;
 
     window.addEventListener('load', function() {
 
@@ -208,8 +210,9 @@
             renderer.render( scene, camera );
         }
 
-        
-        if (isGroundPlaneFound && isMoving){
+        toolScale = Math.abs(modelViewMatrix[0]) || 1.0; // distance is relative to scale of frame
+
+        if (isGroundPlaneFound){
              updateShadow();
         }
     }
@@ -280,7 +283,10 @@
 
             gp_shadow.position.set(gp_meshPos.x, 0, gp_meshPos.z);
             gp_shadow.rotation.set(Math.PI/2,0,0);
-            
+
+            let shadowScale = toolScale * 3.5;
+            gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
+
             let meshPosition = new THREE.Vector3(gp_meshPos.x, gp_meshPos.y - 50, gp_meshPos.z);
 
             heightLine.vertices = [];
