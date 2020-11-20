@@ -166,14 +166,6 @@
 
         //3. compute intersections
         var intersects = raycaster.intersectObjects( scene.children, true );
-
-        // if (intersects.length > 0){
-        //     cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
-        //     threejsContainerObj.worldToLocal(cube.position);
-        //     console.log(cube.position);
-        // }
-
-        console.log('intersects: ', intersects);
         
         return intersects.length > 0;
     }
@@ -196,8 +188,9 @@
         if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
             // update models with newest values from the reality editor
             mesh.children[0].material.color.setHSL( hue, saturation, lightness );
-            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-            //mesh.rotation.y += 0.01;
+            mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            mesh.rotation.y += 0.01;
+            
             // update model view matrix
             setMatrixFromArray(threejsContainerObj.matrix, modelViewMatrix);
             // render the scene

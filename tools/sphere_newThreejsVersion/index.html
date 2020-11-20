@@ -8,8 +8,6 @@
     <script src="objectDefaultFiles/envelopeContents.js"></script>
     <script src="resources/three.js"></script>
     <script src="resources/utils/SceneUtils.js"></script>
-<!--    <script src="resources/navigation-arrow.js"></script>-->
-<!--    <link rel="stylesheet" type="text/css" href="resources/navigation-arrow.css">-->
 </head>
 <body>
 <script>
@@ -74,12 +72,12 @@
         mesh.position.setZ(150);
         mesh.children[0].material.color.setHSL( hue, saturation, lightness );
 
-        // var geometry2 = new THREE.BoxGeometry( 10, 10, 10 );
-        // var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        // cube = new THREE.Mesh( geometry2, material2 );
-        // threejsContainerObj.add( cube );
-        // cube.position.setZ(150);
-        // cube.position.setX(150);
+        var geometry2 = new THREE.BoxGeometry( 20, 20, 20 );
+        var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        cube = new THREE.Mesh( geometry2, material2 );
+        scene.add( cube );
+        //cube.position.setZ(150);
+        //cube.position.setX(150);
         
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
@@ -159,41 +157,19 @@
         
         //1. sets the mouse position with a coordinate system where the center
         //   of the screen is the origin
-        
-        console.log('eventData.x', eventData.x);
-        console.log('window.innerWidth', window.innerWidth);
-        console.log('eventData.y', eventData.y);
-        console.log('window.innerHeight', window.innerHeight);
-        
         mouse.x = ( eventData.x / window.innerWidth ) * 2 - 1;
         mouse.y = - ( eventData.y / window.innerHeight ) * 2 + 1;
-        
-        console.log('mouse.x', mouse.x);
-        console.log('mouse.y', mouse.y);
 
         //2. set the picking ray from the camera position and mouse coordinates
         raycaster.setFromCamera( mouse, camera );
         
-        console.log('ray origin: ', raycaster.ray.origin);
-        console.log('ray direction: ', raycaster.ray.direction);
-
-        var geometry2 = new THREE.BoxGeometry( 10, 10, 10 );
-        var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        var cube = new THREE.Mesh( geometry2, material2 );
-        scene.add( cube );
-        cube.matrixAutoUpdate = false;
-        cube.matrix.setPosition( new THREE.Vector3(10,0,-50) );
+        let newPos = new THREE.Vector3();
+        raycaster.ray.at(50, newPos);
+        console.log('RAY POS: ', newPos);
+        cube.position.set(newPos);
 
         //3. compute intersections
-        var intersects = raycaster.intersectObject( mesh, true );
-
-        // if (intersects.length > 0){
-        //     cube.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
-        //     threejsContainerObj.worldToLocal(cube.position);
-        //     console.log(cube.position);
-        // }
-
-        console.log('intersects: ', intersects);
+        var intersects = raycaster.intersectObjects( scene.children, true );
         
         return intersects.length > 0;
     }
@@ -216,8 +192,9 @@
         if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
             // update models with newest values from the reality editor
             mesh.children[0].material.color.setHSL( hue, saturation, lightness );
-            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-            //mesh.rotation.y += 0.01;
+            mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            mesh.rotation.y += 0.01;
+            
             // update model view matrix
             setMatrixFromArray(threejsContainerObj.matrix, modelViewMatrix);
             // render the scene

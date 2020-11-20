@@ -10,13 +10,13 @@
     <script src="js/splineRendering.js"></script>
     <link rel="stylesheet" href="styles/styles.css">
     <meta charset="UTF-8">
-    <title>Navigation Envelope Steps</title>
+    <title>Path</title>
 </head>
 
 <body>
 <!-- Create a rootElementWhenOpen with the UI that shows when it is in fullscreen 2D mode -->
 <div id="rootElementWhenOpen">
-    <canvas id="canvas" width="2436px" height="1125px"></canvas>
+    <canvas id="canvas"></canvas>
 </div>
 <!-- Create a rootElementWhenClosed with the UI that shows when it minimized into an icon -->
 <div id="rootElementWhenClosed">
@@ -37,7 +37,7 @@
 </body>
 <script>
     
-    /******** THREEJS CODE ********/
+    /******** THREEJS ********/
     
     let camera, scene, renderer, splineRenderer, cube;
     let mainContainerObj, groundPlaneContainerObj;
@@ -46,6 +46,12 @@
     let rendererWidth = screen.height; // width is height because landscape orientation
     let rendererHeight = screen.width; // height is width
     var aspectRatio = rendererWidth / rendererHeight;
+
+    // Variable to store information to send to the server
+    let pathData = {
+        index: 0,
+        checkpoints: []
+    };
 
     // 11. This is just a helper function to set a three.js matrix using an array
     function setMatrixFromArray(matrix, array) {
@@ -108,12 +114,11 @@
     let spatialInterface = new SpatialInterface();
 
     // Define a list of the names of tools that can go inside this envelope
-    let compatibleToolTypes = ['navigation-obstacle', 'navigation-point-of-interest', 'navigation-point-of-interest-2d', 'navigation-obstacle-2d'];
+    let compatibleToolTypes = ['pathPoint'];
     
     let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
     let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
-    //let canvas = document.getElementById('canvas');
-    //let ctx = canvas.getContext('2d');
+    let canvas = document.getElementById('canvas');
 
     let smallIcon = document.getElementById('smallIcon');
     let bigIcon = document.getElementById('bigIcon');
@@ -129,18 +134,20 @@
     spatialInterface.getScreenDimensions(function(width, height) {
          screenWidth = width;
          screenHeight = height;
-    //     canvas.width = screenWidth + 'px';
-    //     canvas.height = screenHeight + 'px';
-    //     canvas.style.width = screenWidth + 'px';
-    //     canvas.style.height = screenHeight + 'px';
+         canvas.width = screenWidth + 'px';
+         canvas.height = screenHeight + 'px';
+         canvas.style.width = screenWidth + 'px';
+         canvas.style.height = screenHeight + 'px';
     });
     
     let defaultName = 'UN-NAMED PATH';
     let name = defaultName;
-    let numPointsOfInterest = 0;
+    
+    let areFramesOrdered = true;
+    let isStackable = false;
     
     // Designate this tool as an envelope by, automatically enabling all the associated features
-    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed);
+    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
 
     // The pathfinder object maintains a graph composed of points of interest and obstacles and computes shortest paths
     let pathfinder = new Pathfinder();
@@ -215,7 +222,6 @@
                 groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
                 
                 pathfinder.updateNodePosition(CAMERA_ID, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);    // Update camera node position
-                //cube.position.set(groundPlaneCoordinates.x, 0, groundPlaneCoordinates.z);
 
             }
 
@@ -396,10 +402,7 @@
         envelope.forEachFrame(function(frameId, frameData) {
             subscribeToFramePosition(frameId, frameData);
 
-            if (frameData.type === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
-                pathfinder.addObstacle(frameId);
-                
-            } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+            if (frameData.type === 'pathPoint') {
                 pathfinder.addPointOfInterest(frameId);
                 renderIcon(currentDistance, true);
             }
@@ -414,22 +417,28 @@
         let frameData = envelope.containedFrames[frameId];
         subscribeToFramePosition(frameId, frameData);
 
-        if (frameData.type === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
-            pathfinder.addObstacle(frameId);
-            
-        } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+        if (frameData.type === 'pathPoint') {
             
             pathfinder.addPointOfInterest(frameId);
             renderIcon(currentDistance, true);
+            
+            // Add checkpoint tool to path
+            // pathData.checkpoints.push({
+            //     "name" : this.selectedCheckpoint.name,
+            //     "active" : 0,                               // If set to 1, the robot will change state to executing mission to get to this checkpoint
+            //     "posX" : this.selectedCheckpoint.position.x,
+            //     "posY" : this.selectedCheckpoint.position.y,
+            //     "posZ" : this.selectedCheckpoint.position.z,
+            //     "orientation" : this.selectedCheckpoint.getOrientation() // orientation of the footprint
+            // });
+            
         }
     });
     
     envelope.onFrameDeleted(function(frameDeletedMessage) {
         let frameId = frameDeletedMessage.frameId;
         let frameType = frameDeletedMessage.frameType;
-        if (frameType === 'navigation-obstacle' || frameData.type === 'navigation-obstacle-2d') {
-            pathfinder.removeObstacle(frameId);
-        } else if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+        if (frameType === 'pathPoint') {
             pathfinder.removePointOfInterest(frameId);
             renderIcon(currentDistance, true);
         }
@@ -458,10 +467,8 @@
             
             pathfinder.updateNodePosition(frameId, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);
             pathfinder.updateNodeRadius(frameId, 50); // consider scale to be homogeneous
-
-            //console.log('Distance to center: ', frameId, centerX, centerY);
             
-            if (frameData.type === 'navigation-point-of-interest' || frameData.type === 'navigation-point-of-interest-2d') {
+            if (frameData.type === 'pathPoint') {
                 let distanceToCenterOfScreen = {
                     x: Math.abs(centerX - screenWidth/2),
                     y: Math.abs(centerY - screenHeight/2),
@@ -484,9 +491,6 @@
         
         try {
             
-            // clear the canvas
-            //ctx.clearRect(0, 0, 736, 414);
-            
             // send a message to the frame that is closest to the center of the screen
             highlightTargetedFrame();
 
@@ -499,11 +503,16 @@
 
             let index = 0;
             let previousNode = null;
-            let positions;
+            let positions = [];
+
+            console.log('How many POI: ', pathfinder.pointsOfInterest.length);
             
             // compute the path from the CAMERA to each point-of-interest tool and draw lines along the "edges" between each of the "nodes" on the path
             pathfinder.pointsOfInterest.forEach(function(nodeB) {
-                if (nodeB.id === CAMERA_ID) { return; } // don't draw line to self
+                if (nodeB.id === CAMERA_ID) { 
+                    //console.log('This is camera, return');
+                    return; 
+                } // don't draw line to self
                 
                 let thisPath, newPos;
                 
@@ -528,25 +537,15 @@
                     
                     // by default each edge is a transparent blue
                     edgesInAnyShortestPath[edge.id] = edge; // not necessary for this demo, but storing this for old demo
-                    //ctx.strokeStyle = 'rgba(0,255,255,0.3)';
-                    //ctx.lineWidth = 5;
                     
                     if (nodeB.id === targetedPointOfInterest) {
                         // if the tool is the "target" one, highlight the line
                         edgesInTargetedPath[edge.id] = edge; // not necessary for this demo, but storing this for old demo
-                        //ctx.strokeStyle = 'rgba(0,255,255,1.0)';
-                        //ctx.lineWidth = 8;
                         
                     }
 
                     newPos = new THREE.Vector3(edge.nodeB.x, edge.nodeB.y, edge.nodeB.z);
                     positions.push(newPos);
-
-                    // I'm rendering by looping over thisPath.edges, but it can also be done by looping over thisPath.nodes
-                    //ctx.beginPath();
-                    //ctx.moveTo(edge.nodeA.x, edge.nodeA.y); // edge.nodeA.z also exists, I'm just not using it
-                    //ctx.lineTo(edge.nodeB.x, edge.nodeB.y);
-                    //ctx.stroke();
                     
                 });
                 
@@ -558,6 +557,7 @@
             });
 
             splineRenderer.updateSpline(CAMERA_ID, positions);
+            
 
             shouldRender = false;
             requestAnimationFrame(render); // loop
@@ -566,27 +566,6 @@
             requestAnimationFrame(render);
         }
     }
-    
-    /*
-    Example of how to use pathfinder:
-    
-    let destinationFrameId = '_WORLD_testworldTugczj5qin9snavigation-point-of-interest-2d2oFhn2hbmf1pr'; // can get from envelope.containedFrames
-    let path = pathfinder.computeShortestPath(CAMERA_ID, destinationFrameId);
-    console.log(path.nodes); // this is an ordered array starting from the beginning and ending with the destination
-    
-    for (var i = 0; i < path.nodes.length; i++) {
-        console.log(path.nodes[i].x, path.nodes[i].y, path.nodes[i].z);
-    }
-    
-    // can also look at edges instead of nodes
-    console.log(path.edges);
-    
-    for (var i = 0; i < path.edges.length; i++) {
-        console.log('line segment starts at ' + path.edges[i].nodeA.x +',' + path.edges[i].nodeA.y + ',' + path.edges[i].nodeA.z);
-        console.log('line segment goes to ' + path.edges[i].nodeB.x +',' + path.edges[i].nodeB.y + ',' + path.edges[i].nodeB.z);
-    }
-    
-     */
     
     function highlightTargetedFrame() {
         // determine if targeted PoI has changed
@@ -611,14 +590,10 @@
             }
         }
         
-        //console.log('CLOSEST: ', closestDistanceToCenter.frameId, targetedPointOfInterest);
-        
         if (closestDistanceToCenter.frameId && closestDistanceToCenter.frameId !== targetedPointOfInterest) {
             
             // send message to previous target (if any) to un-highlight
             if (targetedPointOfInterest) {
-                
-                //console.log('UNHIGHLIGHT: ', targetedPointOfInterest);
                 
                 splineRenderer.highlightSpline(targetedPointOfInterest, false);
                 envelope.sendMessageToFrameWithId(targetedPointOfInterest, {
@@ -627,9 +602,7 @@
             }
 
             targetedPointOfInterest = closestDistanceToCenter.frameId;
-
-            //console.log('HIGHLIGHT: ', targetedPointOfInterest);
-
+            
             splineRenderer.highlightSpline(targetedPointOfInterest, true);
             
             // send message to new target to highlight

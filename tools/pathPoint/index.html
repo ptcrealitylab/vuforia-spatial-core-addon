@@ -2,11 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Navigation Point of Interest</title>
+    <title>Path Point</title>
     <script src="objectDefaultFiles/object.js"></script>
     <script src="objectDefaultFiles/pep.min.js"></script>
     <script src="objectDefaultFiles/envelopeContents.js"></script>
     <script src="resources/threejs-src/2016/three.min.js"></script>
+    <script src="resources/animitter.js"></script>
 </head>
 <body>
 <script>
@@ -16,8 +17,13 @@
     var mesh;
 
     let gp_shadow;
-    let gp_checkpointDummy;
+    //let gp_checkpointDummy;
     let heightLine;
+
+    let materials = [
+        new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
+        new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+    ];
 
     var isProjectionMatrixSet = false, isGroundPlaneFound = false, isMoving = false;
 
@@ -59,13 +65,6 @@
         groundplaneContainerObj.name = 'groundPlaneContainer';
         scene.add(groundplaneContainerObj);
 
-        // console.log('add cube');
-        // var geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
-        // var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
-        // cube = new THREE.Mesh( geometrycube, material );
-        // mainContainerObj.add( cube );
-        // cube.position.set(50,0,0);
-
         // light the scene with a combination of ambient and directional white light
         var ambLight = new THREE.AmbientLight(0x404040);
         scene.add(ambLight);
@@ -76,22 +75,69 @@
         dirLight2.position.set(-100, -100, -100);
         scene.add(dirLight2);
 
-        // add an icosahedron 3d model to the container object 
-        var radius = 75;
-        var geometry = new THREE.IcosahedronGeometry( radius, 1 );
-        var materials = [
-            new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
-            new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-        ];
-        mesh = THREE.SceneUtils.createMultiMaterialObject( geometry, materials );
-        mainContainerObj.add( mesh );
-        //mesh.position.setZ(150);
+        var loader = new THREE.ObjectLoader();
 
-        // add spotlight for the shadows
-        var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.position.set(-30, -30, 150);
-        spotLight.castShadow = true;
-        mesh.add(spotLight);
+        loader.load(
+            // resource URL
+            "resources/models/KineticAR_Locator_01.json",
+
+            // onLoad callback
+            // Here the loaded data is assumed to be an object
+            function ( obj ) {
+
+                obj.traverse( function ( child ) {
+
+                    if ( child instanceof THREE.Mesh ) {
+                        child.materials = materials;
+
+                        if (child.name === "LOCATOR___FLOATING"){
+
+                            console.log('FOUND CHECKPOINT FBX');
+
+                            mesh = child;
+                        }
+                    }
+                } );
+
+                // Add the loaded object to the scene
+                mainContainerObj.add( mesh );
+                mesh.name = 'checkpoint';
+                mesh.scale.set(60,60,60);
+
+                // add spotlight for the shadows
+                var spotLight = new THREE.SpotLight(0xffffff);
+                spotLight.position.set(-30, -30, 150);
+                spotLight.castShadow = true;
+                mesh.add(spotLight);
+                
+                // Axis
+
+                var geometrycube = new THREE.BoxGeometry( 1, 1, 1 );
+                var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+                var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                var material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+                cube = new THREE.Mesh( geometrycube, material );
+                cube2 = new THREE.Mesh( geometrycube, material2 );
+                cube3 = new THREE.Mesh( geometrycube, material3 );
+                mesh.add( cube );
+                mesh.add( cube2 );
+                mesh.add( cube3 );
+                cube.position.set(0,7,0);
+                cube3.position.set(5,0,0);
+                cube2.position.set(0,0,5);
+
+            },
+
+            // onProgress callback
+            function ( xhr ) {
+                console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+            },
+
+            // onError callback
+            function ( err ) {
+                console.error( 'An error happened loading the model' );
+            }
+        );
 
         // make the frame fullscreen within the reality editor,
         // and subscribe to the modelview and projection matrices
@@ -104,15 +150,11 @@
             
             if (typeof envelopeMessage.highlightTarget !== 'undefined') {
                 if (envelopeMessage.highlightTarget) {
-
-                    //console.log('HIGHLIGHT TARGET!');
                     
                     // document.getElementById('container').style.borderColor = 'cyan';
                     lightness = 0.6;
                     saturation = 1.0;
                 } else {
-
-                    //console.log('UNHIGHLIGHT TARGET!');
                     
                     // document.getElementById('container').style.borderColor = '';
                     lightness = 0.9;
@@ -139,6 +181,8 @@
             // whenever we receive new matrices from the editor, update the 3d scene
             realityInterface.addMatrixListener(renderScene);
 
+            realityInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
+
             realityInterface.setMoveDelay(10);
 
             realityInterface.registerTouchDecider(touchDecider);
@@ -163,7 +207,7 @@
             
         });
         
-        setTimeout(function(){ addShadowAndHeightLine(); }, 3000);   // This is needed to avoid the initial setup frames where matrices are empty
+        setTimeout(function(){ initPathPoint(); }, 1500);   // This is needed to avoid the initial setup frames where matrices are empty
 
     });
 
@@ -199,9 +243,10 @@
 
         if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
             // update models with newest values from the reality editor
-            mesh.children[0].material.color.setHSL( hue, saturation, lightness );
-            mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-            mesh.rotation.y += 0.01;
+            mesh.material.color.setHSL( hue, saturation, lightness );
+            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            //mesh.rotation.y += 0.01;
+            
             // update model view matrix
             setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
             // render the scene
@@ -214,6 +259,7 @@
 
         if (isGroundPlaneFound){
              updateShadow();
+             updateHeighLine();
         }
     }
 
@@ -224,25 +270,18 @@
         }
     }
 
-    function addShadowAndHeightLine(){
+    function initPathPoint(){
 
-        // Floor Mark
+        // Shadow
 
         let texture = new THREE.TextureLoader().load( "resources/textures/checkpointFloor.png" );
         let planeGeometry = new THREE.PlaneGeometry( 10, 10, 32 );
         let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide, map : texture} );
         gp_shadow = new THREE.Mesh( planeGeometry, planeMaterial );
         gp_shadow.rotateX(Math.PI/2);
-
-
-        var geometry1 = new THREE.SphereGeometry( 3, 32, 32 );
-        var material1 = new THREE.MeshBasicMaterial( {color: 0xffff00, transparent: true, opacity: 0} );
-        gp_checkpointDummy = new THREE.Mesh( geometry1, material1 );
-
+        
         mesh.add(gp_shadow);
         gp_shadow.position.set(0,0,0);
-        
-        mesh.add(gp_checkpointDummy);
         THREE.SceneUtils.attach( gp_shadow, mesh, groundplaneContainerObj );
 
         gp_shadow.scale.set(5,5,5);
@@ -268,16 +307,41 @@
 
         groundplaneContainerObj.add(line);
 
-        if (isGroundPlaneFound) updateShadow();
+        if (isGroundPlaneFound){
+            updateShadow();
+            updateHeighLine();
+            alignPathPointToGroundPlane();
+        }
+    }
+    
+    function alignPathPointToGroundPlane() {
+        // Align the checkpoint to the groundplane up vector
+
+        THREE.SceneUtils.detach( mesh, mainContainerObj, scene );
+        THREE.SceneUtils.attach( mesh, scene, groundplaneContainerObj );
+
+        let newRotation = new THREE.Euler(gp_shadow.rotation.x - Math.PI/2, gp_shadow.rotation.y, gp_shadow.rotation.z);
+        let newQuaternion = new THREE.Quaternion();
+        newQuaternion.setFromEuler(newRotation);
+
+        const loop = animitter((deltatime, elapsedtime, framecount)=>{
+            mesh.quaternion.slerp( newQuaternion, 0.1 );
+            if (framecount >= 100){
+                loop.stop();
+                THREE.SceneUtils.detach( mesh, groundplaneContainerObj, scene );
+                THREE.SceneUtils.attach( mesh, groundplaneContainerObj, mainContainerObj );
+            }
+        });
+
+        loop.start();
     }
 
-    // Update shadow, update height line
+    // Update shadow
     function updateShadow(){
 
-        if (gp_shadow && heightLine) {
+        if (gp_shadow) {
 
             const gp_meshPos = new THREE.Vector3();
-            //mainContainerObj.localToWorld(gp_meshPos);
             mesh.getWorldPosition(gp_meshPos);
             groundplaneContainerObj.worldToLocal(gp_meshPos);
 
@@ -286,6 +350,17 @@
 
             let shadowScale = toolScale * 3.5;
             gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
+            
+        }
+    }
+    
+    function updateHeighLine() {
+        
+        if (heightLine) {
+
+            const gp_meshPos = new THREE.Vector3();
+            mesh.getWorldPosition(gp_meshPos);
+            groundplaneContainerObj.worldToLocal(gp_meshPos);
 
             let meshPosition = new THREE.Vector3(gp_meshPos.x, gp_meshPos.y - 50, gp_meshPos.z);
 
@@ -294,7 +369,7 @@
                 gp_shadow.position,
                 meshPosition);
             heightLine.verticesNeedUpdate = true;
-            
+
         }
     }
 

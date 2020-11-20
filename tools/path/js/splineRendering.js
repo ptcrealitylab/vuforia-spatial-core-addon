@@ -54,6 +54,13 @@
         this.splinesObjIdMap[nodeId] = splineObject;
         
     }
+
+    SplineRender.prototype.deleteSpline = function(nodeId){
+        if (this.splinesObjIdMap[nodeId]){
+            this.container.remove(this.splinesObjIdMap[nodeId]);
+            delete this.splinesObjIdMap[nodeId];
+        }
+    };
     
 
     SplineRender.prototype.updateSpline = function(nodeId, positions) {
@@ -64,23 +71,37 @@
             localPositions.push(newPos);
         }.bind(this));
 
+        //console.log('UPDATE SPLINE: ', localPositions.length);
+
         if (!(nodeId in this.splinesIdMap)) {
+            
+            console.log('ADD SPLINE');
             
             addSpline(nodeId, localPositions);
             
         } else {
             
-            let thisSpline = this.splinesIdMap[nodeId];
+            if (positions < 2){
 
-            const curve = new THREE.CatmullRomCurve3(localPositions);
-            const points = curve.getPoints( 50 );
+                this.splinesObjIdMap[nodeId].visible = false;
+                
+            } else {
 
-            var geometry = new THREE.Geometry();
-            geometry.vertices = points;
+                this.splinesObjIdMap[nodeId].visible = true;
+                
+                let thisSpline = this.splinesIdMap[nodeId];
 
-            thisSpline.setGeometry( geometry );
+                const curve = new THREE.CatmullRomCurve3(localPositions);
+                const points = curve.getPoints( 50 );
+
+                var geometry = new THREE.Geometry();
+                geometry.vertices = points;
+
+                thisSpline.setGeometry( geometry );
+            }
+            
+            
         }
-        
     };
 
     SplineRender.prototype.highlightSpline = function(nodeId, highlight) {
