@@ -75,14 +75,11 @@ exports.setup = function (_object, _frame, _node, _block, _thisBlock, _callback)
 };
 //var logicAPI = require(__dirname + '/../../libraries/logicInterfaces');
 
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
 
     // console.log(object, node, block, index, thisBlock, callback);
     // console.log(thisBlock);
     // console.log(thisBlock.data);
-
-    for (var key in thisBlock.data[index]) {
-        thisBlock.processedData[index][key] = thisBlock.data[index][key];
-    }
+    thisBlock.processedData[index] = utilities.deepCopy(thisBlock.data[index]);
     callback(object, frame, node, block, index, thisBlock);
 };

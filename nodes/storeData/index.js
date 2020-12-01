@@ -62,16 +62,14 @@ var generalProperties = {
 
 exports.properties = generalProperties;
 
-exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
+exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 // add code here that should be executed once.
 
 };
 
-exports.render = function (object, frame, node, thisNode, callback) {
-    for (var key in thisNode.data) {
-        thisNode.processedData[key] = thisNode.data[key];
-    }
-    callback(object, frame, node, thisNode);
+exports.render = function (object, tool, node, thisNode, callback) {
+    thisNode.processedData = utilities.deepCopy(thisNode.data);
+    callback(object, tool, node, thisNode);
 };
 
 /* // example for delay

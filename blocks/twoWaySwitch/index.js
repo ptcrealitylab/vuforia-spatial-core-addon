@@ -90,7 +90,8 @@ exports.properties = generalProperties;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
+    if(typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
     if (index === 0) {
         // if the first input receives a high value and the switch is on, turns the switch off and outputs a 1 from the first output
         if (thisBlock.data[0].value > 0.5) {

@@ -90,8 +90,8 @@ exports.properties = generalProperties;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
-    var delayedValue = thisBlock.data[index].value;
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
+    var delayedValue = utilities.deepCopy(thisBlock.data[index].value);
 
     setTimeout(function() {
         thisBlock.processedData[index].value = delayedValue;

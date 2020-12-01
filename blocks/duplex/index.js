@@ -90,8 +90,9 @@ exports.properties = generalProperties;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
-
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
+    if(typeof thisBlock.data[0].value === 'object') return;
+    
     if (thisBlock.data[0].value > 0.5 ) {
         // Copy values from high input to out
         copyValuesToOutput(thisBlock, 2);

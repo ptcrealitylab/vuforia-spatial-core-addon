@@ -94,12 +94,10 @@ exports.properties = generalProperties;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
 
     // data flows through it like normal
-    for (var key in thisBlock.data[index]) {
-        thisBlock.processedData[index][key] = thisBlock.data[index][key];
-    }
+    thisBlock.processedData[index] = utilities.deepCopy(thisBlock.data[index]);
 
     // BUT ALSO: makes a post request to the server endpoint configured in publicData
     if (index === 0) {
