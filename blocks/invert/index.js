@@ -90,8 +90,9 @@ exports.properties = generalProperties;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
-
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
+    if(typeof thisBlock.data[index].value === 'object') return;
+    
     for (var key in thisBlock.data[index]) {
         if (key === 'value') {
             thisBlock.processedData[index].value = 1 - thisBlock.data[index].value;

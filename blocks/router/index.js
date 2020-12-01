@@ -96,8 +96,9 @@ var thresholdValue = 0;
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
-
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
+    if(typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
+    
     if (index === 0) {
         thresholdValue = thisBlock.data[0].value;
 
