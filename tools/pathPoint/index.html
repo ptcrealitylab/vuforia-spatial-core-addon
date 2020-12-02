@@ -1,0 +1,400 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Path Point</title>
+    <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/pep.min.js"></script>
+    <script src="objectDefaultFiles/envelopeContents.js"></script>
+    <script src="resources/threejs-src/2016/three.min.js"></script>
+    <script src="resources/animitter.js"></script>
+    <script src="objectDefaultFiles/gl-worker.js"></script>
+</head>
+<body>
+<script>
+    let realRenderer, renderer;
+    var camera, scene, cube;
+    var mainContainerObj, groundplaneContainerObj;
+    var spatialInterface;
+    var mesh;
+
+    let gp_shadow;
+    //let gp_checkpointDummy;
+    let heightLine;
+
+    let materials = [
+        new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
+        new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+    ];
+
+    var isProjectionMatrixSet = false, isGroundPlaneFound = false, isMoving = false;
+
+    var rendererWidth = screen.height;
+    var rendererHeight = screen.width;
+    var aspectRatio = rendererWidth / rendererHeight;
+
+    var hue = 0.3;
+    var saturation = 1;
+    var lightness = 0.6;
+
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+    
+    let toolScale = 1.0;
+
+    window.addEventListener('load', function() {
+        if (!spatialInterface) {
+            spatialInterface = new SpatialInterface();
+        }
+        spatialInterface.useWebGlWorker();
+    });
+
+    function main() {
+        realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+        realRenderer.setPixelRatio( window.devicePixelRatio );
+        realRenderer.setSize( rendererWidth, rendererHeight );
+        realGl = realRenderer.getContext();
+
+        // create a fullscreen webgl renderer for the threejs content and add to the dom
+        renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( rendererWidth, rendererHeight );
+        document.body.appendChild( renderer.domElement );
+
+        // create a threejs camera and scene
+        camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
+        scene = new THREE.Scene();
+
+        // create a parent 3D object to contain all the three js objects
+        // we can apply the marker transform to this object and all of its
+        // children objects will be affected
+        mainContainerObj = new THREE.Object3D();
+        mainContainerObj.matrixAutoUpdate = false;
+        scene.add(mainContainerObj);
+
+        // Create Ground Plane container
+        groundplaneContainerObj = new THREE.Object3D();
+        groundplaneContainerObj.matrixAutoUpdate = false;
+        groundplaneContainerObj.name = 'groundPlaneContainer';
+        scene.add(groundplaneContainerObj);
+
+        // light the scene with a combination of ambient and directional white light
+        var ambLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambLight);
+        var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight1.position.set(100, 100, 100);
+        scene.add(dirLight1);
+        var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight2.position.set(-100, -100, -100);
+        scene.add(dirLight2);
+
+        var loader = new THREE.ObjectLoader();
+
+        loader.load(
+            // resource URL
+            "resources/models/KineticAR_Locator_01.json",
+
+            // onLoad callback
+            // Here the loaded data is assumed to be an object
+            function ( obj ) {
+
+                obj.traverse( function ( child ) {
+
+                    if ( child instanceof THREE.Mesh ) {
+                        child.materials = materials;
+
+                        if (child.name === "LOCATOR___FLOATING"){
+
+                            console.log('FOUND CHECKPOINT FBX');
+
+                            mesh = child;
+                        }
+                    }
+                } );
+
+                // Add the loaded object to the scene
+                mainContainerObj.add( mesh );
+                mesh.name = 'checkpoint';
+                mesh.scale.set(60,60,60);
+
+                // add spotlight for the shadows
+                var spotLight = new THREE.SpotLight(0xffffff);
+                spotLight.position.set(-30, -30, 150);
+                spotLight.castShadow = true;
+                mesh.add(spotLight);
+                
+                // Axis
+
+                var geometrycube = new THREE.BoxGeometry( 1, 1, 1 );
+                var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+                var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                var material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+                cube = new THREE.Mesh( geometrycube, material );
+                cube2 = new THREE.Mesh( geometrycube, material2 );
+                cube3 = new THREE.Mesh( geometrycube, material3 );
+                mesh.add( cube );
+                mesh.add( cube2 );
+                mesh.add( cube3 );
+                cube.position.set(0,7,0);
+                cube3.position.set(5,0,0);
+                cube2.position.set(0,0,5);
+
+            },
+
+            // onProgress callback
+            function ( xhr ) {
+                console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+            },
+
+            // onError callback
+            function ( err ) {
+                console.error( 'An error happened loading the model' );
+            }
+        );
+
+        // make the frame fullscreen within the reality editor,
+        // and subscribe to the modelview and projection matrices
+        if (!spatialInterface) {
+            spatialInterface = new SpatialInterface();
+        }
+
+        // Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
+        let envelopeContents = new EnvelopeContents(spatialInterface, document.body);
+
+        envelopeContents.onMessageFromEnvelope(function(envelopeMessage) {
+            
+            if (typeof envelopeMessage.highlightTarget !== 'undefined') {
+                if (envelopeMessage.highlightTarget) {
+                    
+                    // document.getElementById('container').style.borderColor = 'cyan';
+                    lightness = 0.6;
+                    saturation = 1.0;
+                } else {
+                    
+                    // document.getElementById('container').style.borderColor = '';
+                    lightness = 0.9;
+                    saturation = 0.6;
+                }
+            }
+        });
+
+        spatialInterface.onSpatialInterfaceLoaded(function() {
+
+            spatialInterface.getScreenDimensions(function(width, height) {
+                document.body.width = width + 'px';
+                document.body.height = height + 'px';
+                rendererWidth = width;
+                rendererHeight = height;
+                renderer.setSize( rendererWidth, rendererHeight );
+
+                spatialInterface.changeFrameSize(width, height);
+            });
+
+            spatialInterface.subscribeToMatrix();
+            spatialInterface.setFullScreenOn();
+
+            // whenever we receive new matrices from the editor, update the 3d scene
+            spatialInterface.addMatrixListener(renderScene);
+
+            spatialInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
+
+            spatialInterface.setMoveDelay(10);
+
+            spatialInterface.registerTouchDecider(touchDecider);
+
+            spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+
+            spatialInterface.addIsMovingListener(function(e) {
+                if (e) {
+                    console.log('PoI is moving');
+                    // hue = 0.3;
+                    saturation = 1;
+                    // lightness = 0.75;
+                    isMoving = true;
+                } else {
+                    console.log('PoI is NOT moving');
+                    // hue = 0;
+                    saturation = 0.75;
+                    // lightness = 0.6;
+                    isMoving = false;
+                }
+            });
+            
+        });
+        
+        setTimeout(function(){ initPathPoint(); }, 1500);   // This is needed to avoid the initial setup frames where matrices are empty
+
+    }
+
+    function touchDecider(eventData) {
+        //1. sets the mouse position with a coordinate system where the center
+        //   of the screen is the origin
+        mouse.x = ( eventData.x / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( eventData.y / window.innerHeight ) * 2 + 1;
+        
+        //2. set the picking ray from the camera position and mouse coordinates
+        raycaster.setFromCamera( mouse, camera );
+        
+        //3. compute intersections
+        var intersects = raycaster.intersectObjects( scene.children, true );
+
+        return intersects.length > 0;
+    }
+
+    function setMatrixFromArray(matrix, array) {
+        matrix.set( array[0], array[4], array[8], array[12],
+            array[1], array[5], array[9], array[13],
+            array[2], array[6], array[10], array[14],
+            array[3], array[7], array[11], array[15]
+        );
+    }
+
+    function renderScene(modelViewMatrix, projectionMatrix) {
+        if (!camera) {
+            return;
+        }
+        // only set the projection matrix for the camera 1 time, since it stays the same
+        if (!isProjectionMatrixSet && projectionMatrix.length > 0) {
+            setMatrixFromArray(camera.projectionMatrix, projectionMatrix);
+
+            setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+
+            isProjectionMatrixSet = true;
+        }
+
+
+        toolScale = Math.abs(modelViewMatrix[0]) || 1.0; // distance is relative to scale of frame
+
+        if (isGroundPlaneFound){
+             updateShadow();
+             updateHeighLine();
+        }
+    }
+
+    render = function() {
+        if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
+            // update models with newest values from the reality editor
+            mesh.material.color.setHSL( hue, saturation, lightness );
+            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            //mesh.rotation.y += 0.01;
+            // update model view matrix
+            // render the scene
+            mainContainerObj.visible = true;
+
+            renderer.render( scene, camera );
+        }
+    };
+
+    function groundPlaneCallback(groundPlaneMatrix, projectionMatrix){
+        if (isProjectionMatrixSet) {
+            isGroundPlaneFound = true;
+            setMatrixFromArray(groundplaneContainerObj.matrix, groundPlaneMatrix);  // update model view matrix
+        }
+    }
+
+    function initPathPoint(){
+
+        // Shadow
+
+        let texture = new THREE.TextureLoader().load( "resources/textures/checkpointFloor.png" );
+        let planeGeometry = new THREE.PlaneGeometry( 10, 10, 32 );
+        let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide, map : texture} );
+        gp_shadow = new THREE.Mesh( planeGeometry, planeMaterial );
+        gp_shadow.rotateX(Math.PI/2);
+        
+        mesh.add(gp_shadow);
+        gp_shadow.position.set(0,0,0);
+        THREE.SceneUtils.attach( gp_shadow, mesh, groundplaneContainerObj );
+
+        gp_shadow.scale.set(5,5,5);
+
+        // Height line
+
+        let positionCheckpoint = new THREE.Vector3(0,0,0);
+        mesh.getWorldPosition(positionCheckpoint);
+        
+        var material = new THREE.LineBasicMaterial({
+            color: 0x0000ff
+        });
+
+        heightLine = new THREE.Geometry();
+        heightLine.vertices.push(
+            gp_shadow.position,
+            gp_shadow.position);
+        heightLine.verticesNeedUpdate = true;
+
+        var line = new THREE.Line(heightLine, new THREE.LineBasicMaterial({
+            color: 0xffffff
+        }));
+
+        groundplaneContainerObj.add(line);
+
+        if (isGroundPlaneFound){
+            updateShadow();
+            updateHeighLine();
+            alignPathPointToGroundPlane();
+        }
+    }
+    
+    function alignPathPointToGroundPlane() {
+        // Align the checkpoint to the groundplane up vector
+
+        THREE.SceneUtils.detach( mesh, mainContainerObj, scene );
+        THREE.SceneUtils.attach( mesh, scene, groundplaneContainerObj );
+
+        let newRotation = new THREE.Euler(gp_shadow.rotation.x - Math.PI/2, gp_shadow.rotation.y, gp_shadow.rotation.z);
+        let newQuaternion = new THREE.Quaternion();
+        newQuaternion.setFromEuler(newRotation);
+
+        const loop = animitter((deltatime, elapsedtime, framecount)=>{
+            mesh.quaternion.slerp( newQuaternion, 0.1 );
+            if (framecount >= 100){
+                loop.stop();
+                THREE.SceneUtils.detach( mesh, groundplaneContainerObj, scene );
+                THREE.SceneUtils.attach( mesh, groundplaneContainerObj, mainContainerObj );
+            }
+        });
+
+        loop.start();
+    }
+
+    // Update shadow
+    function updateShadow(){
+
+        if (gp_shadow) {
+
+            const gp_meshPos = new THREE.Vector3();
+            mesh.getWorldPosition(gp_meshPos);
+            groundplaneContainerObj.worldToLocal(gp_meshPos);
+
+            gp_shadow.position.set(gp_meshPos.x, 0, gp_meshPos.z);
+            gp_shadow.rotation.set(Math.PI/2,0,0);
+
+            let shadowScale = toolScale * 3.5;
+            gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
+            
+        }
+    }
+    
+    function updateHeighLine() {
+        
+        if (heightLine) {
+
+            const gp_meshPos = new THREE.Vector3();
+            mesh.getWorldPosition(gp_meshPos);
+            groundplaneContainerObj.worldToLocal(gp_meshPos);
+
+            let meshPosition = new THREE.Vector3(gp_meshPos.x, gp_meshPos.y - 50, gp_meshPos.z);
+
+            heightLine.vertices = [];
+            heightLine.vertices.push(
+                gp_shadow.position,
+                meshPosition);
+            heightLine.verticesNeedUpdate = true;
+
+        }
+    }
+
+</script>
+</body>
+</html>
