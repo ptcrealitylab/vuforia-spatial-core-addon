@@ -56,7 +56,8 @@ var generalProperties = {
     name: 'invisible',
     privateData: {},
     publicData: {},
-    type: 'invisible'
+    type: 'invisible',
+    invisible: true
 };
 
 exports.properties = generalProperties;

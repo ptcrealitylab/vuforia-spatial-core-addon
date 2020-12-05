@@ -94,7 +94,7 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
-    if(typeof thisBlock.data[index].value === 'object') return;
+    if (typeof thisBlock.data[index].value === 'object') return;
     // Outputs a 1 if the previous value was a 1 and the new value is a 0
     // Otherwise outputs a 0 regardless of what data is sent in
 

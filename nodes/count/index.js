@@ -68,14 +68,14 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    
+
     for (var key in thisNode.data) {
         if (key === 'value') {
-            if(typeof thisNode.data.value !== "number")   {
+            if (typeof thisNode.data.value !== 'number') {
                 thisNode.publicData.count++;
                 return;
             }
-            
+
             if (thisNode.data.value >= 0.5 && thisNode.publicData.lastTick === false) {
 
                 thisNode.publicData.lastTick = true;

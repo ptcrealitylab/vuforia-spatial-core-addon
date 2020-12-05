@@ -69,17 +69,17 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
     thisNode.processedData = utilities.deepCopy(thisNode.data);
-    
-    if(thisNode.data.hasOwnProperty("value")){
-            if(typeof thisNode.data.value === "number") {
-                if (thisNode.data.value < thisNode.publicData.max) {
-                    thisNode.processedData.value = 1.0;
-                } else {
-                    thisNode.processedData.value = 0.0;
-                }
+
+    if (thisNode.data.hasOwnProperty('value')) {
+        if (typeof thisNode.data.value === 'number') {
+            if (thisNode.data.value < thisNode.publicData.max) {
+                thisNode.processedData.value = 1.0;
+            } else {
+                thisNode.processedData.value = 0.0;
             }
+        }
     }
-  
+
     callback(object, tool, node, thisNode);
 };
 /* // example for delay

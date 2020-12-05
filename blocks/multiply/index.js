@@ -93,7 +93,7 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
-    if(typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
+    if (typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object') return;
     var product = 0;
     // add value from A
     if (thisBlock.data[0].value && thisBlock.data[1].value) {

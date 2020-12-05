@@ -91,7 +91,7 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
-    if(typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
+    if (typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object') return;
     if (index === 0) {
         // if the first input receives a high value, and the toggle was flipped towards the second input, flip it back to the first and emit a 1 from the first output and a 0 from the second
         if (thisBlock.data[0].value > 0.5) {

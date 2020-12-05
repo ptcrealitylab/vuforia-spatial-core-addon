@@ -57,7 +57,8 @@ var generalProperties = {
     name: 'node',
     privateData: {},
     publicData: {data: {}},
-    type: 'node'
+    type: 'node',
+    invisible: true
 };
 
 exports.properties = generalProperties;
@@ -67,7 +68,7 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 };
 
-exports.render = function (object, tool, node, thisNode, callback) {
+exports.render = function (object, tool, node, thisNode, callback, utilities) {
     thisNode.processedData = utilities.deepCopy(thisNode.data);
     callback(object, tool, node, thisNode);
 };

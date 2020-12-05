@@ -92,7 +92,7 @@ exports.properties = generalProperties;
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
  */
 exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
-    if(typeof thisBlock.data[0].value === 'object') return;
+    if (typeof thisBlock.data[0].value === 'object') return;
     if (index === 0) {
         if (thisBlock.data[0].value > 0.5 ) {
             if (thisBlock.publicData.toggle !== false) {

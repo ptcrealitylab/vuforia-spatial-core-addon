@@ -68,7 +68,7 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
- var delayedValue = utilities.deepCopy(thisNode.data.value);
+    var delayedValue = utilities.deepCopy(thisNode.data.value);
 
     setTimeout(function() {
         thisNode.processedData.value = delayedValue;
