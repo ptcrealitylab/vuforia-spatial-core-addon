@@ -8,7 +8,6 @@
     <script src="thirdPartyCode/graph.js"></script>
     <script src="js/pathfinding.js"></script>
     <script src="js/splineRendering.js"></script>
-    <script src="objectDefaultFiles/gl-worker.js"></script>
     <link rel="stylesheet" href="styles/styles.css">
     <meta charset="UTF-8">
     <title>Path</title>
@@ -40,9 +39,7 @@
 
     /******** THREEJS ********/
 
-    let realRenderer, renderer;
-    let spatialInterface;
-    let camera, scene, splineRenderer, cube;
+    let camera, scene, renderer, splineRenderer, cube;
     let mainContainerObj, groundPlaneContainerObj;
     let isProjectionMatrixSet = false, isGroundPlaneTracked = false;
 
@@ -65,21 +62,9 @@
     }
 
     window.addEventListener('load', function() {
-        if (!spatialInterface) {
-            spatialInterface = new SpatialInterface();
-        }
-        spatialInterface.useWebGlWorker();
-    });
-
-    function main() {
-        realRenderer = new THREE.WebGLRenderer( { alpha: true } );
-        realRenderer.setPixelRatio( window.devicePixelRatio );
-        realRenderer.setSize( rendererWidth, rendererHeight );
-        // document.body.appendChild( realRenderer.domElement );
-        realGl = realRenderer.getContext();
 
         // create a fullscreen webgl renderer for the threejs content and add to the dom
-        renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
+        renderer = new THREE.WebGLRenderer( { canvas: canvas, alpha: true } );
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( rendererWidth, rendererHeight );
         document.body.appendChild( renderer.domElement );
@@ -120,15 +105,13 @@
 
         splineRenderer = new SplineRender(groundPlaneContainerObj);
 
-    }
+    });
 
 
 
     /****** ******/
 
-    if (!spatialInterface) {
-        spatialInterface = new SpatialInterface();
-    }
+    let spatialInterface = new SpatialInterface();
 
     // Define a list of the names of tools that can go inside this envelope
     let compatibleToolTypes = ['pathPoint'];
@@ -192,10 +175,6 @@
     spatialInterface.onRealityInterfaceLoaded(function() {
 
         spatialInterface.addMatrixListener(function(modelView, _projection) {
-            if (!camera || !mainContainerObj) {
-                return;
-            }
-
             var scaleFactor = Math.abs(modelView[0]);
             var zDistance = Math.abs(modelView[14]);
 
@@ -220,6 +199,7 @@
             // 10. Every frame, set the position of the containerObj to the modelViewMatrix
             if (isProjectionMatrixSet && envelope.isOpen) {
                 setMatrixFromArray(mainContainerObj.matrix, modelView);
+                renderer.render(scene, camera);
             }
             mainContainerObj.visible = envelope.isOpen;
 
@@ -501,8 +481,11 @@
         }, shouldSubscribe3d);
     }
 
-    render = function() {
+    render();
+
+    function render() {
         if (!shouldRender) {
+            requestAnimationFrame(render);
             return;
         }
 
@@ -577,12 +560,10 @@
 
 
             shouldRender = false;
+            requestAnimationFrame(render); // loop
         } catch (e) {
             console.error('error in render function', e);
-        }
-
-        if (isProjectionMatrixSet && envelope.isOpen) {
-            renderer.render(scene, camera);
+            requestAnimationFrame(render);
         }
     }
 

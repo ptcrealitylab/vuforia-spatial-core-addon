@@ -6,14 +6,13 @@
     <script src="objectDefaultFiles/object.js"></script>
     <script src="objectDefaultFiles/pep.min.js"></script>
     <script src="objectDefaultFiles/envelopeContents.js"></script>
-    <script src="objectDefaultFiles/gl-worker.js"></script>
     <script src="resources/threejs-src/2016/three.min.js"></script>
 <!--    <script src="resources/navigation-arrow.js"></script>-->
 <!--    <link rel="stylesheet" type="text/css" href="resources/navigation-arrow.css">-->
 </head>
 <body>
 <script>
-    var camera, scene, renderer, realRenderer;
+    var camera, scene, renderer;
     var threejsContainerObj;
     var realityInterface;
     var mesh;
@@ -24,30 +23,22 @@
     var rendererHeight = screen.width;
     var aspectRatio = rendererWidth / rendererHeight;
 
+    var hue = 0;
     var saturation = 0.75;
     var lightness = 0.6;
-    
-    const defaultHue = Math.random();
-    var hue = defaultHue;
 
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
 
+    var cube;
+
     window.addEventListener('load', function() {
-        realityInterface = new RealityInterface();
-        realityInterface.useWebGlWorker();
-    });
 
-    function main() {
         // create a fullscreen webgl renderer for the threejs content and add to the dom
-        realRenderer = new THREE.WebGLRenderer( { alpha: true } );
-        realRenderer.setPixelRatio( window.devicePixelRatio );
-        realRenderer.setSize( rendererWidth, rendererHeight );
-        // document.body.appendChild( realRenderer.domElement );
-        realGl = realRenderer.getContext();
-
-        renderer = new THREE.WebGLRenderer({context: gl});
-        renderer.setSize(rendererWidth, rendererHeight);
+        renderer = new THREE.WebGLRenderer( { alpha: true } );
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( rendererWidth, rendererHeight );
+        document.body.appendChild( renderer.domElement );
 
         // create a threejs camera and scene
         camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
@@ -70,7 +61,7 @@
         dirLight2.position.set(-100, -100, -100);
         scene.add(dirLight2);
 
-        // add an icosahedron 3d model to the container object 
+        // add an icosahedron 3d model to the container object
         var radius = 75;
         var geometry = new THREE.IcosahedronGeometry( radius, 1 );
         var materials = [
@@ -80,6 +71,14 @@
         mesh = THREE.SceneUtils.createMultiMaterialObject( geometry, materials );
         threejsContainerObj.add( mesh );
         mesh.position.setZ(150);
+        mesh.children[0].material.color.setHSL( hue, saturation, lightness );
+
+        // var geometry2 = new THREE.BoxGeometry( 10, 10, 10 );
+        // var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        // cube = new THREE.Mesh( geometry2, material2 );
+        // threejsContainerObj.add( cube );
+        // cube.position.setZ(150);
+        // cube.position.setX(150);
 
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
@@ -89,14 +88,15 @@
 
         // make the frame fullscreen within the reality editor,
         // and subscribe to the modelview and projection matrices
-        // realityInterface.initNode('hue', 'node', -50, -50, undefined, 0);
+        realityInterface = new RealityInterface();
+        realityInterface.initNode('hue', 'node', -50, -50, undefined, 0);
         realityInterface.initNode('saturation', 'node', 0, 0, undefined, 0.75);
         realityInterface.initNode('lightness', 'node', 50, 50, undefined, 0.6);
 
         var _envelopeContents = new EnvelopeContents(realityInterface, document.body);
 
         realityInterface.onRealityInterfaceLoaded(function() {
-            
+
             realityInterface.getScreenDimensions(function(width, height) {
                 document.body.width = width + 'px';
                 document.body.height = height + 'px';
@@ -129,15 +129,15 @@
                     // lightness = 0.75;
                 } else {
                     console.log('red ball is NOT moving');
-                    hue = defaultHue; //0;
+                    hue = 0;
                     saturation = 0.75;
                     lightness = 0.6;
                 }
             });
 
-            // realityInterface.addReadListener('hue', function(e) {
-            //     hue = e.value;
-            // });
+            realityInterface.addReadListener('hue', function(e) {
+                hue = e.value;
+            });
 
             realityInterface.addReadListener('saturation', function(e) {
                 saturation = e.value;
@@ -149,18 +149,22 @@
 
 
         });
-    }
+
+    });
 
     function touchDecider(eventData) {
-        // 1. sets the mouse position with a coordinate system where the center
-        //    of the screen is the origin
+
+        //console.log('TOUCH! ', eventData);
+
+        //1. sets the mouse position with a coordinate system where the center
+        //   of the screen is the origin
         mouse.x = ( eventData.x / window.innerWidth ) * 2 - 1;
         mouse.y = - ( eventData.y / window.innerHeight ) * 2 + 1;
 
-        // 2. set the picking ray from the camera position and mouse coordinates
+        //2. set the picking ray from the camera position and mouse coordinates
         raycaster.setFromCamera( mouse, camera );
 
-        // 3. compute intersections
+        //3. compute intersections
         var intersects = raycaster.intersectObjects( scene.children, true );
 
         return intersects.length > 0;
@@ -174,85 +178,25 @@
         );
     }
 
-    let lastProjectionMatrix = null;
-    let lastModelViewMatrix = null;
-
     function renderScene(modelViewMatrix, projectionMatrix) {
-        // // only set the projection matrix for the camera 1 time, since it stays the same
-        // if (!isProjectionMatrixSet && projectionMatrix.length > 0) {
-        //     setMatrixFromArray(camera.projectionMatrix, projectionMatrix);
-        //     isProjectionMatrixSet = true;
-        // }
-        
-        lastProjectionMatrix = projectionMatrix;
-        lastModelViewMatrix = modelViewMatrix;
-
-        // if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
-        //     // update models with newest values from the reality editor
-        //     mesh.children[0].material.color.setHSL( hue, saturation, lightness );
-        //     mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-        //     mesh.rotation.y += 0.01;
-        //     // update model view matrix
-        //     setMatrixFromArray(threejsContainerObj.matrix, modelViewMatrix);
-        //     // render the scene
-        //     threejsContainerObj.visible = true;
-        //     // renderer.render( scene, camera );
-        // }
-    }
-
-    let _then = 0;
-    let done = false;
-
-    // Draw the scene repeatedly
-    render = function(_now) {
-        // now *= 0.001;  // convert to seconds
-        // const deltaTime = now - then;
-        // then = now;
-
-        // cube.rotation.x -= 0.2 * deltaTime;
-        // cube.rotation.y -= 0.2 * deltaTime;
-
         // only set the projection matrix for the camera 1 time, since it stays the same
-        if (!isProjectionMatrixSet && lastProjectionMatrix && lastProjectionMatrix.length === 16) {
-            setMatrixFromArray(camera.projectionMatrix, lastProjectionMatrix);
+        if (!isProjectionMatrixSet && projectionMatrix.length > 0) {
+            setMatrixFromArray(camera.projectionMatrix, projectionMatrix);
             isProjectionMatrixSet = true;
         }
 
-        if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16) { 
-            // don't turn into else statement, both can happen
+        if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
             // update models with newest values from the reality editor
             mesh.children[0].material.color.setHSL( hue, saturation, lightness );
             mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
             mesh.rotation.y += 0.01;
+
             // update model view matrix
-            setMatrixFromArray(threejsContainerObj.matrix, lastModelViewMatrix);
+            setMatrixFromArray(threejsContainerObj.matrix, modelViewMatrix);
             // render the scene
             threejsContainerObj.visible = true;
-            // renderer.render( scene, camera );
-
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-                if (done && realGl) {
-                  for (let proxy of proxies) {
-                    proxy.__uncloneableObj = null;
-                    delete proxy.__uncloneableObj;
-                  }
-                  proxies = [];
-                  realRenderer.dispose();
-                  realRenderer.forceContextLoss();
-                  realRenderer.context = null;
-                  realRenderer.domElement = null;
-                  realRenderer = null;
-                  realGl = null;
-                }
-                done = true;
-            }
+            renderer.render( scene, camera );
         }
-
-        // if (renderer && scene && camera) {
-        //     renderer.render(scene, camera);
-        //     console.log('renderer.render (' + workerId + ')');
-        // }
     }
 
 </script>
