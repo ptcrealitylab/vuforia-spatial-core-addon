@@ -8,12 +8,14 @@
     <script src="objectDefaultFiles/envelopeContents.js"></script>
     <script src="resources/threejs-src/2016/three.min.js"></script>
     <script src="resources/animitter.js"></script>
+    <script src="objectDefaultFiles/gl-worker.js"></script>
 </head>
 <body>
 <script>
-    var camera, scene, renderer, cube;
+    let realRenderer, renderer;
+    var camera, scene, cube;
     var mainContainerObj, groundplaneContainerObj;
-    var realityInterface;
+    var spatialInterface;
     var mesh;
 
     let gp_shadow;
@@ -37,13 +39,24 @@
 
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
-
+    
     let toolScale = 1.0;
 
     window.addEventListener('load', function() {
+        if (!spatialInterface) {
+            spatialInterface = new SpatialInterface();
+        }
+        spatialInterface.useWebGlWorker();
+    });
+
+    function main() {
+        realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+        realRenderer.setPixelRatio( window.devicePixelRatio );
+        realRenderer.setSize( rendererWidth, rendererHeight );
+        realGl = realRenderer.getContext();
 
         // create a fullscreen webgl renderer for the threejs content and add to the dom
-        renderer = new THREE.WebGLRenderer( { alpha: true } );
+        renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( rendererWidth, rendererHeight );
         document.body.appendChild( renderer.domElement );
@@ -109,7 +122,7 @@
                 spotLight.position.set(-30, -30, 150);
                 spotLight.castShadow = true;
                 mesh.add(spotLight);
-
+                
                 // Axis
 
                 var geometrycube = new THREE.BoxGeometry( 1, 1, 1 );
@@ -141,21 +154,23 @@
 
         // make the frame fullscreen within the reality editor,
         // and subscribe to the modelview and projection matrices
-        realityInterface = new RealityInterface();
+        if (!spatialInterface) {
+            spatialInterface = new SpatialInterface();
+        }
 
         // Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
-        let envelopeContents = new EnvelopeContents(realityInterface, document.body);
+        let envelopeContents = new EnvelopeContents(spatialInterface, document.body);
 
         envelopeContents.onMessageFromEnvelope(function(envelopeMessage) {
-
+            
             if (typeof envelopeMessage.highlightTarget !== 'undefined') {
                 if (envelopeMessage.highlightTarget) {
-
+                    
                     // document.getElementById('container').style.borderColor = 'cyan';
                     lightness = 0.6;
                     saturation = 1.0;
                 } else {
-
+                    
                     // document.getElementById('container').style.borderColor = '';
                     lightness = 0.9;
                     saturation = 0.6;
@@ -163,33 +178,33 @@
             }
         });
 
-        realityInterface.onRealityInterfaceLoaded(function() {
+        spatialInterface.onSpatialInterfaceLoaded(function() {
 
-            realityInterface.getScreenDimensions(function(width, height) {
+            spatialInterface.getScreenDimensions(function(width, height) {
                 document.body.width = width + 'px';
                 document.body.height = height + 'px';
                 rendererWidth = width;
                 rendererHeight = height;
                 renderer.setSize( rendererWidth, rendererHeight );
 
-                realityInterface.changeFrameSize(width, height);
+                spatialInterface.changeFrameSize(width, height);
             });
 
-            realityInterface.subscribeToMatrix();
-            realityInterface.setFullScreenOn();
+            spatialInterface.subscribeToMatrix();
+            spatialInterface.setFullScreenOn();
 
             // whenever we receive new matrices from the editor, update the 3d scene
-            realityInterface.addMatrixListener(renderScene);
+            spatialInterface.addMatrixListener(renderScene);
 
-            realityInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
+            spatialInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
 
-            realityInterface.setMoveDelay(10);
+            spatialInterface.setMoveDelay(10);
 
-            realityInterface.registerTouchDecider(touchDecider);
+            spatialInterface.registerTouchDecider(touchDecider);
 
-            realityInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+            spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
 
-            realityInterface.addIsMovingListener(function(e) {
+            spatialInterface.addIsMovingListener(function(e) {
                 if (e) {
                     console.log('PoI is moving');
                     // hue = 0.3;
@@ -204,22 +219,22 @@
                     isMoving = false;
                 }
             });
-
+            
         });
-
+        
         setTimeout(function(){ initPathPoint(); }, 1500);   // This is needed to avoid the initial setup frames where matrices are empty
 
-    });
+    }
 
     function touchDecider(eventData) {
         //1. sets the mouse position with a coordinate system where the center
         //   of the screen is the origin
         mouse.x = ( eventData.x / window.innerWidth ) * 2 - 1;
         mouse.y = - ( eventData.y / window.innerHeight ) * 2 + 1;
-
+        
         //2. set the picking ray from the camera position and mouse coordinates
         raycaster.setFromCamera( mouse, camera );
-
+        
         //3. compute intersections
         var intersects = raycaster.intersectObjects( scene.children, true );
 
@@ -235,25 +250,18 @@
     }
 
     function renderScene(modelViewMatrix, projectionMatrix) {
+        if (!camera) {
+            return;
+        }
         // only set the projection matrix for the camera 1 time, since it stays the same
         if (!isProjectionMatrixSet && projectionMatrix.length > 0) {
             setMatrixFromArray(camera.projectionMatrix, projectionMatrix);
+
+            setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+
             isProjectionMatrixSet = true;
         }
 
-        if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
-            // update models with newest values from the reality editor
-            mesh.material.color.setHSL( hue, saturation, lightness );
-            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
-            //mesh.rotation.y += 0.01;
-
-            // update model view matrix
-            setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
-            // render the scene
-            mainContainerObj.visible = true;
-
-            renderer.render( scene, camera );
-        }
 
         toolScale = Math.abs(modelViewMatrix[0]) || 1.0; // distance is relative to scale of frame
 
@@ -262,6 +270,20 @@
              updateHeighLine();
         }
     }
+
+    render = function() {
+        if (isProjectionMatrixSet) { // don't turn into else statement, both can happen
+            // update models with newest values from the reality editor
+            mesh.material.color.setHSL( hue, saturation, lightness );
+            //mesh.rotation.x += 0.005; // slow rotation, for aesthetic effect
+            //mesh.rotation.y += 0.01;
+            // update model view matrix
+            // render the scene
+            mainContainerObj.visible = true;
+
+            renderer.render( scene, camera );
+        }
+    };
 
     function groundPlaneCallback(groundPlaneMatrix, projectionMatrix){
         if (isProjectionMatrixSet) {
@@ -279,7 +301,7 @@
         let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide, map : texture} );
         gp_shadow = new THREE.Mesh( planeGeometry, planeMaterial );
         gp_shadow.rotateX(Math.PI/2);
-
+        
         mesh.add(gp_shadow);
         gp_shadow.position.set(0,0,0);
         THREE.SceneUtils.attach( gp_shadow, mesh, groundplaneContainerObj );
@@ -290,7 +312,7 @@
 
         let positionCheckpoint = new THREE.Vector3(0,0,0);
         mesh.getWorldPosition(positionCheckpoint);
-
+        
         var material = new THREE.LineBasicMaterial({
             color: 0x0000ff
         });
@@ -313,7 +335,7 @@
             alignPathPointToGroundPlane();
         }
     }
-
+    
     function alignPathPointToGroundPlane() {
         // Align the checkpoint to the groundplane up vector
 
@@ -350,12 +372,12 @@
 
             let shadowScale = toolScale * 3.5;
             gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
-
+            
         }
     }
-
+    
     function updateHeighLine() {
-
+        
         if (heightLine) {
 
             const gp_meshPos = new THREE.Vector3();
