@@ -1,5 +1,7 @@
+/* global window, Graph */
+
 (function(exports) {
-    
+
     function Node(x, y, z, radius, color, presetId, weightFactor) {
         this.x = x;
         this.y = y;
@@ -16,7 +18,7 @@
         this.weight = weight || 1;
         this.id = 'edge_' + nodeA.id + '_' + nodeB.id;
     }
-    
+
     function Pathfinder() {
         // these are configured by user
         this.pointsOfInterest = [];
@@ -29,13 +31,13 @@
         this.edgeIdMap = {};
         this.map = {};
     }
-    
+
     Pathfinder.prototype.addPointOfInterest = function(nodeId) {
         let newNode = new Node(0, 0, 0, 20, 'blue', nodeId);
         this.pointsOfInterest.push(newNode);
         this.nodeIdMap[newNode.id] = newNode;
     };
-    
+
     Pathfinder.prototype.addObstacle = function(nodeId) {
         let newNode = new Node(0, 0, 0, 40, 'red', nodeId);
         this.obstacles.push(newNode);
@@ -78,26 +80,26 @@
 
     // run this eaach time before calling computeShortestsPaath
     Pathfinder.prototype.precomputeGraph = function() {
-        
+
         // 1. ------- Compute all nodes -------
         this._computeAllNodes();
         this.averageDistance = this._getAverageDistanceBetweenNodes();
-        
+
         // 2. ------- Compute all edges -------
         this._computeAllEdges();
-        
+
         this.map = {};
         this.nodes.forEach(function(node) {
             this.map[node.id] = {};
         }.bind(this));
-        
+
         this.edges.forEach(function(edge) {
             this.map[edge.nodeA.id][edge.nodeB.id] = edge.weight;
         }.bind(this));
-        
+
         return new Graph(this.map);
     };
-    
+
     Pathfinder.prototype._computeAllNodes = function() {
         this.nodes = [];
 
@@ -120,30 +122,30 @@
                     return;
                 }
                 let preferredWeightFactor = 0.9; // prefer these over other routes
-                let inBetween = new Node(newX, newY, newZ, 10, 'green', node.id+'_'+nodeB.id, preferredWeightFactor);
+                let inBetween = new Node(newX, newY, newZ, 10, 'green', node.id + '_' + nodeB.id, preferredWeightFactor);
                 inBetweenNodes.push(inBetween);
                 this.addNode(inBetween);
 
             }.bind(this));
-            
+
         }.bind(this));
-        
+
         this.obstacles.forEach(function(node) {
 
             // also create nodes around each obstacle
             let obstacleRadius = node.radius * 2; // put the routable nodes slightly beyond tool border
-            let upperLeftFront = new Node(node.x - obstacleRadius, node.y - obstacleRadius, node.z - obstacleRadius, 10, 'red', node.id+'_ULF');
-            let upperRightFront = new Node(node.x + obstacleRadius, node.y - obstacleRadius, node.z - obstacleRadius,10, 'red', node.id+'_URF');
-            let lowerLeftFront = new Node(node.x - obstacleRadius, node.y + obstacleRadius, node.z - obstacleRadius,10, 'red', node.id+'_LLF');
-            let lowerRightFront = new Node(node.x + obstacleRadius, node.y + obstacleRadius, node.z - obstacleRadius,10, 'red', node.id+'_LRF');
+            let upperLeftFront = new Node(node.x - obstacleRadius, node.y - obstacleRadius, node.z - obstacleRadius, 10, 'red', node.id + '_ULF');
+            let upperRightFront = new Node(node.x + obstacleRadius, node.y - obstacleRadius, node.z - obstacleRadius, 10, 'red', node.id + '_URF');
+            let lowerLeftFront = new Node(node.x - obstacleRadius, node.y + obstacleRadius, node.z - obstacleRadius, 10, 'red', node.id + '_LLF');
+            let lowerRightFront = new Node(node.x + obstacleRadius, node.y + obstacleRadius, node.z - obstacleRadius, 10, 'red', node.id + '_LRF');
             this.addNode(upperLeftFront);
             this.addNode(upperRightFront);
             this.addNode(lowerLeftFront);
             this.addNode(lowerRightFront);
-            let upperLeftBack = new Node(node.x - obstacleRadius, node.y - obstacleRadius, node.z + obstacleRadius, 10, 'red', node.id+'_ULB');
-            let upperRightBack = new Node(node.x + obstacleRadius, node.y - obstacleRadius, node.z + obstacleRadius,10, 'red', node.id+'_URB');
-            let lowerLeftBack = new Node(node.x - obstacleRadius, node.y + obstacleRadius, node.z + obstacleRadius,10, 'red', node.id+'_LLB');
-            let lowerRightBack = new Node(node.x + obstacleRadius, node.y + obstacleRadius, node.z + obstacleRadius,10, 'red', node.id+'_LRB');
+            let upperLeftBack = new Node(node.x - obstacleRadius, node.y - obstacleRadius, node.z + obstacleRadius, 10, 'red', node.id + '_ULB');
+            let upperRightBack = new Node(node.x + obstacleRadius, node.y - obstacleRadius, node.z + obstacleRadius, 10, 'red', node.id + '_URB');
+            let lowerLeftBack = new Node(node.x - obstacleRadius, node.y + obstacleRadius, node.z + obstacleRadius, 10, 'red', node.id + '_LLB');
+            let lowerRightBack = new Node(node.x + obstacleRadius, node.y + obstacleRadius, node.z + obstacleRadius, 10, 'red', node.id + '_LRB');
             this.addNode(upperLeftBack);
             this.addNode(upperRightBack);
             this.addNode(lowerLeftBack);
@@ -161,15 +163,15 @@
                     return;
                 }
                 let preferredWeightFactor = 1.0; //0.9;
-                let inBetween = new Node(newX, newY, newZ, 10, 'green', node.id+'_'+nodeB.id, preferredWeightFactor);
+                let inBetween = new Node(newX, newY, newZ, 10, 'green', node.id + '_' + nodeB.id, preferredWeightFactor);
                 inBetweenNodes.push(inBetween);
                 this.addNode(inBetween);
-                
+
             }.bind(this));
 
         }.bind(this));
     };
-    
+
     Pathfinder.prototype._getAverageDistanceBetweenNodes = function() {
         let totalDistance = 0;
         let count = 0;
@@ -210,7 +212,7 @@
         this.nodes.push(node);
         this.nodeIdMap[node.id] = node;
     };
-    
+
     Pathfinder.prototype.addEdge = function(edge) {
         this.edges.push(edge);
 
@@ -219,7 +221,7 @@
         }
         this.edgeIdMap[edge.nodeA.id][edge.nodeB.id] = edge;
     };
-    
+
     Pathfinder.prototype._computeAllEdges = function() {
         this.edges = [];
 
@@ -246,10 +248,10 @@
         this.obstacles.forEach(function(node) {
             // shrink the obstacle hit-box a little so it doesn't prune lines that skirt around it
             // let circle = new Circle((node.radius * 0.99), new Point(node.x, node.y)); // TODO: CHANGE TO 3D INTERSECTION
-            
+
             // get the upperLeftFront box corner and the lowerRightBack box corner
-            let upperLeftFront = this.nodeIdMap[node.id+'_ULF'];
-            let lowerRightBack = this.nodeIdMap[node.id+'_LRB'];
+            let upperLeftFront = this.nodeIdMap[node.id + '_ULF'];
+            let lowerRightBack = this.nodeIdMap[node.id + '_LRB'];
             let boxCorner1 = [upperLeftFront.x, upperLeftFront.y, upperLeftFront.z];
             let boxCorner2 = [lowerRightBack.x, lowerRightBack.y, lowerRightBack.z];
 
@@ -258,9 +260,9 @@
             this.edges.forEach(function(edge) {
                 let linePoint1 = [edge.nodeA.x, edge.nodeA.y, edge.nodeA.z];
                 let linePoint2 = [edge.nodeB.x, edge.nodeB.y, edge.nodeB.z];
-                
+
                 let doesIntersectObstacle = isSegmentIntersectingBox(linePoint1, linePoint2, boxCorner1, boxCorner2);
-                
+
                 if (doesIntersectObstacle) {
                     edgesToRemove.push(edge);
                 }
@@ -277,10 +279,10 @@
             }.bind(this));
         }.bind(this));
     };
-    
+
     Pathfinder.prototype.computeShortestPath = function(startNodeId, endNodeId) {
         let thisGraph = this.precomputeGraph();
-        
+
         let shortestPath = thisGraph.findShortestPath(startNodeId, endNodeId);
 
         if (!shortestPath) {
@@ -290,7 +292,7 @@
         let shortestPathNodes = this.getShortestPathNodes(shortestPath);
         // console.log('nodes', shortestPathNodes);
         let shortestPathEdges = this.getShortestPathEdges(shortestPath);
-        
+
         return {
             nodes: shortestPathNodes,
             edges: shortestPathEdges
@@ -318,15 +320,15 @@
         let selectedEdges = [];
         for (let i = 0; i < shortestPath.length - 1; i++) {
             let startId = shortestPath[i];
-            let endId = shortestPath[i+1];
+            let endId = shortestPath[i + 1];
             // find the edge that goes from startId -> endId
             selectedEdges.push(this.edgeIdMap[startId][endId]);
         }
         return selectedEdges;
     };
-    
+
     // ----- Utilities ----- //
-    
+
     function isSegmentIntersectingBox(linePoint1, linePoint2, boxCorner1, boxCorner2) {
         // segment will intersect box unless its interval is not overlapping the box in the x, y, or z dimensions
         for (let i = 0; i < linePoint1.length; i++) {
@@ -336,7 +338,7 @@
         }
         return true;
     }
-    
+
     // inspired by https://stackoverflow.com/a/6307612
     function areIntervalsIntersecting(a0, a1, b0, b1) {
         // swaps order if needed
@@ -394,8 +396,8 @@
      */
     function uuidTimeShort() {
         var dateUuidTime = new Date();
-        var abcUuidTime = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        var stampUuidTime = parseInt("" + dateUuidTime.getMilliseconds() + dateUuidTime.getMinutes() + dateUuidTime.getHours() + dateUuidTime.getDay()).toString(36);
+        var abcUuidTime = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var stampUuidTime = parseInt('' + dateUuidTime.getMilliseconds() + dateUuidTime.getMinutes() + dateUuidTime.getHours() + dateUuidTime.getDay()).toString(36);
         while (stampUuidTime.length < 8) stampUuidTime = abcUuidTime.charAt(Math.floor(Math.random() * abcUuidTime.length)) + stampUuidTime;
         return stampUuidTime;
     }
