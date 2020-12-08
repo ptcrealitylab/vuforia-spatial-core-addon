@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>colorPicker</title>
+    <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/pep.min.js"></script>
+    <script src="objectDefaultFiles/envelopeContents.js"></script>
+    <script src="iro.js-dist/iro.js"></script> <!-- This has been modified to use PointerEvents -->
+</head>
+<body style="width: 600px; height: 600px">
+<div id="picker"></div>
+<script>
+    var colorPicker = new iro.ColorPicker("#picker", {
+        // Set the size of the color picker
+        width: 560,
+        // Set the initial color to pure red
+        color: "#f00"
+    });
+
+    let spatialInterface = new SpatialInterface();
+    spatialInterface.setMoveDelay(1000);
+    spatialInterface.initNode('color', 'color', 0, 0);
+
+    let isPointerDown = false;
+    document.addEventListener('pointerdown', function(_e) {
+        isPointerDown = true;
+    });
+
+    document.addEventListener('pointerup', function(_e) {
+        isPointerDown = false;
+    });
+
+    document.addEventListener('pointermove', function(_e) {
+        if (!isPointerDown) { return; }
+        // colorPicker.
+    });
+
+    colorPicker.on('color:change', function(color) {
+        console.log(color.hsl);
+        spatialInterface.write('color', color.hsl, 'c', 'color'); // todo: should color unit be "hsl" instead?
+    });
+
+    spatialInterface.addReadListener('color', function(e) {
+        let color = e.value;
+        if (typeof color.h !== 'undefined' && typeof color.s !== 'undefined' && typeof color.l !== 'undefined') {
+            colorPicker.color.hsl = color;
+        }
+    });
+
+</script>
+</body>
+</html>
