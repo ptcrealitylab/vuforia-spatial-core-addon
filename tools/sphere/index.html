@@ -71,7 +71,7 @@
         scene.add(dirLight2);
 
         // add an icosahedron 3d model to the container object 
-        var radius = 75;
+        var radius = 300;
         var geometry = new THREE.IcosahedronGeometry( radius, 1 );
         var materials = [
             new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
@@ -79,19 +79,19 @@
         ];
         mesh = THREE.SceneUtils.createMultiMaterialObject( geometry, materials );
         threejsContainerObj.add( mesh );
-        mesh.position.setZ(150);
+        mesh.position.setZ(600);
 
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.position.set(-30, -30, 150);
+        spotLight.position.set(-30, -30, 600);
         spotLight.castShadow = true;
         mesh.add(spotLight);
 
         // make the frame fullscreen within the reality editor,
         // and subscribe to the modelview and projection matrices
         // realityInterface.initNode('hue', 'node', -50, -50, undefined, 0);
-        realityInterface.initNode('saturation', 'node', 0, 0, undefined, 0.75);
-        realityInterface.initNode('lightness', 'node', 50, 50, undefined, 0.6);
+        // realityInterface.initNode('saturation', 'node', 0, 0, undefined, 0.75);
+        // realityInterface.initNode('lightness', 'node', 50, 50, undefined, 0.6);
 
         var _envelopeContents = new EnvelopeContents(realityInterface, document.body);
 
@@ -139,13 +139,13 @@
             //     hue = e.value;
             // });
 
-            realityInterface.addReadListener('saturation', function(e) {
-                saturation = e.value;
-            });
-
-            realityInterface.addReadListener('lightness', function(e) {
-                lightness = e.value;
-            });
+            // realityInterface.addReadListener('saturation', function(e) {
+            //     saturation = e.value;
+            // });
+            //
+            // realityInterface.addReadListener('lightness', function(e) {
+            //     lightness = e.value;
+            // });
 
 
         });
