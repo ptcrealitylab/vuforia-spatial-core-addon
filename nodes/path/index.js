@@ -53,7 +53,7 @@
  * @note the callback has the same structure then the initial prototype, however inputData has changed to outputData
  **/
 
-const Data = require('../models/Data');
+const Data = require('../../../../models/Data');
 
 var generalProperties = {
     name: 'Path',
@@ -67,7 +67,8 @@ var generalProperties = {
         pathPoints : {},
     },
     type: 'path',
-    inputTypes: ['pathList', 'pathPoint']
+    inputTypes: ['pathList', 'pathPoint'],
+    invisible: false
 };
 
 exports.properties = generalProperties;
@@ -78,6 +79,7 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if(!utilities) return;
     let data = thisNode.data;
     let pathList = thisNode.publicData.pathList;
     let publicData = thisNode.publicData;
@@ -137,8 +139,8 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'path';
 
-        // Connect to all missions within the node
-        utilities.searchNodeByType("mission",pathList.list[i].object, null, null, function(foundObject, foundTool, foundNode){
+        // Connect to all missions within the node 
+        utilities.searchNodeByType("mission", object, null, null, function(foundObject, foundTool, foundNode){
             utilities.createLink(object, tool, node, foundObject, foundTool, foundNode);
         });
         

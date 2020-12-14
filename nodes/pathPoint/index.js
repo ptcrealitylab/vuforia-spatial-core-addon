@@ -48,7 +48,8 @@ var generalProperties = {
     privateData: {},
     publicData: {},
     type: 'pathPoint',
-    inputTypes: ['pathPoint']
+    inputTypes: ['pathPoint'],
+    invisible: false
 };
 
 exports.properties = generalProperties;
@@ -59,6 +60,7 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if(!utilities) return;
     let data = thisNode.data;
     // check if the message is of the right complex data type
     if(data.mode !== "c") return;

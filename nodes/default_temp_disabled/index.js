@@ -70,8 +70,15 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 var outputData = {};
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    thisNode.processedData = utilities.deepCopy(thisNode.data);
-    callback(object, tool, node, thisNode);
+    if (!utilities) {
+        for (var key in inputData) {
+            outputData[key] = inputData[key];
+        }
+        callback(objectID, frameID, linkID, outputData);
+    } else {
+        thisNode.processedData = utilities.deepCopy(thisNode.data);
+        callback(object, tool, node, thisNode);
+    }
 };
 
 /* // example for delay

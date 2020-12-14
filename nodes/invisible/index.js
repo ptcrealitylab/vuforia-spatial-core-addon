@@ -68,20 +68,16 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    thisNode.processedData = utilities.deepCopy(thisNode.data);
-    callback(object, tool, node, thisNode);
+    if(!utilities){
+        var outputData = thisNode.processedData;
+        var inputData = thisNode.data;
+        var key;
+        for (key in inputData) {
+            outputData[key] = inputData[key];
+        }
+        callback(object, tool, node, thisNode); 
+    } else {
+        thisNode.processedData = utilities.deepCopy(thisNode.data);
+        callback(object, tool, node, thisNode);
+    }
 };
-
-/* // example for delay
- exports.render = function (objectID, linkID, inputData, callback) {
- var outputData = {};
- for(key in inputData)
- {
- outputData[key] = inputData[key];
- }
-
- setTimeout(function() {
- callback(objectID, linkPositionID, outputData);
- }, 1000);
- };
- */
