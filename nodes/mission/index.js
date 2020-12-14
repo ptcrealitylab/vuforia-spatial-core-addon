@@ -66,10 +66,11 @@ var generalProperties = {
         path : {}
     },
     type: 'mission',
-    inputTypes: ['path']
+    inputTypes: ['path'],
+    invisible: false
 };
 
-const Data = require('../models/Data');
+const Data = require('../../../../models/Data');
 
 exports.properties = generalProperties;
 
@@ -79,6 +80,7 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if(!utilities) return;
     
     let data = thisNode.data;
     let path = thisNode.publicData.path;
@@ -97,8 +99,8 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
 
         mission.worldObject = utilities.getWorldObject(object);
         mission.objectOrigin = utilities.getWorldLocation(object);
-
         if(!mission.objectOrigin) return;
+        if(!mission.worldObject) return;
         if(path.worldObject !== mission.worldObject) return;
         
         mission.mode = path.mode;

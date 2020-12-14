@@ -67,8 +67,14 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 };
 
-exports.render = function (object, tool, node, thisNode, callback) {
-    thisNode.processedData = utilities.deepCopy(thisNode.data);
+exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if (!utilities) {
+        for (var key in thisNode.data) {
+            thisNode.processedData[key] = thisNode.data[key];
+        }
+    } else {
+        thisNode.processedData = utilities.deepCopy(thisNode.data);
+    }
     callback(object, tool, node, thisNode);
 };
 
