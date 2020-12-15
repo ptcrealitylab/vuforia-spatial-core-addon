@@ -59,12 +59,12 @@ var generalProperties = {
     name: 'Path',
     privateData: {},
     publicData: {
-        pathList : {
+        pathList: {
             list: [],
             mode: 'PATH',
-            worldOrigin : null
+            worldObject: null
         },
-        pathPoints : {},
+        pathPoints: {},
     },
     type: 'path',
     inputTypes: ['pathList', 'pathPoint'],
@@ -79,71 +79,74 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if(!utilities) return;
+
+    if (!utilities) return;
     let data = thisNode.data;
     let pathList = thisNode.publicData.pathList;
     let publicData = thisNode.publicData;
     // check if the message is of the right complex data type
-    if(data.mode !== "c") return;
+    if (data.mode !== 'c') return;
 
-    if(data.unit === "pathList") {
-        pathList = utilities.deepCopy(data.value);
-        if(!pathList.hasOwnProperty("list")) return;
-        if(!pathList.hasOwnProperty("worldObject")) return;
-        if(!pathList.hasOwnProperty("mode")) return;
-        
+    if (data.unit === 'pathList') {
+        // console.log(pathList);
+        if (!data.value.hasOwnProperty('list')) return;
+        if (!data.value.hasOwnProperty('worldObject')) return;
+        if (!data.value.hasOwnProperty('mode')) return;
+        thisNode.publicData.pathList = utilities.deepCopy(data.value);
         // connect to other links
         if (pathList.list instanceof Array) {
-            for(let i = 0; i < pathList.list.length; i++){
-                if(!pathList.list[i].hasOwnProperty("object")) continue;
-                if(!pathList.list[i].hasOwnProperty("tool")) continue;
-                
-                utilities.searchNodeByType("pathPoint",pathList.list[i].object, pathList.list[i].tool, null, function(originObject, originTool, originNode){
+            for (let i = 0; i < pathList.list.length; i++) {
+                if (!pathList.list[i].hasOwnProperty('object')) continue;
+                if (!pathList.list[i].hasOwnProperty('tool')) continue;
+
+                utilities.searchNodeByType('pathPoint', pathList.list[i].object, pathList.list[i].tool, null, function (originObject, originTool, originNode) {
                     utilities.createLink(originObject, originTool, originNode, object, tool, node);
                 });
             }
         }
-    } else if(data.unit === "pathPoint" ) {
-        if(!data.value.hasOwnProperty("address")) return;
-        if(!data.value.address.hasOwnProperty("object")) return;
-        if(!data.value.address.hasOwnProperty("tool")) return;
-        
-        publicData.pathPoints[data.value.address.object+data.value.address.tool] = utilities.deepCopy(data.value);
-        let pathList = thisNode.publicData.pathList;
 
-        if(!pathList.hasOwnProperty("list")) return;
-        if(!pathList.hasOwnProperty("worldObject")) return;
-        if(!pathList.hasOwnProperty("mode")) return;
-        
+        //  console.log("------", data.unit, data.value);
+    } else if (data.unit === 'pathPoint') {
+        if (!data.value.hasOwnProperty('address')) return;
+        if (!data.value.address.hasOwnProperty('object')) return;
+        if (!data.value.address.hasOwnProperty('tool')) return;
+        if (data.value.address.object + data.value.address.tool === '') return;
+
+        publicData.pathPoints[data.value.address.object + data.value.address.tool] = utilities.deepCopy(data.value);
+
+
+        if (!pathList.hasOwnProperty('list')) return;
+        if (!pathList.hasOwnProperty('worldObject')) return;
+        if (!pathList.hasOwnProperty('mode')) return;
+
         let msg = {
-            address : {
-                object : object,
-                tool : tool,
-                node : node
+            address: {
+                object: object,
+                tool: tool,
+                node: node
             },
-            mode : pathList.mode,
-            path : [],
-            worldObject : pathList.worldObject
+            mode: pathList.mode,
+            path: [],
+            worldObject: pathList.worldObject
         };
-        
-        for(let i = 0; i < pathList.list.length; i++){
-            let uuid = pathList.list[i].object+pathList.list[i].tool;
-            
-            if(publicData.pathPoints.hasOwnProperty(uuid)){
+
+        for (let i = 0; i < pathList.list.length; i++) {
+            let uuid = pathList.list[i].object + pathList.list[i].tool;
+            if (publicData.pathPoints.hasOwnProperty(uuid)) {
                 msg.path.push(publicData.pathPoints[uuid]);
             }
         }
-        
+
         thisNode.processedData = new Data();
-        thisNode.processedData.value= msg;
+        thisNode.processedData.value = msg;
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'path';
 
         // Connect to all missions within the node 
-        utilities.searchNodeByType("mission", object, null, null, function(foundObject, foundTool, foundNode){
+        utilities.searchNodeByType('mission', object, null, null, function (foundObject, foundTool, foundNode) {
             utilities.createLink(object, tool, node, foundObject, foundTool, foundNode);
         });
-        
+
         // call back system
         callback(object, tool, node, thisNode);
     }

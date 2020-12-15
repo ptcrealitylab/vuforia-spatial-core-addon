@@ -57,13 +57,13 @@ var generalProperties = {
     name: 'Mission',
     privateData: {},
     publicData: {
-        mission : {
+        mission: {
             objectOrigin: [],
             worldObject: null,
             mission: {},
             mode: ''
         },
-        path : {}
+        path: {}
     },
     type: 'mission',
     inputTypes: ['path'],
@@ -80,41 +80,42 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if(!utilities) return;
-    
+    if (!utilities) return;
+
     let data = thisNode.data;
     let path = thisNode.publicData.path;
     let mission = thisNode.publicData.mission;
     let publicData = thisNode.publicData;
-    
     // check if the message is of the right complex data type
-    if(data.mode !== "c") return;
-    if(data.unit === "path") {
-        path = utilities.deepCopy(data.value);
-        
-        if(!path.hasOwnProperty("address")) return;
-        if(!path.hasOwnProperty("worldObject")) return;
-        if(!path.hasOwnProperty("path")) return;
-        if(!path.hasOwnProperty("mode")) return;
+    if (data.mode !== 'c') return;
+    if (data.unit === 'path') {
+        thisNode.publicData.path = utilities.deepCopy(data.value);
+
+        if (!path.hasOwnProperty('address')) return;
+        if (!path.hasOwnProperty('worldObject')) return;
+        if (!path.hasOwnProperty('path')) return;
+        if (!path.hasOwnProperty('mode')) return;
 
         mission.worldObject = utilities.getWorldObject(object);
         mission.objectOrigin = utilities.getWorldLocation(object);
-        if(!mission.objectOrigin) return;
-        if(!mission.worldObject) return;
-        if(path.worldObject !== mission.worldObject) return;
-        
+
+        if (!mission.objectOrigin) return;
+        if (!mission.worldObject) return;
+
+        if (path.worldObject !== mission.worldObject) return;
+
         mission.mode = path.mode;
-        mission.mission = utilities.deepCopy(path.path);
-        
+        thisNode.publicData.mission = utilities.deepCopy(path.path);
+
         let msg = {};
-        msg[path.object+path.tool] = mission;
-        
+        msg[path.address.object + path.address.tool] = mission;
+
         thisNode.processedData = new Data();
-        thisNode.processedData.value= msg;
+        thisNode.processedData.value = msg;
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'mission';
         // call back system
         callback(object, tool, node, thisNode);
     }
-    
+
 };
