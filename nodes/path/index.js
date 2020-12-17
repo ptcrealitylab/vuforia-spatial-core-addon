@@ -93,6 +93,7 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         if (!data.value.hasOwnProperty('worldObject')) return;
         if (!data.value.hasOwnProperty('mode')) return;
         thisNode.publicData.pathList = utilities.deepCopy(data.value);
+        pathList = thisNode.publicData.pathList; // re-establish pointer after deep-copy
         // connect to other links
         if (pathList.list instanceof Array) {
             for (let i = 0; i < pathList.list.length; i++) {
