@@ -90,6 +90,7 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
     if (data.mode !== 'c') return;
     if (data.unit === 'path') {
         thisNode.publicData.path = utilities.deepCopy(data.value);
+        path = thisNode.publicData.path; // re-establish pointer after deep copy
 
         if (!path.hasOwnProperty('address')) return;
         if (!path.hasOwnProperty('worldObject')) return;
@@ -106,10 +107,11 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
 
         mission.mode = path.mode;
         thisNode.publicData.mission = utilities.deepCopy(path.path);
+        mission.mission = thisNode.publicData.mission;
 
         let msg = {};
         msg[path.address.object + path.address.tool] = mission;
-
+        
         thisNode.processedData = new Data();
         thisNode.processedData.value = msg;
         thisNode.processedData.mode = 'c';

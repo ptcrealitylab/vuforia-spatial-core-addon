@@ -82,7 +82,7 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
     // copy the message for processing
     thisNode.processedData = utilities.deepCopy(data);
     // call back system
-   // console.log(data.unit);
-   // console.log("------------- points Check Arrived Node: "+ node);
+    // console.log(data.unit);
+    // console.log("------------- points Check Arrived Node: "+ node);
     callback(object, tool, node, thisNode);
 };
