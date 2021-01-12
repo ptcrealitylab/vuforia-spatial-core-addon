@@ -27,16 +27,16 @@
         let spline = new MeshLine();
         spline.setGeometry( geometry );
 
-        let textureArrow = new THREE.TextureLoader().load ('resources/pathArrow2.png');
+        //let textureArrow = new THREE.TextureLoader().load ('resources/pathArrow2.png');
 
         console.log('Create material');
 
-        textureArrow.wrapS = THREE.RepeatWrapping;
+        //textureArrow.wrapS = THREE.RepeatWrapping;
         const material = new MeshLineMaterial({
-            map: textureArrow,
+            //map: textureArrow,
             useMap: true,
             repeat: new THREE.Vector2(20, 1),
-            transparent: true,
+            transparent: false,
             lineWidth: 60,
             color: new THREE.Color('#ffffff'),
             dashArray: 0,     // always has to be the double of the line
