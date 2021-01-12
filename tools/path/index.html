@@ -160,11 +160,11 @@
     let defaultName = 'UN-NAMED PATH';
     let name = defaultName;
 
-    let areFramesOrdered = true;
+    let areToolsOrdered = true;
     let isStackable = false;
 
     // Designate this tool as an envelope by, automatically enabling all the associated features
-    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
+    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areToolsOrdered);
 
     // The pathfinder object maintains a graph composed of points of interest and obstacles and computes shortest paths
     let pathfinder = new Pathfinder();

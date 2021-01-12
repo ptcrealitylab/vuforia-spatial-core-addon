@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Default UI</title>
+  <script src="object.js"></script>
+  <script>
+    var reality = new RealityInterface();
+    reality.setMoveDelay(10);
+
+    reality.initNode('mission', 'mission', 0, 0);
+
+    reality.addReadListener('mission', function(e) {
+      let data = e;
+      console.log('received mission from node');
+      console.log(data);
+      if (data.mode === 'c' && data.unit === 'path') {
+        parseData(data);
+      }
+    });
+
+    function parseData(data) {
+      let worldObjectId = data.value.worldObject;
+      let pathEnvelopeId = data.value.address.tool;
+      let pathMode = data.value.mode; // "PATH" (in future could be "OPTIONS", "NAVIGATION", etc)
+      let path = data.value.path;
+      let listOfPointLists = path.map(function(item) {
+        return item.points;
+      });
+      let positions = [];
+      listOfPointLists.forEach(function(pointsList) {
+        pointsList.forEach(function(point) {
+          positions.push({
+            speed: point.speed,
+            x: point.matrix[12] / point.matrix[15],
+            y: point.matrix[13] / point.matrix[15],
+            z: point.matrix[14] / point.matrix[15]
+          })
+        });
+      });
+      console.log(worldObjectId, pathEnvelopeId, pathMode, positions);
+
+      let text = '';
+      positions.forEach(function(pos, index) {
+        text += (index+1) + ': (' + pos.x.toFixed(1) + ', ' + pos.y.toFixed(1) + ', ' + pos.z.toFixed(1) + ')' + '<br>';
+        text += 'SPEED: ' + pos.speed + '<br><br>';
+      });
+
+      // text += '<br>' + 'WORLD: ' + worldObjectId + '<br>' +
+      //   'ENVELOPE: ' + pathEnvelopeId + '<br>' +
+      //   'MODE: ' + pathMode + '<br>';
+
+      document.getElementById('pathDisplay').innerHTML = text;
+
+    }
+
+  </script>
+</head>
+<body style="height: 400px; width: 400px;">
+<img src="bird.png" style="width: 400px; height: 400px; background-color: rgba(0,0,0,0.5)" alt=""/>
+<div id="pathDisplay" style="position: absolute; left: 0; top: 0; font-family: 'Helvetica Neue', Helvetica, Arial,
+sans-serif; font-size: 28px; color: white; padding: 32px;">
+
+</div>
+</body>
+</html>
+
+color: white;
+font-size: 30px;
+

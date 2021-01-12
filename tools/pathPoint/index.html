@@ -29,6 +29,7 @@
     ];
 
     var isProjectionMatrixSet = false, isGroundPlaneFound = false, isMoving = false, initPoint = false;
+    let currentWorldId = null;
 
     var rendererWidth = screen.height;
     var rendererHeight = screen.width;
@@ -142,13 +143,15 @@
                 mesh.add( cube );
                 mesh.add( cube2 );
                 mesh.add( cube3 );
-                cube.position.set(0,7,0);
-                cube3.position.set(5,0,0);
-                cube2.position.set(0,0,5);
+                cube.position.set(0,6,0);
+                cube3.position.set(4,1,0);
+                cube2.position.set(0,1,4);
 
                 shadowTexture = new THREE.TextureLoader().load( "resources/textures/checkpointFloor.png" );
-                let planeGeometry = new THREE.PlaneGeometry( 10, 10, 32 );
-                let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: false, side: THREE.DoubleSide} );
+                //shadowTexture.offset.set(0.5, 0);
+                
+                let planeGeometry = new THREE.PlaneGeometry( 20, 20, 32 );
+                let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide, map: shadowTexture} );
 
                 gp_shadow = new THREE.Mesh( planeGeometry, planeMaterial );
                 gp_shadow.rotateX(Math.PI/2);
@@ -212,13 +215,18 @@
             // whenever we receive new matrices from the editor, update the 3d scene
             spatialInterface.addMatrixListener(renderScene);
 
-            spatialInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
+            //spatialInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
+            spatialInterface.initNode('pathPoint', 'pathPoint');
 
             spatialInterface.setMoveDelay(10);
 
             spatialInterface.registerTouchDecider(touchDecider);
 
             spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+            
+            spatialInterface.subscribeToWorldId(function(worldId) {
+                currentWorldId = worldId;
+            });
 
             spatialInterface.addIsMovingListener(function(e) {
                 if (e) {
@@ -227,6 +235,23 @@
                     saturation = 1;
                     // lightness = 0.75;
                     isMoving = true;
+
+                    // write position into pathPoint
+                    let point = {
+                        matrix: lastModelViewMatrix,
+                        speed: 1
+                    };
+                    let message = {
+                        address: {
+                            object: spatialObject.object,
+                            tool: spatialObject.frame,
+                            node: spatialObject.node
+                        },
+                        points: [point],
+                        worldObject: currentWorldId
+                    };
+                    spatialInterface.write('pathPoint', message, 'c', 'pathPoint');
+                    
                 } else {
                     //console.log('PoI is NOT moving');
                     // hue = 0;
@@ -335,7 +360,6 @@
 
             console.log('GROUNDPLANE FOUND: ALIGN POINT');
 
-            updateShadow();
             //updateHeighLine();
             alignPathPointToGroundPlane();
         }
