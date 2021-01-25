@@ -63,13 +63,12 @@ var generalProperties = {
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
     var delayedValue;
-    if (!utilities) {
+    if (!utilities) { // backwards compatible for server versions without nodeUtilities
         delayedValue = thisNode.data.value;
     } else {
         delayedValue = utilities.deepCopy(thisNode.data.value);
@@ -79,18 +78,4 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         thisNode.processedData.value = delayedValue;
         callback(object, tool, node, thisNode);
     }, thisNode.publicData.delayTime);
-
 };
-/* // example for delay
- exports.render = function (objectID, linkID, inputData, callback) {
- var outputData = {};
- for(key in inputData)
- {
- outputData[key] = inputData[key];
- }
-
- setTimeout(function() {
- callback(objectID, linkPositionID, outputData);
- }, 1000);
- };
- */

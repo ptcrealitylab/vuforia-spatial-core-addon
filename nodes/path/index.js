@@ -74,26 +74,27 @@ var generalProperties = {
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if (!utilities) return; // only works if server version includes nodeUtilities
 
-    if (!utilities) return;
     let data = thisNode.data;
     let pathList = thisNode.publicData.pathList;
     let publicData = thisNode.publicData;
+
     // check if the message is of the right complex data type
     if (data.mode !== 'c') return;
 
+    // accepts two "units" of data: pathList (ordering) and pathPoint (coordinates). it needs both.
     if (data.unit === 'pathList') {
-        // console.log(pathList);
         if (!data.value.hasOwnProperty('list')) return;
         if (!data.value.hasOwnProperty('worldObject')) return;
         if (!data.value.hasOwnProperty('mode')) return;
         thisNode.publicData.pathList = utilities.deepCopy(data.value);
-        pathList = thisNode.publicData.pathList; // re-establish pointer after deep-copy
+        pathList = thisNode.publicData.pathList; // re-establish pointer after deep-copy or it doesn't work
+
         // connect to other links
         if (pathList.list instanceof Array) {
             for (let i = 0; i < pathList.list.length; i++) {
@@ -106,7 +107,6 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
             }
         }
 
-        //  console.log("------", data.unit, data.value);
     } else if (data.unit === 'pathPoint') {
         if (!data.value.hasOwnProperty('address')) return;
         if (!data.value.address.hasOwnProperty('object')) return;
@@ -114,7 +114,6 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         if (data.value.address.object + data.value.address.tool === '') return;
 
         publicData.pathPoints[data.value.address.object + data.value.address.tool] = utilities.deepCopy(data.value);
-
 
         if (!pathList.hasOwnProperty('list')) return;
         if (!pathList.hasOwnProperty('worldObject')) return;
@@ -143,7 +142,7 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'path';
 
-        // Connect to all missions within the node 
+        // Connect to all missions within the node
         utilities.searchNodeByType('mission', object, null, null, function (foundObject, foundTool, foundNode) {
             utilities.createLink(object, tool, node, foundObject, foundTool, foundNode);
         });

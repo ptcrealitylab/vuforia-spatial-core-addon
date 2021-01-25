@@ -68,14 +68,14 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if(!utilities){
+    if (!utilities) { // backwards compatible for server versions without nodeUtilities
         var outputData = thisNode.processedData;
         var inputData = thisNode.data;
         var key;
         for (key in inputData) {
             outputData[key] = inputData[key];
         }
-        callback(object, tool, node, thisNode); 
+        callback(object, tool, node, thisNode);
     } else {
         thisNode.processedData = utilities.deepCopy(thisNode.data);
         callback(object, tool, node, thisNode);

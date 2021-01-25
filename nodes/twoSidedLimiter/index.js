@@ -63,20 +63,20 @@ var generalProperties = {
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if (!utilities) {
+    if (!utilities) { // backwards compatible for server versions without nodeUtilities
         for (var key in thisNode.data) {
             thisNode.processedData[key] = thisNode.data[key];
         }
     } else {
         thisNode.processedData = utilities.deepCopy(thisNode.data);
     }
-    if(thisNode.data.hasOwnProperty("value")){
-        if(typeof thisNode.data.value === "number") {
+
+    if (thisNode.data.hasOwnProperty('value')) {
+        if (typeof thisNode.data.value === 'number') {
             if (thisNode.data.value > thisNode.publicData.min && thisNode.data.value < thisNode.publicData.max) {
                 thisNode.processedData.value = 1.0;
             } else {
