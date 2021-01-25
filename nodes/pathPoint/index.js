@@ -55,34 +55,33 @@ var generalProperties = {
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if (!utilities) return; // only works if server version includes nodeUtilities
 
-    if(!utilities) return;
     let data = thisNode.data;
 
     // check if the message is of the right complex data type
-    if(data.mode !== "c") return;
-    if(data.unit !== "pathPoint") return;
+    if (data.mode !== 'c') return;
+    if (data.unit !== 'pathPoint') return;
     // check if the complex data message is complete
-    if(!data.value.hasOwnProperty("address")) return;
-    if(!data.value.address.hasOwnProperty("object")) return;
-    if(!data.value.address.hasOwnProperty("tool")) return;
-    if(!data.value.address.hasOwnProperty("node")) return;
-    if(!data.value.hasOwnProperty("points")) return;
-    if(data.value.points.length <= 0) return;
-    for(let i = 0; i < data.value.points.length; i++){
-        if(!data.value.points[i].hasOwnProperty("matrix")) return;
-        if(!data.value.points[i].hasOwnProperty("speed")) return;
+    if (!data.value.hasOwnProperty('address')) return;
+    if (!data.value.address.hasOwnProperty('object')) return;
+    if (!data.value.address.hasOwnProperty('tool')) return;
+    if (!data.value.address.hasOwnProperty('node')) return;
+    if (!data.value.hasOwnProperty('points')) return;
+    if (data.value.points.length <= 0) return;
+    for (let i = 0; i < data.value.points.length; i++) {
+        if (!data.value.points[i].hasOwnProperty('matrix')) return;
+        if (!data.value.points[i].hasOwnProperty('speed')) return;
     }
-    if(!data.value.hasOwnProperty('worldObject')) return;
+    if (!data.value.hasOwnProperty('worldObject')) return;
+
     // copy the message for processing
     thisNode.processedData = utilities.deepCopy(data);
+
     // call back system
-    // console.log(data.unit);
-    // console.log("------------- points Check Arrived Node: "+ node);
     callback(object, tool, node, thisNode);
 };

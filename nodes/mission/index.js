@@ -75,17 +75,16 @@ const Data = require('../../../../models/Data');
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if (!utilities) return;
+    if (!utilities) return; // only works if server version includes nodeUtilities
 
     let data = thisNode.data;
     let path = thisNode.publicData.path;
     let mission = thisNode.publicData.mission;
-    let publicData = thisNode.publicData;
+    let _publicData = thisNode.publicData;
     // check if the message is of the right complex data type
     if (data.mode !== 'c') return;
     if (data.unit === 'path') {
@@ -111,13 +110,13 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
 
         let msg = {};
         msg[path.address.object + path.address.tool] = mission;
-        
+
         thisNode.processedData = new Data();
         thisNode.processedData.value = msg;
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'mission';
+
         // call back system
         callback(object, tool, node, thisNode);
     }
-
 };
