@@ -59,7 +59,6 @@ const removeNode = (tag) => {
 const onKepwareConnect = () => {
   kepwareClient.getAllTags().then(allTags => {
     const enabledTags = settings('enabledTags', []);
-    console.log(`Discovered ${allTags.length} tags on OPC UA endpoint`);
     allTags.forEach(tag => {
       if (enabledTags.find(enabledTag => enabledTag.nodeId === tag.nodeId)) {
         createNode(tag);
@@ -75,8 +74,11 @@ if (exports.enabled) {
   server.addEventListener('reset', function() {
     console.log('Resetting Kepware interface');
     exports.allTags = [];
-    kepwareClient.disconnect();
-    setup();
+    kepwareClient.disconnect().catch(err => {
+      console.error(err);
+    }).finally(() => {
+      setup();
+    });
   });
 
   function setup() { // eslint-disable-line no-inner-declarations
@@ -120,7 +122,7 @@ if (exports.enabled) {
         userName: settings('username', ''),
         password: settings('password', '')
       }
-      kepwareClient.connect(url, credentials).then(onKepwareConnect);
+      kepwareClient.connect(url, credentials).then(onKepwareConnect).catch((e) => console.warn(e));
       server.enableDeveloperUI(true);
     }
   }

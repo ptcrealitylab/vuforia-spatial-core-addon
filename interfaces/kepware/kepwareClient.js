@@ -68,7 +68,7 @@ class KepwareClient {
         return;
       });
     }).catch(err => {
-      throw 'Failed to connect to endpoint. Re-check your url and credentials.';
+      throw 'Failed to connect to OPC UA endpoint. Re-check your url and credentials.';
     });
   }
   
@@ -78,13 +78,15 @@ class KepwareClient {
     if (!this.session) {
       return Promise.resolve(null);
     }
-    return this.session.close();
+    return this.session.close().catch(err => {
+      throw `Error when disconnecting from Kepware server: ${err}`;
+    });
   }
   
   // Returns a list of all tags available on the server.
   getAllTags() {
     if (!this.connected) {
-      throw 'Must connect to server before getting tags.';
+      throw 'Must connect to Kepware server before getting tags.';
     }
     const getAllTagsHelper = nodeId => {
       return this.session.browse(nodeId).then(result => {
@@ -111,7 +113,7 @@ class KepwareClient {
   // Reads a value from a tag.
   readTag(tag) {
     if (!this.connected) {
-      throw 'Must connect to server before reading tags.';
+      throw 'Must connect to Kepware server before reading tags.';
     }
     return this.session.readVariableValue(tag.nodeId).then(result => {
       return result.value.value;
@@ -121,7 +123,7 @@ class KepwareClient {
   // Writes a value to a tag.
   writeItem(tag, value) {
     if (!this.connected) {
-      throw 'Must connect to server before writing tags.';
+      throw 'Must connect to Kepware server before writing tags.';
     }
     this.session.getBuiltInDataType(tag.nodeId).then(dataType => {
       this.session.writeSingleNode(tag.nodeId, new Variant({dataType: dataType, value:value})).then(statusCode => {
@@ -134,7 +136,7 @@ class KepwareClient {
   // Returns a handle that can be used to terminate the monitoring. 
   monitorTag(tag, callback) {
     if (!this.connected) {
-      throw 'Must connect to server before monitoring tags.';
+      throw 'Must connect to Kepware server before monitoring tags.';
     }
     const tagToMonitor = {
       nodeId: tag.nodeId,
@@ -159,7 +161,7 @@ class KepwareClient {
   // Reads the permissions available on a tag.
   getTagPermissions(tag) {
     if (!this.connected) {
-      throw 'Must connect to server before reading tag permissions.';
+      throw 'Must connect to Kepware server before reading tag permissions.';
     }
     return this.session.read({nodeId:tag.nodeId, attributeId: AttributeIds.UserAccessLevel}).then(data => {
       return {
@@ -180,7 +182,7 @@ class KepwareClient {
         urls: server.discoveryUrls
       }});
     }).catch(err => {
-      throw 'Failed to connect to discovery server. Re-check your url.';
+      throw 'Failed to connect to OPC UA discovery server. Re-check your url.';
     });
   }
 }
