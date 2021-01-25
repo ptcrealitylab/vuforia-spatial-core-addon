@@ -318,6 +318,9 @@
             return;
         }
         realityServer.domObjects.innerHTML = ''; // reset
+        
+        const debug = document.createElement('code');
+        realityServer.domObjects.appendChild(debug);
 
         for (let settingsName in settings) {
             let thisSettings = settings[settingsName];
@@ -383,8 +386,44 @@
             realityServer.domObjects.appendChild(newElement);
         }
         
-        const machines = realityServer.hardwareInterface.availableKepwareObjects;
-        const savedMachines = realityServer.hardwareInterface.settings['enabledKepwareObjects'].value;
+        const parseId = (nodeId) => {
+          const split = nodeId.split('.');
+          if (split.length === 3) {
+            return {
+              channelName: split[0],
+              objectName: split[1],
+              frameName: split[2], // If not in a group, consider it in a group of itself
+              tagName: split[2]
+            }
+          }
+          return {
+            channelName: split[0],
+            objectName: split[1],
+            frameName: split.slice(2, split.length - 1).join('_'),
+            tagName: split[split.length - 1]
+          }
+        }
+        
+        const tagsToObjects = (tags) => {
+          const objects = [];
+          tags.forEach(tag => {
+            const {objectName, frameName, tagName} = parseId(tag.nodeId);
+            const object = objects.find(obj=>obj.name===objectName) || {name:objectName, frames:[]};
+            if (!objects.includes(object)) {
+              objects.push(object);
+            }
+            const frame = object.frames.find(oFrame=>oFrame.name===frameName) || {name:frameName, tags:[]};
+            if (!object.frames.includes(frame)) {
+              object.frames.push(frame);
+            }
+            const newTag = {name:tagName, enabled:false, nodeId: tag.nodeId};
+            frame.tags.push(newTag);
+          });
+          return objects;
+        }
+        
+        const machines = tagsToObjects(realityServer.hardwareInterface.allTags);
+        const savedMachines = realityServer.hardwareInterface.settings['enabledTags'].value;
         const sortByName = (a,b)=>a.name.toLowerCase()<b.name.toLowerCase()?-1:a.name.toLowerCase()>b.name.toLowerCase()?1:0;
         machines.sort(sortByName);
         machines.forEach(machine => {
@@ -392,7 +431,7 @@
           machine.frames.forEach(frame => {
             frame.tags.sort(sortByName);
             frame.tags.forEach(tag => {
-              tag.enabled = savedMachines.some(savedMachine => savedMachine.machine === machine.name && savedMachine.frame === frame.name && savedMachine.tag === tag.name);
+              tag.enabled = savedMachines.some(savedMachine => savedMachine.nodeId === tag.nodeId);
             });
           });
         });
@@ -402,7 +441,7 @@
           machines.forEach(machine => {
             machine.frames.forEach(frame => {
               frame.tags.filter(tag=>tag.enabled).forEach(tag => {
-                results.push({machine:machine.name, frame:frame.name, tag:tag.name});
+                results.push({objectName:machine.name, frameName:frame.name, tagName:tag.name, nodeId: tag.nodeId});
               });
             });
           });
@@ -440,8 +479,8 @@
           saveButton.innerText = "Save Changes";
           saveButton.classList.add('save', 'item', 'button', 'green', 'clickAble');
           saveButton.addEventListener('click', () => {
-            realityServer.hardwareInterface.settings['enabledKepwareObjects'].value = getSelectedObjects(machines);
-            realityServer.writeHardwareInterfaceSettings(settings, ['enabledKepwareObjects'], function(res) {
+            realityServer.hardwareInterface.settings['enabledTags'].value = getSelectedObjects(machines);
+            realityServer.writeHardwareInterfaceSettings(settings, ['enabledTags'], function(res) {
               console.log('got response... re-render');
               realityServer.render();
             });
