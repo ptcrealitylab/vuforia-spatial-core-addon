@@ -39,7 +39,7 @@ const subscriptionParameters = {
 const monitoringParameters = {
     samplingInterval: -1, // Match publishing interval
     discardOldest: true,
-    queueSize: 1
+    queueSize: 10
 };
 
 // These are the default security options used by Kepware.
@@ -52,7 +52,7 @@ const endpointOptions = {
     connectionStrategy: connectionStrategy,
     securityMode: MessageSecurityMode.SignAndEncrypt,
     securityPolicy: SecurityPolicy.Basic256Sha256,
-    endpoint_must_exist: false
+    endpointMustExist: false
 }
 
 /******************************* Main Contents ********************************/
@@ -75,7 +75,7 @@ class Kepware {
             clearInterval(this.refreshItemsInterval);
             delete this.refreshItemsInterval;
         }
-        Promise.all(Object.keys(this.monitoredItems).map(nodeId => {
+        Promise.all(Object.keys(this.monitoredItems).map((nodeId, index) => {
             return new Promise((resolve, reject) => {
                 setTimeout(() => { // Stagger terminations
                     this.monitoredItems[nodeId].monitor.terminate().then(() => {
@@ -86,7 +86,7 @@ class Kepware {
                     });
                     this.onItemRemove(this.monitoredItems[nodeId].item);
                     delete this.monitoredItems[nodeId];
-                }, Math.random() * 1000);
+                }, index * 15); // Stagger requests to avoid overwhelming server
             });
         })).then(() => {
             if (this.subscription) {
@@ -204,9 +204,18 @@ class Kepware {
     // Creates a subscription to read updates for an item, and calls callbacks
     //     accordingly.
     monitorItem(item) {
-        const monitoredItem = ClientMonitoredItem.create(this.subscription, {nodeId: item.nodeId, attributeId: AttributeIds.value}, monitoringParameters, TimestampsToReturn.Neither);
-        monitoredItem.on("changed", result => this.onItemUpdate(item, result));
-        return {item: item, monitor: monitoredItem};
+        const itemToMonitor = {
+          nodeId: item.nodeId,
+          attributeId: AttributeIds.value
+        };
+      
+        this.subscription.monitor(itemToMonitor, monitoringParameters, TimestampsToReturn.Neither).then(monitoredItem => {
+          monitoredItem.on("changed", result => {
+            // console.log(`Monitored item update for ${item.nodeId.toString().slice(0, item.nodeId.toString().lastIndexOf('.'))} ${item.browseName.name}: ${result.value.value}`);
+            this.onItemUpdate(item, result)
+          });
+          this.monitoredItems[item.nodeId.value] = {item: item, monitor: monitoredItem};
+        })
     }
     
     // Keeps track of tags available at the OPC UA endpoint and calls callbacks
@@ -240,9 +249,9 @@ class Kepware {
             if (variables.length > 0) {
                 console.log(`Subscribed to ${variables.length} new OPC UA variables, currently subscribed to ${Object.keys(this.monitoredItems).length + variables.length} variables`);
             }
-            variables.map(variable => {
+            variables.map((variable, index) => {
                 setTimeout(() => {
-                    this.monitoredItems[variable.nodeId.value] = this.monitorItem(variable);
+                    this.monitorItem(variable);
                     this.session.read({nodeId:variable.nodeId, attributeId: AttributeIds.UserAccessLevel}).then(data => {
                         const permissions = {
                             canRead: data.value.value % 2 == 1,
@@ -250,7 +259,7 @@ class Kepware {
                         };
                         this.onItemAdd(variable, permissions);
                     });
-                },Math.random() * 1000); // Stagger requests to avoid overwhelming server
+                },index * 15); // Stagger requests to avoid overwhelming server
             });
         }, err => console.error(`Failed to find variables\n${err}`));
     }
