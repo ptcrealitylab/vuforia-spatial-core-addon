@@ -318,9 +318,6 @@
             return;
         }
         realityServer.domObjects.innerHTML = ''; // reset
-        
-        const debug = document.createElement('code');
-        realityServer.domObjects.appendChild(debug);
 
         for (let settingsName in settings) {
             let thisSettings = settings[settingsName];
