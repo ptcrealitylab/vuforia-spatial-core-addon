@@ -65,8 +65,10 @@ scripts are more niche but a simple "hello world" example looks like this:
 ## Using the Kepware Interface
 
 The Kepware Interface is compatible with both [KEPServerEX](https://www.kepware.com/en-us/products/kepserverex/) and [Kepware Edge](https://www.kepware.com/en-us/products/thingworx-kepware-edge/).
-To connect to a server: enable the interface in the Spatial Toolbox Web UI,
-enter your user credentials for the Kepware Server in the interface settings,
-and add your client certificate to the list of trusted certificates using your
-server's configuration tools. The client certificate can be found in
-`./node_modules/node-opcua-client/certificates`.
+
+To use this interface:
+- Run `npm i` in the `vuforia-spatial-core-addon` directory to install dependencies.
+- Start the edge server and enable the interface in the Spatial Toolbox Web UI.
+- Enter your connection url and credentials for the Kepware OPC UA endpoint in the interface settings.
+- Add your client certificate to the list of trusted certificates using your server's configuration tools.
+- Select the tags you would like to use from the menu below the connection configuration section.
