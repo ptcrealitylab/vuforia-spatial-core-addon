@@ -36,24 +36,22 @@ const createNode = (tag) => {
   const {objectName, frameName, tagName} = parseId(tag.nodeId);
   kepwareClient.getTagPermissions(tag).then(permissions => {
     if (permissions.canRead) {
-      server.addNode(`${settings('name')}_${objectName}`, frameName, `read${tagName}`, 'node', {x:50,y:50});
+      server.addNode(`${settings('name')}_${objectName}`, frameName, tagName, 'node', {x:0,y:0});
     }
     if (permissions.canWrite) {
-      server.addNode(`${settings('name')}_${objectName}`, frameName, `write${tagName}`, 'node', {x:-50,y:50});
-      server.addReadListener(`${settings('name')}_${objectName}`, frameName, `write${tagName}`, data => {
+      server.addReadListener(`${settings('name')}_${objectName}`, frameName, tagName, data => {
         kepwareClient.writeTag(tag, data.value);
       });
     }
   });
   kepwareClient.monitorTag(tag, value => {
-    server.write(`${settings('name')}_${objectName}`, frameName, `read${tagName}`, value);
+    server.write(`${settings('name')}_${objectName}`, frameName, tagName, value);
   })
 }
 
 const removeNode = (tag) => {
   const {objectName, frameName, tagName} = parseId(tag.nodeId);
-  server.removeNode(`${settings('name')}_${objectName}`, frameName, `read${tagName}`);
-  server.removeNode(`${settings('name')}_${objectName}`, frameName, `write${tagName}`);
+  server.removeNode(`${settings('name')}_${objectName}`, frameName, tagName);
 }
 
 const onKepwareConnect = () => {

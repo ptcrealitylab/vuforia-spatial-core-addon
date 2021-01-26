@@ -121,7 +121,7 @@ class KepwareClient {
   }
   
   // Writes a value to a tag.
-  writeItem(tag, value) {
+  writeTag(tag, value) {
     if (!this.connected) {
       throw 'Must connect to Kepware server before writing tags.';
     }
