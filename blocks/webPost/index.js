@@ -93,15 +93,15 @@ exports.properties = generalProperties;
  * @param {number} index - the index of which input was just received. for example, a block with two inputs will have its render function called twice - once with index 0 and once with index 1. it is up to the implemented to decide whether to trigger the callback when either index is triggered, or only once all indices have received values, etc.
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
+ * @param {*} utilities - reference to nodeUtilities.js library
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
-
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities) {
     // data flows through it like normal
-    for (var key in thisBlock.data[index]) {
-        thisBlock.processedData[index][key] = thisBlock.data[index][key];
-    }
-
     // BUT ALSO: makes a post request to the server endpoint configured in publicData
+
+    // using deepCopy allows the nodes to process complex data types, which would otherwise be passed by reference
+    thisBlock.processedData[index] = utilities.deepCopy(thisBlock.data[index]);
+
     if (index === 0) {
 
         console.log('making post request to', thisBlock.publicData);
@@ -110,7 +110,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
             thisBlock.publicData.endpointUrl,
             { json: {blockData: thisBlock.processedData} },
             function (error, response, body) {
-                if (!error && response.statusCode == 200) {
+                if (!error && response.statusCode === 200) {
                     console.log(body);
                 }
             }

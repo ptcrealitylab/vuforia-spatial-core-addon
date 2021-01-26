@@ -89,8 +89,12 @@ exports.properties = generalProperties;
  * @param {number} index - the index of which input was just received. for example, a block with two inputs will have its render function called twice - once with index 0 and once with index 1. it is up to the implemented to decide whether to trigger the callback when either index is triggered, or only once all indices have received values, etc.
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
+ * @param {*} utilities - reference to nodeUtilities.js library
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback)  {
+exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
+    if (typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
+    // complex data types are ignored by this block
+
     if (index === 0) {
         // if the first input receives a high value, and the toggle was flipped towards the second input, flip it back to the first and emit a 1 from the first output and a 0 from the second
         if (thisBlock.data[0].value > 0.5) {
@@ -115,7 +119,7 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
     } else if (index === 2) {
         // if the third input receives data, and the toggle is flipped towards the second input, output the third input from the third output. if the toggle is flipped to the first input, do nothing
         if (thisBlock.publicData.toggle === true) {
-            thisBlock.processedData[2] = thisBlock.data[2];
+            thisBlock.processedData[2] = utilities.deepCopy(thisBlock.data[2]);
             return callback(object, frame, node, block, index, thisBlock);
         }
     }

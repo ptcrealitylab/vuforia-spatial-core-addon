@@ -62,41 +62,30 @@ var generalProperties = {
 
 exports.properties = generalProperties;
 
-exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
+    // add code here that should be executed once.
 };
 
-exports.render = function (object, frame, node, thisNode, callback) {
-
+exports.render = function (object, tool, node, thisNode, callback, _utilities) {
     for (var key in thisNode.data) {
         if (key === 'value') {
 
-            if (thisNode.data.value >= 0.5 && thisNode.publicData.lastTick === false) {
+            if (typeof thisNode.data.value !== 'number') {
+                thisNode.publicData.count++;
+                return;
+            }
 
+            if (thisNode.data.value >= 0.5 && thisNode.publicData.lastTick === false) {
                 thisNode.publicData.lastTick = true;
                 thisNode.publicData.count++;
                 thisNode.processedData.value = 1.0;
                 thisNode.processedData.unitMax = thisNode.publicData.count;
                 thisNode.processedData.unitMin = 0;
-                callback(object, frame, node, thisNode);
+                callback(object, tool, node, thisNode);
+
             } else if (thisNode.data.value <= 0.4 && thisNode.publicData.lastTick === true) {
                 thisNode.publicData.lastTick = false;
             }
         }
     }
-
 };
-/* // example for delay
- exports.render = function (objectID, linkID, inputData, callback) {
- var outputData = {};
- for(key in inputData)
- {
- outputData[key] = inputData[key];
- }
-
- setTimeout(function() {
- callback(objectID, linkPositionID, outputData);
- }, 1000);
- };
- */

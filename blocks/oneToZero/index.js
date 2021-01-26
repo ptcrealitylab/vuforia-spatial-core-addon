@@ -92,8 +92,11 @@ exports.properties = generalProperties;
  * @param {number} index - the index of which input was just received. for example, a block with two inputs will have its render function called twice - once with index 0 and once with index 1. it is up to the implemented to decide whether to trigger the callback when either index is triggered, or only once all indices have received values, etc.
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
+ * @param {*} _utilities - reference to nodeUtilities.js library
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback) {
+exports.render = function (object, frame, node, block, index, thisBlock, callback, _utilities) {
+    if (typeof thisBlock.data[index].value === 'object') return;
+    // complex data types are ignored by this block
 
     // Outputs a 1 if the previous value was a 1 and the new value is a 0
     // Otherwise outputs a 0 regardless of what data is sent in

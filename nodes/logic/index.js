@@ -68,15 +68,17 @@ var generalProperties = {
 
 exports.properties = generalProperties;
 
-exports.setup = function (_object, _frame, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
+    // add code here that should be executed once.
 };
 
-exports.render = function (objectId, frameId, nodeId, thisNode, callback) {
-    for (var key in thisNode.data) {
-        thisNode.processedData[key] = thisNode.data[key];
+exports.render = function (object, tool, node, thisNode, callback, utilities) {
+    if (!utilities) { // backwards compatible for server versions without nodeUtilities
+        for (let key in thisNode.data) {
+            thisNode.processedData[key] = thisNode.data[key];
+        }
+    } else {
+        thisNode.processedData = utilities.deepCopy(thisNode.data);
     }
-
-    callback(objectId, frameId, nodeId, thisNode);
+    callback(object, tool, node, thisNode);
 };

@@ -43,21 +43,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/**
- * @desc prototype for a plugin. This prototype is called when a value should be changed.
- * It defines how this value should be transformed before sending it to the destination.
- * @param {object} objectID Origin object in which the related link is saved.
- * @param {string} linkID the id of the link that is related to the call
- * @param {object} inputData the data that needs to be processed
- * @param {function} callback the function that is called for when the process is rendered.
- * @note the callback has the same structure then the initial prototype, however inputData has changed to outputData
- **/
-
 var generalProperties = {
-    name: 'default',
+    name: 'Point',
     privateData: {},
     publicData: {},
-    type: 'default'
+    type: 'pathPoint',
+    inputTypes: ['pathPoint'],
+    invisible: false
 };
 
 exports.properties = generalProperties;
@@ -67,13 +59,29 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 };
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if (!utilities) { // backwards compatible for server versions without nodeUtilities
-        for (var key in thisNode.data) {
-            thisNode.processedData[key] = thisNode.data[key];
-        }
-    } else {
-        // using deepCopy allows the nodes to process complex data types, which would otherwise be passed by reference
-        thisNode.processedData = utilities.deepCopy(thisNode.data);
+    if (!utilities) return; // only works if server version includes nodeUtilities
+
+    let data = thisNode.data;
+
+    // check if the message is of the right complex data type
+    if (data.mode !== 'c') return;
+    if (data.unit !== 'pathPoint') return;
+    // check if the complex data message is complete
+    if (!data.value.hasOwnProperty('address')) return;
+    if (!data.value.address.hasOwnProperty('object')) return;
+    if (!data.value.address.hasOwnProperty('tool')) return;
+    if (!data.value.address.hasOwnProperty('node')) return;
+    if (!data.value.hasOwnProperty('points')) return;
+    if (data.value.points.length <= 0) return;
+    for (let i = 0; i < data.value.points.length; i++) {
+        if (!data.value.points[i].hasOwnProperty('matrix')) return;
+        if (!data.value.points[i].hasOwnProperty('speed')) return;
     }
+    if (!data.value.hasOwnProperty('worldObject')) return;
+
+    // copy the message for processing
+    thisNode.processedData = utilities.deepCopy(data);
+
+    // call back system
     callback(object, tool, node, thisNode);
 };
