@@ -56,6 +56,9 @@ class KepwareClient {
     }
     this.client = OPCUAClient.create(endpointOptions);
     
+    if (!endpointUrl.includes('opc.tcp://')) {
+      endpointUrl = `opc.tcp://${endpointUrl}`;
+    }
     console.log(`Attempting connection to OPC UA endpoint at ${endpointUrl}`);
     return this.client.connect(endpointUrl).then(() => {
       return this.client.createSession(credentials).then(session => {
