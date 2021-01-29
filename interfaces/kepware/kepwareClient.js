@@ -91,25 +91,32 @@ class KepwareClient {
     if (!this.connected) {
       throw 'Must connect to Kepware server before getting tags.';
     }
-    const getAllTagsHelper = nodeId => {
-      return this.session.browse(nodeId).then(result => {
-        const tags = result.references.filter(ref => {
-          return ref.nodeClass === NodeClass.Variable;
-        });
-        // References are folders that can contain more nodes
-        const references = result.references.filter(ref => {
-          return ref.nodeClass === NodeClass.Object && !ref.browseName.name.startsWith('_') && ref.browseName.namespaceIndex != 0;
-        });
-        return Promise.all(references.map(ref => getAllTagsHelper(ref.nodeId))).then(allResults => {
-          return allResults.flat().concat(tags);
-        });
+    const getAllTagsHelper = nodeIds => {
+      if (nodeIds.length === 0) {
+        return Promise.resolve([]);
+      }
+      return this.session.browse(nodeIds).then(nodes => {
+        return Promise.all(nodes.map(node => {
+          const tags = node.references.filter(ref => {
+            return ref.nodeClass === NodeClass.Variable;
+          });
+          // References are folders that can contain more nodes
+          const references = node.references.filter(ref => {
+            return ref.nodeClass === NodeClass.Object && !ref.browseName.name.startsWith('_') && ref.browseName.namespaceIndex != 0;
+          });
+          return getAllTagsHelper(references.map(ref => ref.nodeId)).then(allChildTags => {
+            return allChildTags.flat().concat(tags);
+          });
+        }));
       });
     }
-    return getAllTagsHelper('ObjectsFolder').then(tags => {
-      return tags.map(tag => {return {
-        nodeId: tag.nodeId.toString(),
-        name: tag.displayName.text,
-      }});
+    return getAllTagsHelper(['ObjectsFolder']).then(tags => {
+      return tags.flat().map(tag => {
+        return {
+          nodeId: tag.nodeId.toString(),
+          name: tag.displayName.text,
+        }
+      });
     });
   }
   
