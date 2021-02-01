@@ -89,7 +89,7 @@ if (exports.enabled) {
       endpointUrl: {
         value: settings('endpointUrl', ''),
         type: 'text',
-        helpText: 'The url and port (default: 49320 or 49330) of the Kepware OPC UA endpoint you want to connect to.'
+        helpText: 'The url and port (example: 192.168.1.189:49330) of the Kepware OPC UA endpoint you want to connect to.'
       },
       username: {
         value: settings('username', ''),

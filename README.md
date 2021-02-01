@@ -65,8 +65,20 @@ scripts are more niche but a simple "hello world" example looks like this:
 ## Using the Kepware Interface
 
 The Kepware Interface is compatible with both [KEPServerEX](https://www.kepware.com/en-us/products/kepserverex/) and [Kepware Edge](https://www.kepware.com/en-us/products/thingworx-kepware-edge/).
-To connect to a server: enable the interface in the Spatial Toolbox Web UI,
-enter your user credentials for the Kepware Server in the interface settings,
-and add your client certificate to the list of trusted certificates using your
-server's configuration tools. The client certificate can be found in
-`./node_modules/node-opcua-client/certificates`.
+
+### Kepware Connection Instructions
+1. Enter the Hardware Interfaces tab on the Vuforia Spatial Edge Server Web UI.
+![](interfaces/kepware/images/kepA.png)
+2. Enable the Kepware interface.
+![](interfaces/kepware/images/kepB.png)
+3. Enter in your connection details and save your changes.
+![](interfaces/kepware/images/kepC.png)
+4. On your KEPServerEX or Kepware Edge server, browse through the rejected certificate list and accept the most recent certificate. This process differs between the two servers, so consult the corresponding User Manual.
+5. Refresh the page after a moment to see the available tags.
+![](interfaces/kepware/images/kepD.png)
+6. Select the tags you want to use and save your changes.
+![](interfaces/kepware/images/kepE.png)
+7. (Optional) You can also filter the tag results if you are looking for a specific tag. 
+![](interfaces/kepware/images/kepF.png) 
+8. The tags you selected will now be available in the Spatial Toolbox!
+![](interfaces/kepware/images/kepG.png)
