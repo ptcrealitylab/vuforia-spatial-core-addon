@@ -421,7 +421,14 @@
         
         const machines = tagsToObjects(realityServer.hardwareInterface.allTags);
         const savedMachines = realityServer.hardwareInterface.settings['enabledTags'].value;
-        const sortByName = (a,b)=>a.name.toLowerCase()<b.name.toLowerCase()?-1:a.name.toLowerCase()>b.name.toLowerCase()?1:0;
+        const sortByName = (a,b) => {
+          if (a.name.toLowerCase() < b.name.toLowerCase()) {
+            return -1;
+          } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+            return 1;
+          }
+          return 0;
+        };
         machines.sort(sortByName);
         machines.forEach(machine => {
           machine.frames.sort(sortByName);
@@ -491,13 +498,13 @@
           const searchBox = document.createElement('input');
           searchBox.style.marginBottom = '10px';
           searchBox.addEventListener('input', e => {
-            const searchText = e.target.value;
+            const searchText = e.target.value.toLowerCase();
             machines.forEach(machine => {
-              if (!machine.name.toLowerCase().includes(searchText.toLowerCase()) && !machine.frames.some(frame => frame.name.toLowerCase().includes(searchText.toLowerCase()) || frame.tags.some(tag => tag.name.toLowerCase().includes(searchText.toLowerCase())))) {
+              if (!machine.name.toLowerCase().includes(searchText) && !machine.frames.some(frame => frame.name.toLowerCase().includes(searchText) || frame.tags.some(tag => tag.name.toLowerCase().includes(searchText)))) {
                 machine.menu.hidden = true;
               } else {
                 machine.menu.hidden = false;
-                if (machine.name.toLowerCase().includes(searchText.toLowerCase())) {
+                if (machine.name.toLowerCase().includes(searchText)) {
                   machine.frames.forEach(frame => {
                     frame.menu.hidden = false;
                     frame.tags.forEach(tag => {
@@ -506,17 +513,17 @@
                   });
                 } else {
                   machine.frames.forEach(frame => {
-                    if (!frame.name.toLowerCase().includes(searchText.toLowerCase()) && !frame.tags.some(tag => tag.name.toLowerCase().includes(searchText.toLowerCase()))) {
+                    if (!frame.name.toLowerCase().includes(searchText) && !frame.tags.some(tag => tag.name.toLowerCase().includes(searchText))) {
                       frame.menu.hidden = true;
                     } else {
                       frame.menu.hidden = false;
-                      if (frame.name.toLowerCase().includes(searchText.toLowerCase())) {
+                      if (frame.name.toLowerCase().includes(searchText)) {
                         frame.tags.forEach(tag => {
                           tag.menu.hidden = false;
                         })
                       } else {
                         frame.tags.forEach(tag => {
-                          tag.menu.hidden = !tag.name.toLowerCase().includes(searchText.toLowerCase());
+                          tag.menu.hidden = !tag.name.toLowerCase().includes(searchText);
                         })
                       }
                     }
@@ -697,7 +704,7 @@
     };
 
     realityServer.writeHardwareInterfaceSettings = function(settings, limitToKeys, callback) {
-        var body = {    
+        var body = {
             settings: settings,
         };
         if (limitToKeys) {
@@ -710,7 +717,7 @@
             callback(state);
         }, JSON.stringify(body));
     };
-    
+
     realityServer.sendRequest = function(url, httpStyle, callback, body) {
         if (!body) { body = ""; }
         var req = new XMLHttpRequest();
