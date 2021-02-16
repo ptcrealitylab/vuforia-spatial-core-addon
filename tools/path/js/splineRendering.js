@@ -2,11 +2,13 @@
 
 (function(exports) {
 
-    function SplineRender(mainContainer) {
+    function SplineRender(mainContainer, splineTexture) {
 
         this.container = mainContainer;
         this.splinesIdMap = [];
         this.splinesObjIdMap = [];
+        //this.textureArrow = splineTexture;
+        //this.textureArrow.wrapS = THREE.RepeatWrapping;
         addSpline = addSpline.bind(this);
     }
 
@@ -14,44 +16,44 @@
 
         // MESHLINE
 
-        console.log('NEW SPLINE: ', nodeId);
+        console.log('1 - NEW SPLINE: ', nodeId);
 
-        console.log('Create points');
+        console.log('2 - Create points');
         const curve = new THREE.CatmullRomCurve3(positions);
         const points = curve.getPoints( 50 );
 
         let geometry = new THREE.Geometry();
         geometry.vertices = points;
 
-        console.log('Create spline');
+        /*
+        console.log('3 - Create spline');
         let spline = new MeshLine();
         spline.setGeometry( geometry );
-
-        //let textureArrow = new THREE.TextureLoader().load ('resources/pathArrow2.png');
-
-        console.log('Create material');
-
-        //textureArrow.wrapS = THREE.RepeatWrapping;
+        
+        console.log('4 - Create material');
         const material = new MeshLineMaterial({
-            //map: textureArrow,
-            useMap: true,
-            repeat: new THREE.Vector2(20, 1),
+            //map: this.textureArrow,
+            useMap: false,
+            //repeat: new THREE.Vector2(20, 1),
             transparent: false,
-            lineWidth: 60,
+            lineWidth: 30,
             color: new THREE.Color('#ffffff'),
             dashArray: 0,     // always has to be the double of the line
             dashOffset: 0,    // start the dash at zero
             dashRatio: 0,     // visible length range
             sizeAttenuation: true
+        });*/
 
+        let lineMaterial = new THREE.LineBasicMaterial({
+            linewidth: 10,
+            color: 0xffffff
         });
 
-        let splineObject = new THREE.Mesh( spline.geometry, material );
+        //let splineObject = new THREE.Mesh( spline.geometry, material );
+        let splineObject = new THREE.Line( geometry, lineMaterial );
         this.container.add( splineObject );
 
-        console.log('NODE ID: ', nodeId);
-
-        this.splinesIdMap[nodeId] = spline;
+        this.splinesIdMap[nodeId] = geometry;
         this.splinesObjIdMap[nodeId] = splineObject;
     };
 
@@ -71,36 +73,19 @@
             localPositions.push(newPos);
         }.bind(this));
 
-        //console.log('UPDATE SPLINE: ', localPositions.length);
-
         if (!(nodeId in this.splinesIdMap)) {
-
-            console.log('ADD SPLINE');
 
             addSpline(nodeId, localPositions);
 
         } else {
+            
+            this.splinesObjIdMap[nodeId].visible = true;
+            
+            const curve = new THREE.CatmullRomCurve3(localPositions);
 
-            if (positions < 2) {
-
-                this.splinesObjIdMap[nodeId].visible = false;
-
-            } else {
-
-                this.splinesObjIdMap[nodeId].visible = true;
-
-                let thisSpline = this.splinesIdMap[nodeId];
-
-                const curve = new THREE.CatmullRomCurve3(localPositions);
-                const points = curve.getPoints( 50 );
-
-                var geometry = new THREE.Geometry();
-                geometry.vertices = points;
-
-                thisSpline.setGeometry( geometry );
-            }
-
-
+            this.splinesIdMap[nodeId].vertices = curve.getPoints( 50 );
+            this.splinesIdMap[nodeId].verticesNeedUpdate = true;
+            
         }
     };
 
