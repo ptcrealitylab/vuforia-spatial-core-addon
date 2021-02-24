@@ -1,23 +1,17 @@
-/* global THREE, screen, SpatialInterface, window, realGl, gl, proxies, document, spatialObject, EnvelopeContents, AnimatedGeometry, animitter */
+/* global THREE, screen, SpatialInterface, window, realGl, gl, document, SplineRender, Envelope, Pathfinder */
 
 /******** THREEJS ********/
 
 let realRenderer, renderer;
 let spatialInterface;
-let camera, scene, splineRenderer, cube;
+let camera, scene, splineRenderer;
 let mainContainerObj, groundPlaneContainerObj;
-let isProjectionMatrixSet = false, isGroundPlaneTracked = false;
+let isProjectionMatrixSet = false;
 let currentWorldId = null;
 
 let rendererWidth = screen.height; // width is height because landscape orientation
 let rendererHeight = screen.width; // height is width
 var aspectRatio = rendererWidth / rendererHeight;
-
-// Variable to store information to send to the server
-let pathData = {
-    index: 0,
-    checkpoints: []
-};
 
 window.addEventListener('load', function() {
     if (!spatialInterface) {
@@ -27,12 +21,11 @@ window.addEventListener('load', function() {
 });
 
 function main() {
-
     console.log('MAIN IN PATH');
 
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
-    realRenderer.setPixelRatio( window.devicePixelRatio );
-    realRenderer.setSize( rendererWidth, rendererHeight );
+    realRenderer.setPixelRatio(window.devicePixelRatio);
+    realRenderer.setSize(rendererWidth, rendererHeight);
     // document.body.appendChild( realRenderer.domElement );
     realGl = realRenderer.getContext();
 
@@ -81,9 +74,9 @@ function main() {
     groundPlaneContainerObj.add( cube_x );
     groundPlaneContainerObj.add( cube_z );
     groundPlaneContainerObj.add( cube_y );
-    cube_x.position.set(100,0,0);
-    cube_y.position.set(0,100, 0);
-    cube_z.position.set(0, 0,100);
+    cube_x.position.set(100, 0, 0);
+    cube_y.position.set(0, 100, 0);
+    cube_z.position.set(0, 0, 100);
     cube_y.name = 'cube_y';
     cube_z.name = 'cube_z';
     cube_x.name = 'cube_x';
@@ -133,7 +126,6 @@ let pathfinder = new Pathfinder();
 const CAMERA_ID = 'CAMERA';
 pathfinder.addPointOfInterest(CAMERA_ID);
 
-let targetedPointOfInterest = null;
 let distancesToCenter = {};
 
 //let shouldRender = false;
@@ -180,15 +172,12 @@ spatialInterface.onRealityInterfaceLoaded(function() {
 
     });
 
-    spatialInterface.addGroundPlaneMatrixListener(function(groundPlaneMatrix, projectionMatrix) {
+    spatialInterface.addGroundPlaneMatrixListener(function(groundPlaneMatrix, _projectionMatrix) {
 
         if (isProjectionMatrixSet) {                                                // don't turn into else statement, both can happen
 
             setMatrixFromArray(groundPlaneContainerObj.matrix, groundPlaneMatrix);  // update model view matrix
             groundPlaneContainerObj.visible = true;
-
-            //if (!isGroundPlaneTracked) console.log('surface tracked');
-            isGroundPlaneTracked = true;
 
             // Update Camera node position:
 
@@ -231,7 +220,7 @@ function renderIcon(distance, forceRender) {
             }
             mainDetailText.style.fontSize = fontSize + 'px';
 
-            let numPointsOfInterest = (pathfinder.pointsOfInterest.length-1);
+            let numPointsOfInterest = (pathfinder.pointsOfInterest.length - 1);
             let plural = numPointsOfInterest === 1 ? '' : 'S';
             subDetailText.textContent = numPointsOfInterest + ' POINT' + plural + ' OF INTEREST';
         } else {
@@ -285,10 +274,10 @@ function onKeyUp(e) {
     if (isCharacter) {
         name = name + e.key;
     } else {
-        if (e.key === "Backspace") {
+        if (e.key === 'Backspace') {
             name = name.slice(0, -1); // remove last character
-        } else if (e.key === " ") {
-            name = name + "\u00a0"; // special space character doesn't get escaped
+        } else if (e.key === ' ') {
+            name = name + '\u00a0'; // special space character doesn't get escaped
             // resetScroll();
             // setTimeout(function() {
             //     resetScroll(); // also do it after a slight delay
@@ -299,7 +288,7 @@ function onKeyUp(e) {
     renderIcon(currentDistance, true);
 
     // resizeText();
-    spatialInterface.writePublicData("storage", "name",  name);
+    spatialInterface.writePublicData('storage', 'name',  name);
 
 }
 
@@ -311,7 +300,7 @@ spatialInterface.onKeyboardClosed(function() {
     }
 });
 
-spatialInterface.addReadPublicDataListener('storage', "name", function (e) {
+spatialInterface.addReadPublicDataListener('storage', 'name', function (e) {
     if (typeof e === 'string') {
         name = e;
         if (name === '') {
@@ -324,7 +313,7 @@ spatialInterface.addReadPublicDataListener('storage', "name", function (e) {
 spatialInterface.onKeyUp(onKeyUp);
 
 let wasClosedIconPressed = false;
-rootElementWhenClosed.addEventListener('pointerdown', function(e) {
+rootElementWhenClosed.addEventListener('pointerdown', function() {
     wasClosedIconPressed = true;
 });
 
@@ -408,7 +397,7 @@ envelope.onFrameAdded(function(frameAddedMessage) {
         pathfinder.addPointOfInterest(frameId);
         renderIcon(currentDistance, true);
 
-        console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length)
+        console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
 
         writePathList();
 
@@ -468,8 +457,6 @@ function subscribeToFramePosition(frameId, frameData) {
     envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
         if (!envelope.isOpen) { return; } // don't waste time computing paths and rendering if not open
 
-        let avgDimension = (displayWidth+displayHeight)/2;
-
         //pathfinder.updateNodePosition(frameId, centerX, centerY, centerZ);
         //pathfinder.updateNodeRadius(frameId, avgDimension/2);
 
@@ -487,8 +474,8 @@ function subscribeToFramePosition(frameId, frameData) {
 
         if (frameData.type === 'pathPoint') {
             let distanceToCenterOfScreen = {
-                x: Math.abs(centerX - screenWidth/2),
-                y: Math.abs(centerY - screenHeight/2),
+                x: Math.abs(centerX - screenWidth / 2),
+                y: Math.abs(centerY - screenHeight / 2),
                 z: centerZ
             };
             distancesToCenter[frameId] = distanceToCenterOfScreen;
@@ -498,12 +485,12 @@ function subscribeToFramePosition(frameId, frameData) {
     }, shouldSubscribe3d);
 }
 
-function setIcon(){
+function setIcon() {
 
     var scaleFactor = Math.abs(lastModelViewMatrix[0]);
     var zDistance = Math.abs(lastModelViewMatrix[14]);
 
-    let scaledDistance = zDistance/scaleFactor;
+    let scaledDistance = zDistance / scaleFactor;
 
     if (scaledDistance < THRESHOLD_VERY_CLOSE) {
         renderIcon(DISTANCES.veryClose);
@@ -522,7 +509,7 @@ render = function() {
 
     if (isProjectionMatrixSet && lastModelViewMatrix && !envelope.isOpen) setIcon();
 
-    if (envelope.isOpen){
+    if (envelope.isOpen) {
 
         try {
 
@@ -530,11 +517,7 @@ render = function() {
             //highlightTargetedFrame();
 
             let allShortestPaths = {};
-            let edgesInAnyShortestPath = {};
-            let edgesInTargetedPath = {};
             allShortestPaths[CAMERA_ID] = {};
-
-            let pathPoints = {};
 
             let index = 0;
             let previousNode = null;
@@ -550,7 +533,7 @@ render = function() {
 
                 let thisPath, newPos;
 
-                if (index === 0){
+                if (index === 0) {
                     // actually compute the path from the CAMERA to the green circle using the pathfinder's computeShortestPath method
                     thisPath = pathfinder.computeShortestPath(CAMERA_ID, nodeB.id);
                     //allShortestPaths[CAMERA_ID][nodeB.id] = thisPath;
@@ -650,52 +633,4 @@ render = function() {
             }
         }
     }
-}
-
-function highlightTargetedFrame() {
-    // determine if targeted PoI has changed
-    let closestDistanceToCenter = {
-        frameId: null,
-        distance: 1000000000,
-        zPos: 0
-    };
-
-    for (let frameId in distancesToCenter) {
-
-        let distanceInfo = distancesToCenter[frameId];
-
-        //console.log('FRAME DISTANCE: ', frameId, distanceInfo);
-
-        let distance = Math.sqrt(distanceInfo.x * distanceInfo.x + distanceInfo.y * distanceInfo.y);
-
-        if (distance < closestDistanceToCenter.distance) {
-            closestDistanceToCenter.frameId = frameId;
-            closestDistanceToCenter.distance = distance;
-            closestDistanceToCenter.zPos = distanceInfo.z
-        }
-    }
-
-    if (closestDistanceToCenter.frameId && closestDistanceToCenter.frameId !== targetedPointOfInterest) {
-
-        // send message to previous target (if any) to un-highlight
-        if (targetedPointOfInterest) {
-
-            //splineRenderer.highlightSpline(targetedPointOfInterest, false);
-            envelope.sendMessageToFrameWithId(targetedPointOfInterest, {
-                highlightTarget: false
-            });
-        }
-
-        targetedPointOfInterest = closestDistanceToCenter.frameId;
-
-        //splineRenderer.highlightSpline(targetedPointOfInterest, true);
-
-        // send message to new target to highlight
-        envelope.sendMessageToFrameWithId(targetedPointOfInterest, {
-            highlightTarget: true
-        });
-    }
-    distancesToCenter = {};
-}
-
-
+};
