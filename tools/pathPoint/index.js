@@ -15,21 +15,13 @@ let heightLine, heightLineGeometry;
 let canvasIndexOrder = null, planeIndexOrder, hexIndexPlane, currentIndex = 0, currentTotal = 0, needsCanvasOrderUpdate = false;
 
 let gp_meshPos = new THREE.Vector3(0, 0, 0);
-let materials = [
-    new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors, shininess: 0 } ),
-    new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-];
 
-var isProjectionMatrixSet = false, isGroundPlaneFound = false, isMoving = false, initPoint = false;
+var isProjectionMatrixSet = false, isGroundPlaneFound = false;
 let currentWorldId = null;
 
 var rendererWidth = screen.height;
 var rendererHeight = screen.width;
 var aspectRatio = rendererWidth / rendererHeight;
-
-var hue = 0.5;
-var saturation = 0.8;
-var lightness = 0.6;
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
@@ -89,12 +81,17 @@ function main() {
     dirLight2.position.set(-100, -100, -100);
     scene.add(dirLight2);
 
-    hexTexture = new THREE.TextureLoader().load( 'resources/textures/hex.png' );
-    shadowTexture = new THREE.TextureLoader().load( "resources/textures/checkpointFloor.png" );
+    hexTexture = new THREE.TextureLoader().load('resources/textures/hex.png', function() {
+        pendingLoads.hex = false;
+    });
+
+    shadowTexture = new THREE.TextureLoader().load('resources/textures/checkpointFloor.png', function() {
+        pendingLoads.shadow = false;
+    });
 
     loadPathPointMesh();
 
-    if (!spatialInterface){
+    if (!spatialInterface) {
         spatialInterface = new SpatialInterface();
         spatialInterface.useWebGlWorker();
     }
@@ -361,7 +358,7 @@ function loadPathPointMesh() {
             heightLine.name = 'heightline';
             groundplaneContainerObj.add(heightLine);
 
-            canBeDone = true;
+            pendingLoads.loadPathPointMesh = false;
         },
 
         // onProgress callback
@@ -471,7 +468,7 @@ function groundPlaneCallback(groundPlaneMatrix, projectionMatrix){
     }
 }
 
-function initPathPointAlignment(){
+function initPathPointAlignment() {
 
     THREE.SceneUtils.detach( gp_shadow, pathPointMesh, scene );
     THREE.SceneUtils.attach( gp_shadow, scene, groundplaneContainerObj );
@@ -513,7 +510,7 @@ function alignPathPointToGroundPlane() {
     loop.start();
 }
 
-function addAxisHelpers(){
+function addAxisHelpers() {
     // Axis
 
     let geometrycube = new THREE.BoxGeometry( 1, 1, 1 );
@@ -539,9 +536,11 @@ function addAxisHelpers(){
     THREE.SceneUtils.attach( cube_right, scene, mainContainerObj );
     THREE.SceneUtils.detach( cube_front, pathPointMesh, scene );
     THREE.SceneUtils.attach( cube_front, scene, mainContainerObj );
+
+    pendingLoads.addAxisHelpers = false;
 }
 
-function generateHexLabel(){
+function generateHexLabel() {
 
     // Create top
 
@@ -572,66 +571,73 @@ function generateHexLabel(){
     groundplaneContainerObj.add( planeIndexOrder );
     planeIndexOrder.position = gp_meshPos;
     planeIndexOrder.scale.set(20,20,20);
+
+    pendingLoads.generateHexLabel = false;
 }
 
 // Update shadow
-function updateShadow(){
+function updateShadow() {
+    if (!gp_shadow) {
+        return;
+    }
 
-    if (gp_shadow) {
+    planeIndexOrder.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
+    hexIndexPlane.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
+    gp_shadow.position.set(gp_meshPos.x, 0, gp_meshPos.z);
+    gp_shadow.rotation.set(Math.PI / 2, 0, 0);
 
-        planeIndexOrder.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
-        hexIndexPlane.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
-        gp_shadow.position.set(gp_meshPos.x, 0, gp_meshPos.z);
-        gp_shadow.rotation.set(Math.PI/2,0,0);
-
-        // Only adjust scale if the checkpoint has finished alignment with groundplane
-        if (gp_aligned){
-            let shadowScale = toolScale * 3.5;
-            gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
-        }
+    // Only adjust scale if the checkpoint has finished alignment with groundplane
+    if (gp_aligned) {
+        let shadowScale = toolScale * 3.5;
+        gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
     }
 }
 
 function updateHeighLineAndMeshBlend() {
+    if (!heightLineGeometry) {
+        return;
+    }
 
-    if (heightLineGeometry) {
+    heightLineGeometry.attributes.position.array[0] = gp_shadow.position.x;
+    heightLineGeometry.attributes.position.array[1] = gp_shadow.position.y;
+    heightLineGeometry.attributes.position.array[2] = gp_shadow.position.z;
+    heightLineGeometry.attributes.position.array[3] = gp_meshPos.x;
+    heightLineGeometry.attributes.position.array[4] = gp_meshPos.y - 50;
+    heightLineGeometry.attributes.position.array[5] = gp_meshPos.z;
 
-        heightLineGeometry.attributes.position.array[0] = gp_shadow.position.x;
-        heightLineGeometry.attributes.position.array[1] = gp_shadow.position.y;
-        heightLineGeometry.attributes.position.array[2] = gp_shadow.position.z;
-        heightLineGeometry.attributes.position.array[3] = gp_meshPos.x;
-        heightLineGeometry.attributes.position.array[4] = gp_meshPos.y - 50;
-        heightLineGeometry.attributes.position.array[5] = gp_meshPos.z;
+    heightLineGeometry.attributes.position.needsUpdate = true;
 
-        heightLineGeometry.attributes.position.needsUpdate = true;
+    // MESH BLENDING
 
-        // MESH BLENDING
-
-        if (gp_meshPos.y > 90){ // Pyramid to rhombe animation (from floor to floating)
-            if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
-                pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
-                    pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
-                    0.1
-                );
-            }
-
-        } else { // Rhombe to pyramid animation (from floating to floor)
-            if (pathPointShaderMat.uniforms.u_morphFactor.value < 1){
-                pathPointShaderMat.uniforms.u_morphFactor.value = Math.min(
-                    pathPointShaderMat.uniforms.u_morphFactor.value + 0.1,
-                    0.9
-                );
-            }
-
+    if (gp_meshPos.y > 90) { // Pyramid to rhombe animation (from floor to floating)
+        if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
+            pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
+                pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
+                0.1
+            );
         }
 
+    } else { // Rhombe to pyramid animation (from floating to floor)
+        if (pathPointShaderMat.uniforms.u_morphFactor.value < 1) {
+            pathPointShaderMat.uniforms.u_morphFactor.value = Math.min(
+                pathPointShaderMat.uniforms.u_morphFactor.value + 0.1,
+                0.9
+            );
+        }
     }
 }
 
 
 
 let done = false;
-let canBeDone = false;
+let pendingLoads = {
+    hex: true,
+    shadow: true,
+    loadPathPointMesh: true,
+    addAxisHelpers: true,
+    generateHexLabel: true,
+};
+
 
 // Draw the scene repeatedly
 render = function(_now) {
@@ -662,23 +668,26 @@ render = function(_now) {
 
         if (renderer && scene && camera) {
             renderer.render(scene, camera);
-            if (canBeDone && done && realGl) {
+            // Can be done when nothing is pending
+            let canBeDone = !Object.values(pendingLoads).some(a => a);
+            if (canBeDone) {
+                if (done && realGl) {
+                    console.log('OPTIMIZE PROXY');
 
-                //console.log('OPTIMIZE PROXY');
-
-                for (let proxy of proxies) {
-                    proxy.__uncloneableObj = null;
-                    delete proxy.__uncloneableObj;
+                    for (let proxy of proxies) {
+                        proxy.__uncloneableObj = null;
+                        delete proxy.__uncloneableObj;
+                    }
+                    proxies = [];
+                    realRenderer.dispose();
+                    realRenderer.forceContextLoss();
+                    realRenderer.context = null;
+                    realRenderer.domElement = null;
+                    realRenderer = null;
+                    realGl = null;
                 }
-                proxies = [];
-                realRenderer.dispose();
-                realRenderer.forceContextLoss();
-                realRenderer.context = null;
-                realRenderer.domElement = null;
-                realRenderer = null;
-                realGl = null;
+                done = true;
             }
-            done = true;
         }
 
         toolScale = Math.abs(lastModelViewMatrix[0]) || 1.0; // distance is relative to scale of frame
