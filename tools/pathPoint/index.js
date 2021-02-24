@@ -654,7 +654,7 @@ render = function(_now) {
         if (renderer && scene && camera) {
             renderer.render(scene, camera);
             // Can be done when nothing is pending
-            let canBeDone = !Object.values(pendingLoads).some(a => a);
+            let canBeDone = false; // !Object.values(pendingLoads).some(a => a);
             if (canBeDone) {
                 if (done && realGl) {
                     console.log('OPTIMIZE PROXY');
