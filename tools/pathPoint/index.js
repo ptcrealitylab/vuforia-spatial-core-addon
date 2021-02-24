@@ -132,23 +132,8 @@ function main() {
         });
 
         spatialInterface.addIsMovingListener(function(e) {
-            if (e) {
-
-                //console.log('PoI is moving');
-                hue = 0.3;
-                saturation = 0.6;
-                lightness = 0.5;
-                isMoving = true;
-
-            } else {
-                //console.log('PoI is NOT moving');
-                hue = 0.5;
-                saturation = 0.6;
-                lightness = 0.5;
-                isMoving = false;
-
+            if (!e) {
                 updatePositionServer();
-
             }
         });
     });
@@ -277,18 +262,16 @@ function loadPathPointMesh() {
 
             console.log(obj);
 
-            baseFloating = obj.getObjectByName( "LOCATOR___FLOATING" );
-            baseGrounded = obj.getObjectByName( "LOCATOR___GROUNDED" );
+            baseFloating = obj.getObjectByName( 'LOCATOR___FLOATING' );
+            baseGrounded = obj.getObjectByName( 'LOCATOR___GROUNDED' );
 
             generateMeshObject();
-
-            let material_mesh = new THREE.MeshBasicMaterial( {color: 0xff0000} );
 
             // Add the loaded object to the scene
             mainContainerObj.add( pathPointMesh );
             pathPointMesh.name = 'pathPointMesh';
-            pathPointMesh.scale.set(60,60,60);
-            pathPointMesh.position.set(0,0,0);
+            pathPointMesh.scale.set(60, 60, 60);
+            pathPointMesh.position.set(0, 0, 0);
 
             // add spotlight for the shadows
             var spotLight = new THREE.SpotLight(0xffffff);
@@ -301,18 +284,18 @@ function loadPathPointMesh() {
             //let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: false, side: THREE.DoubleSide} );
 
             gp_shadow = new THREE.Mesh( planeGeometry, planeMaterial );
-            gp_shadow.rotateX(Math.PI/2);
+            gp_shadow.rotateX(Math.PI / 2);
             gp_shadow.name = 'gp_shadow';
             pathPointMesh.add(gp_shadow);
-            gp_shadow.position.set(0,-10,0);
+            gp_shadow.position.set(0, -10, 0);
 
-            gp_shadow.scale.set(0.01,0.01,0.01);
+            gp_shadow.scale.set(0.01, 0.01, 0.01);
 
             generateHexLabel();
 
             // Height line
 
-            let positionPathPoint = new THREE.Vector3(0,0,0);
+            let positionPathPoint = new THREE.Vector3(0, 0, 0);
             pathPointMesh.getWorldPosition(positionPathPoint);
 
             let materialLine = new THREE.LineBasicMaterial({
@@ -373,28 +356,11 @@ function loadPathPointMesh() {
     );
 }
 
-function initEnvelopeContents(){
+function initEnvelopeContents() {
     // Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
     let envelopeContents = new EnvelopeContents(spatialInterface, document.body);
 
     console.log('ENVELOPE CONTENTS CREATED NOW IN PATH POINT');
-
-    envelopeContents.onMessageFromEnvelope(function(envelopeMessage) {
-
-        if (typeof envelopeMessage.highlightTarget !== 'undefined') {
-            if (envelopeMessage.highlightTarget) {
-
-                // document.getElementById('container').style.borderColor = 'cyan';
-                lightness = 0.6;
-                saturation = 1.0;
-            } else {
-
-                // document.getElementById('container').style.borderColor = '';
-                lightness = 0.9;
-                saturation = 0.6;
-            }
-        }
-    });
 
     // 4. Whenever a tool is added or removed from the envelope, this function will trigger for
     //    every tool contained by the envelope, and recalculate its position in the sequence
@@ -415,7 +381,7 @@ function updateCanvasIndex() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     let text = (currentIndex + 1).toString() + ' / ' + currentTotal;
-    ctx.fillText(text, canvasIndexOrder.width/2, canvasIndexOrder.height/2);
+    ctx.fillText(text, canvasIndexOrder.width / 2, canvasIndexOrder.height / 2);
     planeIndexOrder.material.map.needsUpdate = true;
 }
 
@@ -456,8 +422,7 @@ function renderScene(modelViewMatrix, projectionMatrix) {
     //console.log('lastProjectionMatrix: ', lastProjectionMatrix);
 }
 
-function groundPlaneCallback(groundPlaneMatrix, projectionMatrix){
-
+function groundPlaneCallback(groundPlaneMatrix, _projectionMatrix) {
     if (isProjectionMatrixSet) {
 
         // CHECK HERE WHEN THIS GETS CALLED
@@ -495,7 +460,7 @@ function alignPathPointToGroundPlane() {
     const loop = animitter((deltatime, elapsedtime, framecount) => {
         pathPointMesh.quaternion.slerp(newQuaternion, 0.15);
 
-        if (framecount >= 50){
+        if (framecount >= 50) {
             console.log('finished alignment');
             loop.stop();
             THREE.SceneUtils.detach( pathPointMesh, groundplaneContainerObj, scene );
@@ -523,9 +488,9 @@ function addAxisHelpers() {
     pathPointMesh.add( cube_down );
     pathPointMesh.add( cube_front );
     pathPointMesh.add( cube_right );
-    cube_down.position.set(0,-3,0);
-    cube_right.position.set(2.5,2,0);
-    cube_front.position.set(0,2,2.5);
+    cube_down.position.set(0, -3, 0);
+    cube_right.position.set(2.5, 2, 0);
+    cube_front.position.set(0, 2, 2.5);
     cube_down.scale.set(0.5, 0.5, 0.5);
     cube_front.scale.set(0.5, 0.5, 0.5);
     cube_right.scale.set(0.5, 0.5, 0.5);
@@ -552,7 +517,7 @@ function generateHexLabel() {
 
     groundplaneContainerObj.add( hexIndexPlane );
     hexIndexPlane.position = gp_meshPos;
-    hexIndexPlane.scale.set(20,20,20);
+    hexIndexPlane.scale.set(20, 20, 20);
 
     // create number labels
     canvasIndexOrder = document.createElement('canvas');
@@ -563,14 +528,14 @@ function generateHexLabel() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     let text = (currentIndex + 1).toString() + ' / ' + currentTotal;
-    ctx.fillText(text, canvasIndexOrder.width/2, canvasIndexOrder.height/2);
+    ctx.fillText(text, canvasIndexOrder.width / 2, canvasIndexOrder.height / 2);
 
     let materialText = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvasIndexOrder), transparent: true, side: THREE.DoubleSide });
     let geometryNumber = new THREE.PlaneGeometry( 4, 4, 1 );
     planeIndexOrder = new THREE.Mesh( geometryNumber, materialText );
     groundplaneContainerObj.add( planeIndexOrder );
     planeIndexOrder.position = gp_meshPos;
-    planeIndexOrder.scale.set(20,20,20);
+    planeIndexOrder.scale.set(20, 20, 20);
 
     pendingLoads.generateHexLabel = false;
 }
@@ -692,7 +657,7 @@ render = function(_now) {
 
         toolScale = Math.abs(lastModelViewMatrix[0]) || 1.0; // distance is relative to scale of frame
 
-        if (pathPointMesh && isGroundPlaneFound){
+        if (pathPointMesh && isGroundPlaneFound) {
 
             // Keep local position of Mesh in Ground Plane
             pathPointMesh.getWorldPosition(gp_meshPos);
@@ -701,7 +666,7 @@ render = function(_now) {
             updateShadow();
             updateHeighLineAndMeshBlend();
 
-            if (needsCanvasOrderUpdate){
+            if (needsCanvasOrderUpdate) {
                 updateCanvasIndex();
                 needsCanvasOrderUpdate = false;
             }
