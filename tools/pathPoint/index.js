@@ -598,7 +598,7 @@ function updateHeighLineAndMeshBlend() {
         if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
             pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
                 pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
-                0.1
+                0
             );
         }
 
@@ -606,7 +606,7 @@ function updateHeighLineAndMeshBlend() {
         if (pathPointShaderMat.uniforms.u_morphFactor.value < 1) {
             pathPointShaderMat.uniforms.u_morphFactor.value = Math.min(
                 pathPointShaderMat.uniforms.u_morphFactor.value + 0.1,
-                0.9
+                1
             );
         }
     }
