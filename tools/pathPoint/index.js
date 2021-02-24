@@ -435,12 +435,19 @@ function groundPlaneCallback(groundPlaneMatrix, _projectionMatrix) {
 
 function initPathPointAlignment() {
 
-    THREE.SceneUtils.detach( gp_shadow, pathPointMesh, scene );
-    THREE.SceneUtils.attach( gp_shadow, scene, groundplaneContainerObj );
-    THREE.SceneUtils.detach( planeIndexOrder, pathPointMesh, scene );
-    THREE.SceneUtils.attach( planeIndexOrder, scene, groundplaneContainerObj );
-    THREE.SceneUtils.detach( hexIndexPlane, pathPointMesh, scene );
-    THREE.SceneUtils.attach( hexIndexPlane, scene, groundplaneContainerObj );
+    // THREE.SceneUtils.detach( gp_shadow, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( gp_shadow, scene, groundplaneContainerObj );
+    // THREE.SceneUtils.detach( planeIndexOrder, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( planeIndexOrder, scene, groundplaneContainerObj );
+    // THREE.SceneUtils.detach( hexIndexPlane, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( hexIndexPlane, scene, groundplaneContainerObj );
+
+    // scene.attach(gp_shadow);
+    groundplaneContainerObj.attach(gp_shadow);
+    // scene.attach(planeIndexOrder);
+    groundplaneContainerObj.attach(planeIndexOrder);
+    // scene.attach(hexIndexPlane);
+    groundplaneContainerObj.attach(hexIndexPlane);
 
     if (isGroundPlaneFound) alignPathPointToGroundPlane();
 
@@ -449,8 +456,11 @@ function initPathPointAlignment() {
 function alignPathPointToGroundPlane() {
     // Align the checkpoint to the groundplane up vector
 
-    THREE.SceneUtils.detach( pathPointMesh, mainContainerObj, scene );
-    THREE.SceneUtils.attach( pathPointMesh, scene, groundplaneContainerObj );
+    // THREE.SceneUtils.detach( pathPointMesh, mainContainerObj, scene );
+    // THREE.SceneUtils.attach( pathPointMesh, scene, groundplaneContainerObj );
+
+    // scene.attach(pathPointMesh);
+    groundplaneContainerObj.attach(pathPointMesh);
 
     //let newRotation = new THREE.Euler(gp_shadow.rotation.x - Math.PI/2, gp_shadow.rotation.y, gp_shadow.rotation.z);
     let newRotation = new THREE.Euler(0, 0, 0);
@@ -463,8 +473,11 @@ function alignPathPointToGroundPlane() {
         if (framecount >= 50) {
             console.log('finished alignment');
             loop.stop();
-            THREE.SceneUtils.detach( pathPointMesh, groundplaneContainerObj, scene );
-            THREE.SceneUtils.attach( pathPointMesh, groundplaneContainerObj, mainContainerObj );
+            // THREE.SceneUtils.detach( pathPointMesh, groundplaneContainerObj, scene );
+            // THREE.SceneUtils.attach( pathPointMesh, groundplaneContainerObj, mainContainerObj );
+
+            scene.attach(pathPointMesh);
+            mainContainerObj.attach(pathPointMesh);
             gp_aligned = true;
 
             addAxisHelpers();
@@ -495,12 +508,19 @@ function addAxisHelpers() {
     cube_front.scale.set(0.5, 0.5, 0.5);
     cube_right.scale.set(0.5, 0.5, 0.5);
 
-    THREE.SceneUtils.detach( cube_down, pathPointMesh, scene );
-    THREE.SceneUtils.attach( cube_down, scene, mainContainerObj );
-    THREE.SceneUtils.detach( cube_right, pathPointMesh, scene );
-    THREE.SceneUtils.attach( cube_right, scene, mainContainerObj );
-    THREE.SceneUtils.detach( cube_front, pathPointMesh, scene );
-    THREE.SceneUtils.attach( cube_front, scene, mainContainerObj );
+    // THREE.SceneUtils.detach( cube_down, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( cube_down, scene, mainContainerObj );
+    // THREE.SceneUtils.detach( cube_right, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( cube_right, scene, mainContainerObj );
+    // THREE.SceneUtils.detach( cube_front, pathPointMesh, scene );
+    // THREE.SceneUtils.attach( cube_front, scene, mainContainerObj );
+
+    // scene.attach(cube_down);
+    mainContainerObj.attach(cube_down);
+    // scene.attach(cube_right);
+    mainContainerObj.attach(cube_right);
+    // scene.attach(cube_front);
+    mainContainerObj.attach(cube_front);
 
     pendingLoads.addAxisHelpers = false;
 }
