@@ -44,14 +44,16 @@
             sizeAttenuation: true
         });*/
 
-        let lineMaterial = new THREE.LineBasicMaterial({
-            linewidth: 10,
-            color: 0xffffff
-        });
+        if (!this.lineMaterial) {
+            this.lineMaterial = new THREE.LineBasicMaterial({
+                linewidth: 1, // 10 isn't technically supported in Safari
+                color: 0xffffff
+            });
+        }
 
         //let splineObject = new THREE.Mesh( spline.geometry, material );
-        let splineObject = new THREE.Line( geometry, lineMaterial );
-        this.container.add( splineObject );
+        let splineObject = new THREE.Line(geometry, this.lineMaterial);
+        this.container.add(splineObject);
 
         this.splinesIdMap[nodeId] = geometry;
         this.splinesObjIdMap[nodeId] = splineObject;
