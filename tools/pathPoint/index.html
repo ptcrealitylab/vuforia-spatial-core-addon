@@ -7,10 +7,10 @@
     <script src="objectDefaultFiles/pep.min.js"></script>
     <script src="objectDefaultFiles/envelopeContents.js"></script>
     <script src="objectDefaultFiles/gl-worker.js"></script>
-    <script src="resources/threejs-src/2020/three.js"></script>
-    <script src="resources/threejs-src/2020/utils/SceneUtils.js"></script>
-    <script src="resources/animitter.js"></script>
-    <script src="resources/animatedGeometry.js"></script>
+    <script src="resources/js/threejs-2020/build/three.js"></script>
+    <script src="resources/js/threejs-2020/utils/SceneUtils.js"></script>
+    <script src="resources/js/animitter.js"></script>
+    <script src="resources/js/animatedGeometry.js"></script>
     
 </head>
 <body>
@@ -395,8 +395,6 @@
     function initEnvelopeContents(){
         // Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
         let envelopeContents = new EnvelopeContents(spatialInterface, document.body);
-        
-        console.log('ENVELOPE CONTENTS CREATED NOW IN PATH POINT');
 
         envelopeContents.onMessageFromEnvelope(function(envelopeMessage) {
 
@@ -472,7 +470,7 @@
         lastModelViewMatrix = modelViewMatrix;
 
         // CHECK HERE WHEN THIS GETS CALLED
-        //console.log('lastProjectionMatrix: ', lastProjectionMatrix);
+        //console.log('lastModelViewMatrix: ', modelViewMatrix);
     }
 
     function groundPlaneCallback(groundPlaneMatrix, projectionMatrix){
@@ -480,7 +478,7 @@
         if (isProjectionMatrixSet) {
             
             // CHECK HERE WHEN THIS GETS CALLED
-            //console.log('GroundPlane: ', groundPlaneMatrix);
+            console.log('GroundPlane: ', groundPlaneMatrix);
             
             isGroundPlaneFound = true;
             setMatrixFromArray(groundplaneContainerObj.matrix, groundPlaneMatrix);  // update model view matrix
@@ -580,6 +578,9 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         let text = (currentIndex + 1).toString() + ' / ' + currentTotal;
+        
+        if (currentTotal === 0) text = '1';   // If currentTotal is 0, we are not in a path             
+        
         ctx.fillText(text, canvasIndexOrder.width/2, canvasIndexOrder.height/2);
 
         let materialText = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvasIndexOrder), transparent: true, side: THREE.DoubleSide });
@@ -659,12 +660,16 @@
 
         // only set the projection matrix for the camera 1 time, since it stays the same
         if (!isProjectionMatrixSet && lastProjectionMatrix && lastProjectionMatrix.length === 16) {
+            console.log('SET PROJECTION MATRIX', lastProjectionMatrix);
             setMatrixFromArray(camera.projectionMatrix, lastProjectionMatrix);
             camera.projectionMatrixInverse.getInverse(camera.projectionMatrix);
             isProjectionMatrixSet = true;
         }
 
         if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16) {
+
+            console.log('SET MODELVIEW MATRIX');
+            
             // don't turn into else statement, both can happen
 
             //pathPointMesh.material.color.setHSL( hue, saturation, lightness );
