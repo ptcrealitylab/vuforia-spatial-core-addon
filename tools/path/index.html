@@ -3,6 +3,7 @@
 <head>
     <!-- Import the Envelope Container APIs -->
     <script src="objectDefaultFiles/envelope.js"></script>
+    
     <script src="js/three.min.js"></script>
     <!--<script src="js/THREE.MeshLine.js"></script>-->
     <script src="thirdPartyCode/graph.js"></script>
@@ -38,6 +39,8 @@
 </body>
 <script>
 
+    
+
     /******** THREEJS ********/
 
     let realRenderer, renderer;
@@ -65,8 +68,6 @@
     });
 
     function main() {
-        
-        console.log('MAIN IN PATH');
         
         realRenderer = new THREE.WebGLRenderer( { alpha: true } );
         realRenderer.setPixelRatio( window.devicePixelRatio );
@@ -98,8 +99,6 @@
         let textureArrow = null;
         splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
         
-        console.log('Add cubes to groundplane in path');
-        
         // Create new spline now to avoid problems with glcanvas creating new geometry
         
         
@@ -119,9 +118,9 @@
         groundPlaneContainerObj.add( cube_x );
         groundPlaneContainerObj.add( cube_z );
         groundPlaneContainerObj.add( cube_y );
-        cube_x.position.set(100,0,0);
-        cube_y.position.set(0,100, 0);
-        cube_z.position.set(0, 0,100);
+        cube_x.position.set(50,0,0);
+        cube_y.position.set(0,50, 0);
+        cube_z.position.set(0, 0,50);
         cube_y.name = 'cube_y';
         cube_z.name = 'cube_z';
         cube_x.name = 'cube_x';
@@ -187,7 +186,9 @@
         far: 'far'
     });
 
-    let currentDistance = DISTANCES.close;
+    let currentDistance = DISTANCES.veryClose;
+
+    renderIcon(currentDistance, true);
 
     let lastProjectionMatrix = null;
     let lastModelViewMatrix = null;
@@ -423,7 +424,7 @@
 
             if (frameData.type === 'pathPoint') {
 
-                console.log('onPublicDataLoaded: Adding new POI to path: ', frameId);
+                //console.log('onPublicDataLoaded: Adding new POI to path: ', frameId);
                 
                 pathfinder.addPointOfInterest(frameId);
                 renderIcon(currentDistance, true);
@@ -441,12 +442,12 @@
 
         if (frameData.type === 'pathPoint') {
             
-            console.log('onFrameAdded: Adding new POI to path: ', frameId);
+            //console.log('onFrameAdded: Adding new POI to path: ', frameId);
             
             pathfinder.addPointOfInterest(frameId);
             renderIcon(currentDistance, true);
             
-            console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length)
+            //console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length)
 
             writePathList();
 
@@ -500,7 +501,7 @@
     function subscribeToFramePosition(frameId, frameData) {
         //console.log('subscribe to position of ' + frameId + ' (type = ' + frameData.type + ')');
 
-        console.log('AND NOW I SUBSCRIBE TO PATH POINT POSITION IN PATH');
+        //console.log('AND NOW I SUBSCRIBE TO PATH POINT POSITION IN PATH');
         
         let shouldSubscribe3d = true;
         envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
