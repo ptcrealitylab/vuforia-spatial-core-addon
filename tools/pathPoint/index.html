@@ -7,11 +7,8 @@
     <script src="objectDefaultFiles/pep.min.js"></script>
     <script src="objectDefaultFiles/envelopeContents.js"></script>
     <script src="objectDefaultFiles/gl-worker.js"></script>
-    <!--<script src="resources/threejs-src/2016/three.min.js"></script>-->
     <script src="resources/threejs-src/2020/three.js"></script>
     <script src="resources/threejs-src/2020/utils/SceneUtils.js"></script>
-    <script src="resources/threejs-src/2020/libs/inflate.min.js"></script>
-    <script src="resources/threejs-src/2020/loaders/FBXLoader.js"></script>
     <script src="resources/animitter.js"></script>
     <script src="resources/animatedGeometry.js"></script>
     
@@ -133,6 +130,7 @@
 
             spatialInterface.subscribeToMatrix();
             spatialInterface.setFullScreenOn();
+            spatialInterface.prefersAttachingToWorld();
 
             // whenever we receive new matrices from the editor, update the 3d scene
             spatialInterface.addMatrixListener(renderScene);
@@ -190,7 +188,9 @@
 
             // worldMatrix is the matrix of the tool in world coordinates
             // We want to send the matrix of the pathpointmesh relative to groundplane? as it is our visual reference to how we want that position
-
+            console.log('PATH POINT ID: ', spatialObject.frame);
+            console.log('PATH POINT POSITION: ', gp_shadow.position);
+            console.log('gp_shadow: ', gp_shadow);
 
             // write position into pathPoint
             let point = {
@@ -227,7 +227,7 @@
         let animatedGeom = new AnimatedGeometry(baseFloating.geometry, baseGrounded.geometry);
 
         // adds the varying vUv to pass the mixed UV coordinates to the fragment shader
-        var myVertexShader = `
+        let myVertexShader = `
             varying vec2 vUv;
             uniform float u_morphFactor;
             uniform float u_time;
@@ -241,7 +241,7 @@
             }
         `;
 
-        var myFragmentShader = `
+        let myFragmentShader = `
             uniform vec3 u_color;
             varying vec2 vUv;
             void main(){
@@ -252,7 +252,7 @@
 
         let myUniforms = {
             u_time: { value: 0 },
-            u_morphFactor: { value: 1 }, // show first model by default
+            u_morphFactor: { value: 0 }, // show first model by default
             u_color: { value: new THREE.Color(0x01FFFD)}
         };
 
