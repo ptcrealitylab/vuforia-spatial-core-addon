@@ -112,6 +112,7 @@ function main() {
 
         spatialInterface.subscribeToMatrix();
         spatialInterface.setFullScreenOn();
+        spatialInterface.prefersAttachingToWorld();
 
         // whenever we receive new matrices from the editor, update the 3d scene
         spatialInterface.addMatrixListener(renderScene);
@@ -154,7 +155,9 @@ function updatePositionServer() {
 
         // worldMatrix is the matrix of the tool in world coordinates
         // We want to send the matrix of the pathpointmesh relative to groundplane? as it is our visual reference to how we want that position
-
+        console.log('PATH POINT ID: ', spatialObject.frame);
+        console.log('PATH POINT POSITION: ', gp_shadow.position);
+        console.log('gp_shadow: ', gp_shadow);
 
         // write position into pathPoint
         let point = {
@@ -191,7 +194,7 @@ function generateMeshObject() {
     let animatedGeom = new AnimatedGeometry(baseFloating.geometry, baseGrounded.geometry);
 
     // adds the varying vUv to pass the mixed UV coordinates to the fragment shader
-    var myVertexShader = `
+    let myVertexShader = `
         varying vec2 vUv;
         uniform float u_morphFactor;
         uniform float u_time;
@@ -205,7 +208,7 @@ function generateMeshObject() {
         }
     `;
 
-    var myFragmentShader = `
+    let myFragmentShader = `
         uniform vec3 u_color;
         varying vec2 vUv;
         void main(){
@@ -216,7 +219,7 @@ function generateMeshObject() {
 
     let myUniforms = {
         u_time: { value: 0 },
-        u_morphFactor: { value: 1 }, // show first model by default
+        u_morphFactor: { value: 0 }, // show first model by default
         u_color: { value: new THREE.Color(0x01FFFD)}
     };
 
@@ -360,7 +363,6 @@ function initEnvelopeContents() {
     // Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
     let envelopeContents = new EnvelopeContents(spatialInterface, document.body);
 
-    console.log('ENVELOPE CONTENTS CREATED NOW IN PATH POINT');
 
     // 4. Whenever a tool is added or removed from the envelope, this function will trigger for
     //    every tool contained by the envelope, and recalculate its position in the sequence
@@ -420,6 +422,7 @@ function renderScene(modelViewMatrix, projectionMatrix) {
 
     // CHECK HERE WHEN THIS GETS CALLED
     //console.log('lastProjectionMatrix: ', lastProjectionMatrix);
+    //console.log('lastModelViewMatrix: ', modelViewMatrix);
 }
 
 function groundPlaneCallback(groundPlaneMatrix, _projectionMatrix) {
@@ -548,6 +551,9 @@ function generateHexLabel() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     let text = (currentIndex + 1).toString() + ' / ' + currentTotal;
+
+    if (currentTotal === 0) text = '1';   // If currentTotal is 0, we are not in a path
+
     ctx.fillText(text, canvasIndexOrder.width / 2, canvasIndexOrder.height / 2);
 
     let materialText = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvasIndexOrder), transparent: true, side: THREE.DoubleSide });
@@ -694,5 +700,3 @@ render = function(_now) {
     }
 
 };
-
-

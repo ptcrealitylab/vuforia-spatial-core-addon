@@ -57,14 +57,8 @@ function main() {
 
     // Create new spline now to avoid problems with glcanvas creating new geometry
 
-
-    //let newPos1 = new THREE.Vector3(0, 0, 0);
     let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
     let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-
-    /*let newPos1 = new THREE.Vector3(100, 0, 0);
-    let newPos2 = new THREE.Vector3(0, 100, 0);
-    let newPos3 = new THREE.Vector3(0, 0, 100);*/
 
     let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
     let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
@@ -74,19 +68,20 @@ function main() {
     groundPlaneContainerObj.add( cube_x );
     groundPlaneContainerObj.add( cube_z );
     groundPlaneContainerObj.add( cube_y );
-    cube_x.position.set(100, 0, 0);
-    cube_y.position.set(0, 100, 0);
-    cube_z.position.set(0, 0, 100);
+    cube_x.position.set(50, 0, 0);
+    cube_y.position.set(0, 50, 0);
+    cube_z.position.set(0, 0, 50);
     cube_y.name = 'cube_y';
     cube_z.name = 'cube_z';
     cube_x.name = 'cube_x';
 
-    //let test = [newPos1, newPos2, newPos3];
-    //splineRenderer.updateSpline(CAMERA_ID, test);
+    /*let newPos1 = new THREE.Vector3(100, 0, 0);
+    let newPos2 = new THREE.Vector3(0, 100, 0);
+    let newPos3 = new THREE.Vector3(0, 0, 100);
+    let test = [newPos1, newPos2, newPos3];
+    splineRenderer.updateSpline(CAMERA_ID, test);*/
 
 }
-
-
 
 /****** ******/
 
@@ -100,7 +95,6 @@ let compatibleToolTypes = ['pathPoint'];
 let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
 let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
 let canvas = document.getElementById('canvas');
-
 let smallIcon = document.getElementById('smallIcon');
 let bigIcon = document.getElementById('bigIcon');
 let graphics = document.getElementById('graphics');
@@ -141,7 +135,9 @@ let DISTANCES = Object.freeze({
     far: 'far'
 });
 
-let currentDistance = DISTANCES.close;
+let currentDistance = DISTANCES.veryClose;
+
+renderIcon(currentDistance, true);  // Set initial icon
 
 let lastProjectionMatrix = null;
 let lastModelViewMatrix = null;
