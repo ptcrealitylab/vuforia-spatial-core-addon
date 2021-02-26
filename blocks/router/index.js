@@ -95,10 +95,12 @@ var thresholdValue = 0;
  * @param {number} index - the index of which input was just received. for example, a block with two inputs will have its render function called twice - once with index 0 and once with index 1. it is up to the implemented to decide whether to trigger the callback when either index is triggered, or only once all indices have received values, etc.
  * @param {{data: Array.<number>, processedData: Array:<number>, ...}} thisBlock - reference to the full block data struct
  * @param {function} callback - should be triggered with these arguments: (object, frame, node, block, index, thisBlock)
+ * @param {*} _utilities - reference to nodeUtilities.js library
  */
-exports.render = function (object, frame, node, block, index, thisBlock, callback, utilities)  {
-    if(typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
-    
+exports.render = function (object, frame, node, block, index, thisBlock, callback, _utilities)  {
+    if (typeof thisBlock.data[0].value === 'object' || typeof thisBlock.data[1].value === 'object' ) return;
+    // complex data types are ignored by this block
+
     if (index === 0) {
         thresholdValue = thisBlock.data[0].value;
 

@@ -1,4 +1,4 @@
-/* global THREE, screen, SpatialInterface, window, realGl, gl, document, SplineRender, Envelope, Pathfinder */
+/* global THREE, screen, SpatialInterface, window, gl, document, SplineRender, Envelope, Pathfinder */
 
 /******** THREEJS ********/
 
@@ -20,6 +20,7 @@ window.addEventListener('load', function() {
     spatialInterface.useWebGlWorker();
 });
 
+// eslint-disable-next-line no-unused-vars
 function main() {
     console.log('MAIN IN PATH');
 
@@ -27,6 +28,7 @@ function main() {
     realRenderer.setPixelRatio(window.devicePixelRatio);
     realRenderer.setSize(rendererWidth, rendererHeight);
     // document.body.appendChild( realRenderer.domElement );
+    // eslint-disable-next-line no-undef
     realGl = realRenderer.getContext();
 
     // create a fullscreen webgl renderer for the threejs content and add to the dom
@@ -498,6 +500,7 @@ function setIcon() {
 
 }
 
+// eslint-disable-next-line no-undef
 render = function() {
     /*if (!shouldRender) {
         return;

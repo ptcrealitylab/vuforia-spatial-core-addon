@@ -41,10 +41,12 @@ if (!spatialInterface) {
 //     spatialInterface.useWebGlWorker();
 // });
 
+// eslint-disable-next-line no-unused-vars
 function main() {
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.setPixelRatio(window.devicePixelRatio);
     realRenderer.setSize(rendererWidth, rendererHeight);
+    // eslint-disable-next-line no-global-assign
     realGl = realRenderer.getContext();
 
     // create a fullscreen webgl renderer for the threejs content and add to the dom
@@ -631,6 +633,7 @@ let pendingLoads = {
 
 
 // Draw the scene repeatedly
+// eslint-disable-next-line no-undef
 render = function(_now) {
     // now *= 0.001;  // convert to seconds
     // const deltaTime = now - then;
@@ -669,12 +672,14 @@ render = function(_now) {
                         proxy.__uncloneableObj = null;
                         delete proxy.__uncloneableObj;
                     }
+                    // eslint-disable-next-line no-global-assign
                     proxies = [];
                     realRenderer.dispose();
                     realRenderer.forceContextLoss();
                     realRenderer.context = null;
                     realRenderer.domElement = null;
                     realRenderer = null;
+                    // eslint-disable-next-line no-global-assign
                     realGl = null;
                 }
                 done = true;

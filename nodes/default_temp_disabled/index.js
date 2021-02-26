@@ -63,33 +63,17 @@ var generalProperties = {
 exports.properties = generalProperties;
 
 exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
-// add code here that should be executed once.
-
+    // add code here that should be executed once.
 };
 
-
-var outputData = {};
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
-    if (!utilities) {
+    if (!utilities) { // backwards compatible for server versions without nodeUtilities
         for (var key in thisNode.data) {
             thisNode.processedData[key] = thisNode.data[key];
         }
     } else {
+        // using deepCopy allows the nodes to process complex data types, which would otherwise be passed by reference
         thisNode.processedData = utilities.deepCopy(thisNode.data);
     }
     callback(object, tool, node, thisNode);
 };
-
-/* // example for delay
- exports.render = function (objectID, linkID, inputData, callback) {
- var outputData = {};
- for(key in inputData)
- {
- outputData[key] = inputData[key];
- }
-
- setTimeout(function() {
- callback(objectID, linkPositionID, outputData);
- }, 1000);
- };
- */
