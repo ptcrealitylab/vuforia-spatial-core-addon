@@ -114,14 +114,12 @@ function main() {
 
         spatialInterface.subscribeToMatrix();
         spatialInterface.setFullScreenOn();
-        spatialInterface.prefersAttachingToWorld();
+        //spatialInterface.prefersAttachingToWorld();
 
         // whenever we receive new matrices from the editor, update the 3d scene
         spatialInterface.addMatrixListener(renderScene);
 
-        //spatialInterface.initNode('pathpoint', 'node', 0, 0, undefined, 0);
         spatialInterface.initNode('pathPoint', 'pathPoint', 0, 0);
-
         spatialInterface.initNode('value', 'node', 0, -200);
 
         spatialInterface.setMoveDelay(300);
@@ -238,17 +236,18 @@ function generateMeshObject() {
 }
 
 function loadPathPointMesh() {
-    var loader = new THREE.ObjectLoader();
+    
+    //var loader = new THREE.ObjectLoader();
 
-    //const fbxLoader = new THREE.FBXLoader();
+    const fbxLoader = new THREE.FBXLoader();
 
-    loader.load(
+    fbxLoader.load(
         // resource URL
-        'resources/models/KineticAR_Locator_01.json',
+        'resources/models/KineticAR_Locator_01.fbx',
 
         // onLoad callback
         // Here the loaded data is assumed to be an object
-        function (obj) {
+        obj => {
 
             /*
             obj.traverse( function ( child ) {
