@@ -51,8 +51,7 @@ function main() {
     scene.add(groundPlaneContainerObj);
     groundPlaneContainerObj.name = 'groundPlaneContainerObj';
 
-    //let textureArrow = new THREE.TextureLoader().load ('resources/pathArrow2.png');
-    let textureArrow = null;
+    let textureArrow = new THREE.TextureLoader().load('resources/pathArrow2.png');
     splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
 
     console.log('Add cubes to groundplane in path');
