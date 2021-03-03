@@ -237,7 +237,7 @@ function generateMeshObject() {
 }
 
 function loadPathPointMesh() {
-    
+
     //var loader = new THREE.ObjectLoader();
 
     const fbxLoader = new THREE.FBXLoader();
@@ -441,19 +441,8 @@ function groundPlaneCallback(groundPlaneMatrix, _projectionMatrix) {
 }
 
 function initPathPointAlignment() {
-
-    // THREE.SceneUtils.detach( gp_shadow, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( gp_shadow, scene, groundplaneContainerObj );
-    // THREE.SceneUtils.detach( planeIndexOrder, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( planeIndexOrder, scene, groundplaneContainerObj );
-    // THREE.SceneUtils.detach( hexIndexPlane, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( hexIndexPlane, scene, groundplaneContainerObj );
-
-    // scene.attach(gp_shadow);
     groundplaneContainerObj.attach(gp_shadow);
-    // scene.attach(planeIndexOrder);
     groundplaneContainerObj.attach(planeIndexOrder);
-    // scene.attach(hexIndexPlane);
     groundplaneContainerObj.attach(hexIndexPlane);
 
     if (isGroundPlaneFound) alignPathPointToGroundPlane();
@@ -674,7 +663,7 @@ render = function(_now) {
         if (renderer && scene && camera) {
             renderer.render(scene, camera);
             // Can be done when nothing is pending
-            let canBeDone = false; // !Object.values(pendingLoads).some(a => a);
+            let canBeDone = !Object.values(pendingLoads).some(a => a);
             if (canBeDone) {
                 if (done && realGl) {
                     console.log('OPTIMIZE PROXY');
