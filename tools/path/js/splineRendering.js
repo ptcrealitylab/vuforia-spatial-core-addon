@@ -16,9 +16,6 @@
 
         // MESHLINE
 
-        console.log('1 - NEW SPLINE: ', nodeId);
-
-        console.log('2 - Create points');
         const curve = new THREE.CatmullRomCurve3(positions);
         const points = curve.getPoints( 50 );
 

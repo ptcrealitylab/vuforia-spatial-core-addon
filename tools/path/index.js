@@ -22,7 +22,6 @@ window.addEventListener('load', function() {
 
 // eslint-disable-next-line no-unused-vars
 function main() {
-    console.log('MAIN IN PATH');
 
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.setPixelRatio(window.devicePixelRatio);
@@ -55,33 +54,31 @@ function main() {
     let textureArrow = null;
     splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
 
-    console.log('Add cubes to groundplane in path');
-
     // Create new spline now to avoid problems with glcanvas creating new geometry
-
-    let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
-    let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-
-    let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-    let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
-    let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
-    let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
-    let cube_x = new THREE.Mesh( geometrycube, material );  // red
-    groundPlaneContainerObj.add( cube_x );
-    groundPlaneContainerObj.add( cube_z );
-    groundPlaneContainerObj.add( cube_y );
-    cube_x.position.set(50, 0, 0);
-    cube_y.position.set(0, 50, 0);
-    cube_z.position.set(0, 0, 50);
-    cube_y.name = 'cube_y';
-    cube_z.name = 'cube_z';
-    cube_x.name = 'cube_x';
-
-    /*let newPos1 = new THREE.Vector3(100, 0, 0);
-    let newPos2 = new THREE.Vector3(0, 100, 0);
-    let newPos3 = new THREE.Vector3(0, 0, 100);
-    let test = [newPos1, newPos2, newPos3];
-    splineRenderer.updateSpline(CAMERA_ID, test);*/
+    /*
+        let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
+        let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+    
+        let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+        let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
+        let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
+        let cube_x = new THREE.Mesh( geometrycube, material );  // red
+        groundPlaneContainerObj.add( cube_x );
+        groundPlaneContainerObj.add( cube_z );
+        groundPlaneContainerObj.add( cube_y );
+        cube_x.position.set(50, 0, 0);
+        cube_y.position.set(0, 50, 0);
+        cube_z.position.set(0, 0, 50);
+        cube_y.name = 'cube_y';
+        cube_z.name = 'cube_z';
+        cube_x.name = 'cube_x';
+    
+        let newPos1 = new THREE.Vector3(100, 0, 0);
+        let newPos2 = new THREE.Vector3(0, 100, 0);
+        let newPos3 = new THREE.Vector3(0, 0, 100);
+        let test = [newPos1, newPos2, newPos3];
+        splineRenderer.updateSpline(CAMERA_ID, test);*/
 
 }
 
@@ -119,8 +116,8 @@ let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWh
 
 // The pathfinder object maintains a graph composed of points of interest and obstacles and computes shortest paths
 let pathfinder = new Pathfinder();
-const CAMERA_ID = 'CAMERA';
-pathfinder.addPointOfInterest(CAMERA_ID);
+let firstPOI = '';
+//pathfinder.addPointOfInterest(CAMERA_ID);
 
 let distancesToCenter = {};
 
@@ -182,7 +179,7 @@ spatialInterface.onRealityInterfaceLoaded(function() {
             let groundPlaneCoordinates = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);    // world coordinates
             groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
 
-            pathfinder.updateNodePosition(CAMERA_ID, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);    // Update camera node position
+            //pathfinder.updateNodePosition(CAMERA_ID, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);    // Update camera node position
 
         }
 
@@ -394,6 +391,8 @@ envelope.onFrameAdded(function(frameAddedMessage) {
 
         pathfinder.addPointOfInterest(frameId);
         renderIcon(currentDistance, true);
+        
+        if (pathfinder.pointsOfInterest.length === 1) firstPOI = frameId;
 
         console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
 
@@ -515,8 +514,8 @@ render = function() {
             // send a message to the frame that is closest to the center of the screen
             //highlightTargetedFrame();
 
-            let allShortestPaths = {};
-            allShortestPaths[CAMERA_ID] = {};
+            //let allShortestPaths = {};
+            //allShortestPaths[firstPOI] = {};
 
             let index = 0;
             let previousNode = null;
@@ -526,7 +525,7 @@ render = function() {
 
             // compute the path from the CAMERA to each point-of-interest tool and draw lines along the "edges" between each of the "nodes" on the path
             pathfinder.pointsOfInterest.forEach(function(nodeB) {
-                if (nodeB.id === CAMERA_ID) {
+                if (nodeB.id === firstPOI) {
                     return;
                 } // don't draw line to self
 
@@ -534,8 +533,8 @@ render = function() {
 
                 if (index === 0) {
                     // actually compute the path from the CAMERA to the green circle using the pathfinder's computeShortestPath method
-                    thisPath = pathfinder.computeShortestPath(CAMERA_ID, nodeB.id);
-                    //allShortestPaths[CAMERA_ID][nodeB.id] = thisPath;
+                    thisPath = pathfinder.computeShortestPath(firstPOI, nodeB.id);
+                    //allShortestPaths[firstPOI][nodeB.id] = thisPath;
 
                     // Camera position = nodeA in first edge
                     newPos = new THREE.Vector3(thisPath.edges[0].nodeA.x, thisPath.edges[0].nodeA.y, thisPath.edges[0].nodeA.z);
@@ -582,7 +581,7 @@ render = function() {
             });
 
             if (pathfinder.pointsOfInterest.length > 1) {
-                splineRenderer.updateSpline(CAMERA_ID, positions);
+                splineRenderer.updateSpline(firstPOI, positions);
             }
 
 
