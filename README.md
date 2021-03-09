@@ -66,9 +66,19 @@ scripts are more niche but a simple "hello world" example looks like this:
 
 The Kepware Interface is compatible with both [KEPServerEX](https://www.kepware.com/en-us/products/kepserverex/) and [Kepware Edge](https://www.kepware.com/en-us/products/thingworx-kepware-edge/).
 
-To use this interface:
-- Run `npm i` in the `vuforia-spatial-core-addon` directory to install dependencies.
-- Start the edge server and enable the interface in the Spatial Toolbox Web UI.
-- Enter your connection url and credentials for the Kepware OPC UA endpoint in the interface settings.
-- Add your client certificate to the list of trusted certificates using your server's configuration tools.
-- Select the tags you would like to use from the menu below the connection configuration section.
+### Kepware Connection Instructions
+1. Enter the Hardware Interfaces tab on the Vuforia Spatial Edge Server Web UI.
+![](interfaces/kepware/images/kepA.png "Selecting the Manage Hardware Interfaces button")
+2. Enable the Kepware interface.
+![](interfaces/kepware/images/kepB.png "Clicking the toggle button to toggle the Kepware interface on")
+3. Enter in your connection details and save your changes.
+![](interfaces/kepware/images/kepC.png "Entering in the connection details and saving changes")
+4. On your KEPServerEX or Kepware Edge server, browse through the rejected certificate list and accept the most recent certificate. This process differs between the two servers, so consult the corresponding User Manual (available at https://www.kepware.com/en-us/products/kepserverex/ and https://www.kepware.com/en-us/products/thingworx-kepware-edge/ respectively).
+5. Refresh the page after a moment to see the available tags.
+![](interfaces/kepware/images/kepD.png "Highlighting the notice on the page reminding the user to refresh")
+6. Select the tags you want to use and save your changes.
+![](interfaces/kepware/images/kepE.png "Tag selection menu with a few tags selected and the Save Changes button highlighted")
+7. (Optional) You can also filter the tag results if you are looking for a specific tag. 
+![](interfaces/kepware/images/kepF.png "Filtering for the word 'sine' in the tag selection menu") 
+8. The tags you selected will now be available in the Spatial Toolbox!
+![](interfaces/kepware/images/kepG.png "Object listing UI showing the newly added tags")

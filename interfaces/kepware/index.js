@@ -18,17 +18,17 @@ const parseId = (nodeId) => {
   const split = nodeId.split('.');
   if (split.length === 3) {
     return {
-      channelName: split[0],
-      objectName: split[1],
-      frameName: split[2], // If not in a group, consider it in a group of itself
-      tagName: split[2]
+      channelName: split[0].split(' ').join(''),
+      objectName: split[1].split(' ').join(''),
+      frameName: split[2].split(' ').join(''), // If not in a group, consider it in a group of itself
+      tagName: split[2].split(' ').join('')
     }
   }
   return {
-    channelName: split[0],
-    objectName: split[1],
-    frameName: split.slice(2, split.length - 1).join('_'),
-    tagName: split[split.length - 1]
+    channelName: split[0].split(' ').join(''),
+    objectName: split[1].split(' ').join(''),
+    frameName: split.slice(2, split.length - 1).join('_').split(' ').join(''),
+    tagName: split[split.length - 1].split(' ').join('')
   }
 }
 
@@ -87,19 +87,19 @@ if (exports.enabled) {
     */
     exports.settings = {
       endpointUrl: {
-        value: settings('endpointUrl', ''), // "opc.tcp://host:49330"
+        value: settings('endpointUrl', ''),
         type: 'text',
-        helpText: 'The url and port (default: 49330) of the Kepware OPC UA endpoint you want to connect to.'
+        helpText: 'The url and port (example: 192.168.1.189:49330) of the Kepware OPC UA endpoint you want to connect to.'
       },
       username: {
         value: settings('username', ''),
         type: 'text',
-        helpText: 'The username used to connect to the Kepware OPC UA server'
+        helpText: 'The username used to connect to the Kepware OPC UA server.'
       },
       password: {
         value: settings('password', ''),
         type: 'text',
-        helpText: 'The password used to connect to the Kepware OPC UA server'
+        helpText: 'The password used to connect to the Kepware OPC UA server.'
       },
       name: {
         value: settings('name', 'kepware'),
