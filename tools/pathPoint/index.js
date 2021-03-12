@@ -1,5 +1,7 @@
 /* global THREE, screen, SpatialInterface, window, realGl, gl, proxies, document, spatialObject, EnvelopeContents, AnimatedGeometry, animitter */
 
+const debugPathPoint = false;
+
 let realRenderer, renderer;
 var camera, scene;
 var mainContainerObj, groundplaneContainerObj;
@@ -155,9 +157,11 @@ function updatePositionServer() {
 
         // worldMatrix is the matrix of the tool in world coordinates
         // We want to send the matrix of the pathpointmesh relative to groundplane? as it is our visual reference to how we want that position
-        //console.log('PATH POINT ID: ', spatialObject.frame);
-        //console.log('PATH POINT POSITION: ', gp_shadow.position);
-        //console.log('gp_shadow: ', gp_shadow);
+        if (debugPathPoint) {
+            console.log('PATH POINT ID: ', spatialObject.frame);
+            console.log('PATH POINT POSITION: ', gp_shadow.position);
+            console.log('gp_shadow: ', gp_shadow);
+        }
 
         // write position into pathPoint
         let point = {
@@ -231,7 +235,7 @@ function generateMeshObject() {
         //wireframe: true
     });
 
-    console.log('NEW PATH POINT MESH GENERATED');
+    if (debugPathPoint) console.log('NEW PATH POINT MESH GENERATED');
     pathPointMesh = new THREE.Mesh(animatedGeom, pathPointShaderMat);
 
 }
@@ -265,7 +269,7 @@ function loadPathPointMesh() {
                 }
             } );*/
 
-            console.log(obj);
+            if (debugPathPoint) console.log(obj);
 
             baseFloating = obj.getObjectByName( 'LOCATOR___FLOATING' );
             baseGrounded = obj.getObjectByName( 'LOCATOR___GROUNDED' );
@@ -353,7 +357,7 @@ function loadPathPointMesh() {
 
         // onProgress callback
         function ( xhr ) {
-            console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+            if (debugPathPoint) console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
         },
 
         // onError callback
@@ -371,7 +375,7 @@ function initEnvelopeContents() {
     // 4. Whenever a tool is added or removed from the envelope, this function will trigger for
     //    every tool contained by the envelope, and recalculate its position in the sequence
     envelopeContents.onOrderUpdated(function(event) {
-        console.log('onOrderUpdated: ', event.index, event.total);
+        if (debugPathPoint) console.log('onOrderUpdated: ', event.index, event.total);
         currentIndex = event.index;
         currentTotal = event.total;
 
@@ -467,7 +471,7 @@ function alignPathPointToGroundPlane() {
         pathPointMesh.quaternion.slerp(newQuaternion, 0.15);
 
         if (framecount >= 50) {
-            console.log('finished alignment');
+            if (debugPathPoint) console.log('finished alignment');
             loop.stop();
             // THREE.SceneUtils.detach( pathPointMesh, groundplaneContainerObj, scene );
             // THREE.SceneUtils.attach( pathPointMesh, groundplaneContainerObj, mainContainerObj );

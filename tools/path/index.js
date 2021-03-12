@@ -2,6 +2,8 @@
 
 /******** THREEJS ********/
 
+const debugPath = false;
+
 let realRenderer, renderer;
 let spatialInterface;
 let camera, scene, splineRenderer;
@@ -373,7 +375,7 @@ envelope.onPublicDataLoaded(function() {
 
         if (frameData.type === 'pathPoint') {
 
-            console.log('onPublicDataLoaded: Adding new POI to path: ', frameId);
+            if (debugPath) console.log('onPublicDataLoaded: Adding new POI to path: ', frameId);
 
             pathfinder.addPointOfInterest(frameId);
             renderIcon(currentDistance, true);
@@ -391,14 +393,14 @@ envelope.onFrameAdded(function(frameAddedMessage) {
 
     if (frameData.type === 'pathPoint') {
 
-        console.log('onFrameAdded: Adding new POI to path: ', frameId);
+        if (debugPath) console.log('onFrameAdded: Adding new POI to path: ', frameId);
 
         pathfinder.addPointOfInterest(frameId);
         renderIcon(currentDistance, true);
-        
+
         if (pathfinder.pointsOfInterest.length === 1) firstPOI = frameId;
 
-        console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
+        if (debugPath) console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
 
         writePathList();
 
@@ -448,7 +450,7 @@ function setMatrixFromArray(matrix, array) {
 // envelope.onFrameDeleted(function(frameDeletedMessage) { });
 
 function subscribeToFramePosition(frameId, frameData) {
-    //console.log('subscribe to position of ' + frameId + ' (type = ' + frameData.type + ')');
+    if (debugPath) console.log('subscribe to position of ' + frameId + ' (type = ' + frameData.type + ')');
 
     let shouldSubscribe3d = true;
     envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
