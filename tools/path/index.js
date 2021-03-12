@@ -482,12 +482,12 @@ function subscribeToFramePosition(frameId, frameData) {
  * another object has to be rendered and visible at all times (this is an unresolved bug)
  * For that matter, we position cubes at each one of the path point positions
  */
-function updatePinPosition(frameId, position){
+function updatePinPosition(frameId, position) {
     if (!(frameId in pins)) {
         console.log('Creating new pin: ', frameId, position);
         pins[frameId] = defaultPin.clone();
         groundPlaneContainerObj.attach(pins[frameId]);
-        
+
         console.log(pins);
     }
     pins[frameId].position.set(position.x, position.y, position.z);
