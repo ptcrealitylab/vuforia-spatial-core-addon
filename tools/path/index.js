@@ -56,14 +56,17 @@ function main() {
     splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
 
     // Create new spline now to avoid problems with glcanvas creating new geometry
-    
+
     let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
     let material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
     defaultPin = new THREE.Mesh( geometrycube, material );  // red
     groundPlaneContainerObj.add( defaultPin );
     defaultPin.position.set(0, 0, 0);
-    
+
     /*
+        let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
+        let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+
         let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
         let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
         let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
@@ -78,7 +81,7 @@ function main() {
         cube_y.name = 'cube_y';
         cube_z.name = 'cube_z';
         cube_x.name = 'cube_x';
-    
+
         let newPos1 = new THREE.Vector3(100, 0, 0);
         let newPos2 = new THREE.Vector3(0, 100, 0);
         let newPos3 = new THREE.Vector3(0, 0, 100);
@@ -320,17 +323,14 @@ rootElementWhenClosed.addEventListener('pointerdown', function() {
 // Add a touch event that opens up the envelope into fullscreen mode when the icon is tapped
 rootElementWhenClosed.addEventListener('pointerup', function(e) {
 
-    //console.log('pointer up');
 
     if (currentDistance === DISTANCES.close || currentDistance === DISTANCES.veryClose) {
 
-        //console.log('close pointer');
 
         // if overlapping pencil icon
         let pencilRect = editNameIcon.getClientRects()[0];
         if (e.pageX > pencilRect.left && e.pageX < pencilRect.right &&
             e.pageY > pencilRect.top && e.pageY < pencilRect.bottom) {
-            //console.log('edit name');
 
             isListeningForKeyboard = true;
 
@@ -344,7 +344,6 @@ rootElementWhenClosed.addEventListener('pointerup', function(e) {
         } else {
 
             if (wasClosedIconPressed) {
-                //console.log('open!');
                 envelope.open();
             }
         }
@@ -433,8 +432,6 @@ function writePathList() {
         });
     });
 
-    //console.log('pathList.list has ' + pathList.list.length + ' points');
-
     spatialInterface.write('path', pathList, 'c', 'pathList'); // write to path node
 }
 
@@ -456,7 +453,6 @@ function subscribeToFramePosition(frameId, frameData) {
     let shouldSubscribe3d = true;
     envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
         if (!envelope.isOpen) { return; } // don't waste time computing paths and rendering if not open
-        
         let groundPlaneCoordinates = new THREE.Vector3(worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
         groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
 

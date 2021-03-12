@@ -193,7 +193,7 @@ function generateMeshObject() {
 
     //let animatedGeom = new AnimatedGeometry(baseFloating.geometry, baseGrounded.geometry);
     let animatedGeom = new AnimatedGeometry(baseGrounded.geometry, baseFloating.geometry);
-    
+
     // adds the varying vUv to pass the mixed UV coordinates to the fragment shader
     let myVertexShader = `
         varying vec2 vUv;
@@ -269,7 +269,7 @@ function loadPathPointMesh() {
 
             baseFloating = obj.getObjectByName( 'LOCATOR___FLOATING' );
             baseGrounded = obj.getObjectByName( 'LOCATOR___GROUNDED' );
-            
+
             //pathPointMesh = baseGrounded;
 
             generateMeshObject();
@@ -592,14 +592,14 @@ function updateHeighLineAndMeshBlend() {
     heightLineGeometry.attributes.position.needsUpdate = true;
 
     // MESH BLENDING
-    
+
 
     /*
     if (gp_meshPos.y > 90) { // Pyramid to rhombe animation (from floor to floating)
         if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
 
             //pathPointShaderMat.uniforms.u_morphFactor.value = 0;
-            
+
             pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
                 pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
                 0
@@ -610,7 +610,7 @@ function updateHeighLineAndMeshBlend() {
         if (pathPointShaderMat.uniforms.u_morphFactor.value < 1) {
 
             //pathPointShaderMat.uniforms.u_morphFactor.value = 1;
-            
+
             pathPointShaderMat.uniforms.u_morphFactor.value = Math.min(
                 pathPointShaderMat.uniforms.u_morphFactor.value + 0.1,
                 1
