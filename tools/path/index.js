@@ -3,6 +3,7 @@
 /******** THREEJS ********/
 
 const debugPath = false;
+const enablePathfinding = true;
 
 let realRenderer, renderer;
 let spatialInterface;
@@ -377,7 +378,9 @@ envelope.onPublicDataLoaded(function() {
 
             if (debugPath) console.log('onPublicDataLoaded: Adding new POI to path: ', frameId);
 
-            pathfinder.addPointOfInterest(frameId);
+            if (enablePathfinding) {
+                pathfinder.addPointOfInterest(frameId);
+            }
             renderIcon(currentDistance, true);
         }
     });
@@ -395,7 +398,9 @@ envelope.onFrameAdded(function(frameAddedMessage) {
 
         if (debugPath) console.log('onFrameAdded: Adding new POI to path: ', frameId);
 
-        pathfinder.addPointOfInterest(frameId);
+        if (enablePathfinding) {
+            pathfinder.addPointOfInterest(frameId);
+        }
         renderIcon(currentDistance, true);
 
         if (pathfinder.pointsOfInterest.length === 1) firstPOI = frameId;
@@ -411,7 +416,9 @@ envelope.onFrameDeleted(function(frameDeletedMessage) {
     let frameId = frameDeletedMessage.frameId;
     let frameType = frameDeletedMessage.frameType;
     if (frameType === 'pathPoint') {
-        pathfinder.removePointOfInterest(frameId);
+        if (enablePathfinding) {
+            pathfinder.removePointOfInterest(frameId);
+        }
         renderIcon(currentDistance, true);
     }
 });
@@ -458,9 +465,11 @@ function subscribeToFramePosition(frameId, frameData) {
         let groundPlaneCoordinates = new THREE.Vector3(worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
         groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
 
-        pathfinder.updateNodePosition(frameId, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);
-        pathfinder.updateNodeRadius(frameId, 50); // consider scale to be homogeneous
-        
+        if (enablePathfinding) {
+            pathfinder.updateNodePosition(frameId, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);
+            pathfinder.updateNodeRadius(frameId, 50); // consider scale to be homogeneous
+        }
+
         updatePinPosition(frameId, groundPlaneCoordinates);
 
         if (frameData.type === 'pathPoint') {
@@ -534,7 +543,7 @@ render = function() {
             //console.log('How many POI: ', pathfinder.pointsOfInterest.length);
 
             // compute the path from the CAMERA to each point-of-interest tool and draw lines along the "edges" between each of the "nodes" on the path
-            pathfinder.pointsOfInterest.forEach(function(nodeB) {
+            if (enablePathfinding) pathfinder.pointsOfInterest.forEach(function(nodeB) {
                 if (nodeB.id === firstPOI) {
                     return;
                 } // don't draw line to self
@@ -590,7 +599,7 @@ render = function() {
 
             });
 
-            if (pathfinder.pointsOfInterest.length > 1) {
+            if (enablePathfinding && pathfinder.pointsOfInterest.length > 1) {
                 splineRenderer.updateSpline(firstPOI, positions);
             }
 
