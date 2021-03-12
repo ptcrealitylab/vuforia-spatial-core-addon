@@ -226,7 +226,7 @@ function renderIcon(distance, forceRender) {
             }
             mainDetailText.style.fontSize = fontSize + 'px';
 
-            let numPointsOfInterest = (pathfinder.pointsOfInterest.length - 1);
+            let numPointsOfInterest = Math.max(pathfinder.pointsOfInterest.length - 1, 0);
             let plural = numPointsOfInterest === 1 ? '' : 'S';
             subDetailText.textContent = numPointsOfInterest + ' POINT' + plural + ' OF INTEREST';
         } else {
