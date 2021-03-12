@@ -155,9 +155,9 @@ function updatePositionServer() {
 
         // worldMatrix is the matrix of the tool in world coordinates
         // We want to send the matrix of the pathpointmesh relative to groundplane? as it is our visual reference to how we want that position
-        console.log('PATH POINT ID: ', spatialObject.frame);
-        console.log('PATH POINT POSITION: ', gp_shadow.position);
-        console.log('gp_shadow: ', gp_shadow);
+        //console.log('PATH POINT ID: ', spatialObject.frame);
+        //console.log('PATH POINT POSITION: ', gp_shadow.position);
+        //console.log('gp_shadow: ', gp_shadow);
 
         // write position into pathPoint
         let point = {

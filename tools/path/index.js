@@ -8,6 +8,8 @@ let camera, scene, splineRenderer;
 let mainContainerObj, groundPlaneContainerObj;
 let isProjectionMatrixSet = false;
 let currentWorldId = null;
+let pins = {};
+let defaultPin;
 
 let rendererWidth = screen.height; // width is height because landscape orientation
 let rendererHeight = screen.width; // height is width
@@ -54,10 +56,14 @@ function main() {
     splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
 
     // Create new spline now to avoid problems with glcanvas creating new geometry
-    /*
-        let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
-        let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
     
+    let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
+    let material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+    defaultPin = new THREE.Mesh( geometrycube, material );  // red
+    groundPlaneContainerObj.add( defaultPin );
+    defaultPin.position.set(0, 0, 0);
+    
+    /*
         let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
         let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
         let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
@@ -153,8 +159,8 @@ spatialInterface.onRealityInterfaceLoaded(function() {
         //spatialInterface.changeFrameSize(width, height);
     });
 
-    spatialInterface.initNode('path', 'path', 0, 0);
-    spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
+    //spatialInterface.initNode('path', 'path', 0, 0);
+    //spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
 
     spatialInterface.subscribeToMatrix();
     //spatialInterface.setMoveDelay(10);
@@ -447,26 +453,17 @@ function setMatrixFromArray(matrix, array) {
 function subscribeToFramePosition(frameId, frameData) {
     //console.log('subscribe to position of ' + frameId + ' (type = ' + frameData.type + ')');
 
-    console.log('AND NOW I SUBSCRIBE TO PATH POINT POSITION IN PATH');
-
     let shouldSubscribe3d = true;
     envelope.subscribeToPosition(frameId, function(centerX, centerY, displayWidth, displayHeight, centerZ, displayDepth, worldCoordinates) {
         if (!envelope.isOpen) { return; } // don't waste time computing paths and rendering if not open
-
-        //pathfinder.updateNodePosition(frameId, centerX, centerY, centerZ);
-        //pathfinder.updateNodeRadius(frameId, avgDimension/2);
-
-        //console.log('worldCoordinates: ', worldCoordinates);
-
+        
         let groundPlaneCoordinates = new THREE.Vector3(worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
         groundPlaneContainerObj.worldToLocal(groundPlaneCoordinates);   // convert to ground plane coordinates
 
-        //pathfinder.updateNodePosition(frameId, worldCoordinates.position.x, worldCoordinates.position.y, worldCoordinates.position.z);
-
-        //console.log('groundPlaneCoordinates: ', groundPlaneCoordinates);
-
         pathfinder.updateNodePosition(frameId, groundPlaneCoordinates.x, groundPlaneCoordinates.z, 0);
         pathfinder.updateNodeRadius(frameId, 50); // consider scale to be homogeneous
+        
+        updatePinPosition(frameId, groundPlaneCoordinates);
 
         if (frameData.type === 'pathPoint') {
             let distanceToCenterOfScreen = {
@@ -479,6 +476,22 @@ function subscribeToFramePosition(frameId, frameData) {
 
         //shouldRender = true;
     }, shouldSubscribe3d);
+}
+
+/*
+ * In order for the spline to render properly
+ * another object has to be rendered and visible at all times (this is an unresolved bug)
+ * For that matter, we position cubes at each one of the path point positions
+ */
+function updatePinPosition(frameId, position){
+    if (!(frameId in pins)) {
+        console.log('Creating new pin: ', frameId, position);
+        pins[frameId] = defaultPin.clone();
+        groundPlaneContainerObj.attach(pins[frameId]);
+        
+        console.log(pins);
+    }
+    pins[frameId].position.set(position.x, position.y, position.z);
 }
 
 function setIcon() {
@@ -535,7 +548,7 @@ render = function() {
                     thisPath = pathfinder.computeShortestPath(firstPOI, nodeB.id);
                     //allShortestPaths[firstPOI][nodeB.id] = thisPath;
 
-                    // Camera position = nodeA in first edge
+                    // First position = nodeA in first edge
                     newPos = new THREE.Vector3(thisPath.edges[0].nodeA.x, thisPath.edges[0].nodeA.y, thisPath.edges[0].nodeA.z);
                     positions = [newPos];
 
