@@ -116,7 +116,7 @@ function main() {
 
         spatialInterface.subscribeToMatrix();
         spatialInterface.setFullScreenOn();
-        //spatialInterface.prefersAttachingToWorld();
+        spatialInterface.prefersAttachingToWorld();
 
         // whenever we receive new matrices from the editor, update the 3d scene
         spatialInterface.addMatrixListener(renderScene);
@@ -132,6 +132,11 @@ function main() {
 
         spatialInterface.subscribeToWorldId(function(worldId) {
             currentWorldId = worldId;
+            console.log('pathPoint got worldId', worldId);
+            if (!worldId) {
+                spatialInterface.errorNotification('No world object. Delete path point (or restart app), localize' +
+                    ' within world first, and try again.');
+            }
         });
 
         spatialInterface.addIsMovingListener(function(e) {
