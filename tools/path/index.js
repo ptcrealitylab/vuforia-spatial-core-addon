@@ -165,8 +165,8 @@ spatialInterface.onRealityInterfaceLoaded(function() {
         //spatialInterface.changeFrameSize(width, height);
     });
 
-    //spatialInterface.initNode('path', 'path', 0, 0);
-    //spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
+    spatialInterface.initNode('path', 'path', 0, 0);
+    spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
 
     spatialInterface.subscribeToMatrix();
     //spatialInterface.setMoveDelay(10);
@@ -403,8 +403,9 @@ envelope.onFrameAdded(function(frameAddedMessage) {
 
         if (debugPath) console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
 
-        writePathList();
-
+        setTimeout(function() {
+            writePathList();
+        }, 1000);
     }
 });
 
