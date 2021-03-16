@@ -165,8 +165,8 @@ spatialInterface.onRealityInterfaceLoaded(function() {
         //spatialInterface.changeFrameSize(width, height);
     });
 
-    //spatialInterface.initNode('path', 'path', 0, 0);
-    //spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
+    spatialInterface.initNode('path', 'path', 0, 0);
+    spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
 
     spatialInterface.subscribeToMatrix();
     //spatialInterface.setMoveDelay(10);

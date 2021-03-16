@@ -432,10 +432,6 @@ let lastModelViewMatrix = null;
 function renderScene(modelViewMatrix, projectionMatrix) {
     lastProjectionMatrix = projectionMatrix;
     lastModelViewMatrix = modelViewMatrix;
-
-    // CHECK HERE WHEN THIS GETS CALLED
-    //console.log('lastProjectionMatrix: ', lastProjectionMatrix);
-    //console.log('lastModelViewMatrix: ', modelViewMatrix);
 }
 
 function groundPlaneCallback(groundPlaneMatrix, _projectionMatrix) {
@@ -512,13 +508,6 @@ function addAxisHelpers() {
     cube_down.scale.set(0.5, 0.5, 0.5);
     cube_front.scale.set(0.5, 0.5, 0.5);
     cube_right.scale.set(0.5, 0.5, 0.5);
-
-    // THREE.SceneUtils.detach( cube_down, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( cube_down, scene, mainContainerObj );
-    // THREE.SceneUtils.detach( cube_right, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( cube_right, scene, mainContainerObj );
-    // THREE.SceneUtils.detach( cube_front, pathPointMesh, scene );
-    // THREE.SceneUtils.attach( cube_front, scene, mainContainerObj );
 
     // scene.attach(cube_down);
     mainContainerObj.attach(cube_down);
@@ -659,23 +648,18 @@ render = function(_now) {
     }
 
     if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16) {
-        // don't turn into else statement, both can happen
-
-        //pathPointMesh.material.color.setHSL( hue, saturation, lightness );
 
         // update model view matrix
         setMatrixFromArray(mainContainerObj.matrix, lastModelViewMatrix);
         // render the scene
         mainContainerObj.visible = true;
-
-
+        
         if (renderer && scene && camera) {
             renderer.render(scene, camera);
             // Can be done when nothing is pending
             let canBeDone = !Object.values(pendingLoads).some(a => a);
             if (canBeDone) {
                 if (done && realGl) {
-                    console.log('OPTIMIZE PROXY');
 
                     for (let proxy of proxies) {
                         proxy.__uncloneableObj = null;
