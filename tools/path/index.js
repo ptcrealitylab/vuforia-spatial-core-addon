@@ -403,8 +403,9 @@ envelope.onFrameAdded(function(frameAddedMessage) {
 
         if (debugPath) console.log('pathfinder.pointsOfInterest.length: ', pathfinder.pointsOfInterest.length);
 
-        writePathList();
-
+        setTimeout(function() {
+            writePathList();
+        }, 1000);
     }
 });
 
