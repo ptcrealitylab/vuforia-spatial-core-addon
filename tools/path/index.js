@@ -416,6 +416,16 @@ envelope.onFrameDeleted(function(frameDeletedMessage) {
         pathfinder.removePointOfInterest(frameId);
         renderIcon(currentDistance, true);
     }
+    
+    // Delete pin
+    if ((frameId in pins)) {
+        console.log('Deleting pin: ', frameId);
+        groundPlaneContainerObj.remove(pins[frameId]);
+    }
+
+    if (pathfinder.pointsOfInterest.length < 2) {
+        splineRenderer.deleteSpline(firstPOI);
+    }
 });
 
 function writePathList() {
