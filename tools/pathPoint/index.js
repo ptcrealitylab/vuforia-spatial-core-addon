@@ -481,7 +481,7 @@ function alignPathPointToGroundPlane() {
             mainContainerObj.attach(pathPointMesh);
             gp_aligned = true;
 
-            addAxisHelpers();
+            //addAxisHelpers();
 
         }
     });
