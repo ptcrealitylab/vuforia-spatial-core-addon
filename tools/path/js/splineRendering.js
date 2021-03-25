@@ -24,7 +24,7 @@
         let lineMaterial = new MeshLineMaterial({
             map: this.textureArrow,
             useMap: true,
-            repeat: new THREE.Vector2(20, 1),
+            repeat: new THREE.Vector2(points.length, 1),
             color: new THREE.Color('#ffffff'),
             transparent: true,
             lineWidth: 30,
@@ -47,6 +47,7 @@
         if (this.splinesObjIdMap[nodeId]) {
             this.container.remove(this.splinesObjIdMap[nodeId]);
             delete this.splinesObjIdMap[nodeId];
+            delete this.splinesIdMap[nodeId];
         }
     };
 
