@@ -29,6 +29,7 @@ window.addEventListener('load', function() {
 function main() {
 
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+    realRenderer.debug.checkShaderErrors = false;
     realRenderer.setPixelRatio(window.devicePixelRatio);
     realRenderer.setSize(rendererWidth, rendererHeight);
     // document.body.appendChild( realRenderer.domElement );
@@ -37,6 +38,7 @@ function main() {
 
     // create a fullscreen webgl renderer for the threejs content and add to the dom
     renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
+    renderer.debug.checkShaderErrors = false;
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( rendererWidth, rendererHeight );
     document.body.appendChild( renderer.domElement );
