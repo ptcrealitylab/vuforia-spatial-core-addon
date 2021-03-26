@@ -117,7 +117,7 @@ function main() {
         });
 
         spatialInterface.subscribeToMatrix();
-        spatialInterface.setFullScreenOn();
+        spatialInterface.setStickyFullScreenOn();
         spatialInterface.prefersAttachingToWorld();
 
         // whenever we receive new matrices from the editor, update the 3d scene

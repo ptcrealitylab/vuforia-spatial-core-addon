@@ -39,9 +39,9 @@ function main() {
     // create a fullscreen webgl renderer for the threejs content and add to the dom
     renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
     renderer.debug.checkShaderErrors = false;
-    renderer.setPixelRatio( window.devicePixelRatio );
+    // renderer.setPixelRatio( window.devicePixelRatio ); // this causes problems with gl canvas
     renderer.setSize( rendererWidth, rendererHeight );
-    document.body.appendChild( renderer.domElement );
+    // document.body.appendChild( renderer.domElement ); // this causes problems with gl canvas
 
     // create a threejs camera and scene
     camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
