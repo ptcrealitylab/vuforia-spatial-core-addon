@@ -79,10 +79,14 @@ exports.setup = function (_object, _tool, _node, _activeBlockProperties) {
 
 exports.render = function (object, tool, node, thisNode, callback, utilities) {
     if (!utilities) return; // only works if server version includes nodeUtilities
+    
+    console.log('Render path node');
 
     let data = thisNode.data;
     let pathList = thisNode.publicData.pathList;
     let publicData = thisNode.publicData;
+    
+    console.log('PathList 1: ', pathList);
 
     // check if the message is of the right complex data type
     if (data.mode !== 'c') return;
@@ -94,14 +98,17 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         if (!data.value.hasOwnProperty('mode')) return;
         thisNode.publicData.pathList = utilities.deepCopy(data.value);
         pathList = thisNode.publicData.pathList; // re-establish pointer after deep-copy or it doesn't work
-
         // connect to other links
         if (pathList.list instanceof Array) {
             for (let i = 0; i < pathList.list.length; i++) {
                 if (!pathList.list[i].hasOwnProperty('object')) continue;
                 if (!pathList.list[i].hasOwnProperty('tool')) continue;
 
+                //console.log('Search node of type PathPoint: ', pathList.list[i].object, pathList.list[i].tool);
                 utilities.searchNodeByType('pathPoint', pathList.list[i].object, pathList.list[i].tool, null, function (originObject, originTool, originNode) {
+                    
+                    //console.log('pathpoint node found: ', originObject, originTool, originNode);
+                    
                     utilities.createLink(originObject, originTool, originNode, object, tool, node);
                 });
             }
@@ -141,9 +148,14 @@ exports.render = function (object, tool, node, thisNode, callback, utilities) {
         thisNode.processedData.value = msg;
         thisNode.processedData.mode = 'c';
         thisNode.processedData.unit = 'path';
+        
+        console.log('Search Mission Node in object: ', object);
 
         // Connect to all missions within the node
         utilities.searchNodeByType('mission', object, null, null, function (foundObject, foundTool, foundNode) {
+            
+            //console.log('Mission node found: ', foundObject);
+            
             utilities.createLink(object, tool, node, foundObject, foundTool, foundNode);
         });
 

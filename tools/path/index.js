@@ -439,6 +439,8 @@ function writePathList() {
         mode: 'PATH',
         worldObject: currentWorldId
     };
+    
+    console.log('FrameIDOrder: ', frameIdOrder);
 
     frameIdOrder.forEach(function(frameId) {
         let frameData = envelope.containedFrames[frameId];

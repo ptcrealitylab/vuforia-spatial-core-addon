@@ -49,7 +49,7 @@ var generalProperties = {
     publicData: {},
     type: 'pathPoint',
     inputTypes: ['pathPoint'],
-    invisible: true
+    invisible: false
 };
 
 exports.properties = generalProperties;
