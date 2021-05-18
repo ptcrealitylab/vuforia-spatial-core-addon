@@ -99,6 +99,7 @@ export class ARScene extends EventEmitter{
         
         this.realtimePath = false;
         this.realtimePathCounter = 0;
+        this.realtimePositions = [];
 
         this.activateCheckpointMode = this.activateCheckpointMode.bind(this);
         this.editCheckpoint = this.editCheckpoint.bind(this);
@@ -477,8 +478,20 @@ export class ARScene extends EventEmitter{
         // Generate path of checkpoints in realtime
         if (this.realtimePath){
             this.realtimePathCounter += 1;
+
+            /*
+            - add time threshold
+            - add distance threshold
+             */
+            let newPos = this.camera.position.clone();
+            this.groundPlaneContainerObj.worldToLocal(newPos);
+
+            if (this.realtimePathCounter % 10 === 0){
+                this.realtimePositions.push(newPos);
+                if (this.realtimePositions.length > 1) this.currentPath.updateRealtimeSpline(this.realtimePositions);
+            }
             
-            if (this.realtimePathCounter > 100){
+            if (this.realtimePathCounter > 50){
                 
                 console.log('New Checkpoint');
                 this.currentPath.newCheckpoint(this.camera.position);

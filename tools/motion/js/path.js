@@ -27,6 +27,7 @@ export class Path extends THREE.Group {
 
         this.splineMesh = new THREE.Mesh();
         this.splineMesh2 = new THREE.Mesh();
+        this.splineMesh3 = new THREE.Mesh();
         this.lineMeshDevices = null;
         this.tubeLine = null;
         this.minDistanceBetweenCheckpoints = 100;
@@ -329,6 +330,35 @@ export class Path extends THREE.Group {
 
     }
 
+    updateRealtimeSpline(positions){
+
+        this.parentContainer.remove(this.splineMesh3);
+
+        const spline = new MeshLine();
+
+        
+        const positionsArray = positions.map(element => {
+            return new THREE.Vector3(element.x, element.y, element.z);
+        });
+
+        //Create a closed wavey loop
+        const curve = new THREE.CatmullRomCurve3(positions);
+        const points = curve.getPoints( positions.length * 10 );
+
+        const geometry = new THREE.Geometry();
+        geometry.vertices = points;
+
+        spline.setGeometry( geometry );
+
+        const material = new MeshLineMaterial({color: 0xffff00, lineWidth: 5});
+
+        this.splineMesh3 = new THREE.Mesh( spline.geometry, material );
+        this.splineMesh3.position.y -= 20;
+
+        this.parentContainer.add( this.splineMesh3 );
+
+    }
+
     updateHeightLinesAndFloorMarks(){
 
         this.heightLines.forEach(heightLine => {
@@ -378,7 +408,8 @@ export class Path extends THREE.Group {
             this.parentContainer.add( heightLineMesh );
 
             // Update floormarks
-            let materialFloor = new THREE.MeshBasicMaterial( { color: checkpoint.groundedGeom.material.color, map: this.textureFloorMark, transparent: true, depthWrite: true, depthTest: true } );
+            //let materialFloor = new THREE.MeshBasicMaterial( { color: checkpoint.groundedGeom.material.color, map: this.textureFloorMark, transparent: true, depthWrite: true, depthTest: true } );
+            let materialFloor = new THREE.MeshBasicMaterial( { color: new THREE.Color('white'), map: this.textureFloorMark, transparent: true, depthWrite: true, depthTest: true } );
             let floorMark = new THREE.Mesh( this.geometryFloor, materialFloor );
             floorMark.position.set(checkpoint.position.x, -20, checkpoint.position.z);
             floorMark.rotateX(- Math.PI/2);
@@ -488,6 +519,7 @@ export class Path extends THREE.Group {
         });
         this.parentContainer.remove(this.splineMesh);
         this.parentContainer.remove(this.splineMesh2);
+        this.parentContainer.remove(this.splineMesh3);
 
         this.checkpoints = [];
         this.pathData.checkpoints = [];

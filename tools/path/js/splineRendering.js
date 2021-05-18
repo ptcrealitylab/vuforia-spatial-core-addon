@@ -27,7 +27,7 @@
             repeat: new THREE.Vector2(points.length, 1),
             color: new THREE.Color('#ffffff'),
             transparent: true,
-            lineWidth: 30,
+            lineWidth: 200,
             resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
             dashArray: 0,     // always has to be the double of the line
             dashOffset: 0,    // start the dash at zero

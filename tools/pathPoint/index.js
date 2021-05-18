@@ -13,7 +13,7 @@ let baseFloating = null, baseGrounded = null;
 let gp_shadow;
 let gp_aligned = false;
 let shadowTexture, hexTexture;
-let heightLine, heightLineGeometry;
+let heightLine, heightLineGeometry, heighlineMeshLine;
 let canvasIndexOrder = null, planeIndexOrder, hexIndexPlane, currentIndex = 0, currentTotal = 0, needsCanvasOrderUpdate = false;
 
 let gp_meshPos = new THREE.Vector3(0, 0, 0);
@@ -78,14 +78,14 @@ function main() {
     scene.add(groundplaneContainerObj);
 
     // light the scene with a combination of ambient and directional white light
-    var ambLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambLight);
-    var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight1.position.set(100, 100, 100);
-    scene.add(dirLight1);
-    var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight2.position.set(-100, -100, -100);
-    scene.add(dirLight2);
+    //var ambLight = new THREE.AmbientLight(0x404040);
+    //scene.add(ambLight);
+    //var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
+    //dirLight1.position.set(100, 100, 100);
+    //scene.add(dirLight1);
+    //var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    //dirLight2.position.set(-100, -100, -100);
+    //scene.add(dirLight2);
 
     hexTexture = new THREE.TextureLoader().load('resources/textures/hex.png', function() {
         pendingLoads.hex = false;
@@ -119,12 +119,13 @@ function main() {
         spatialInterface.subscribeToMatrix();
         spatialInterface.setStickyFullScreenOn();
         spatialInterface.prefersAttachingToWorld();
+        spatialInterface.setVisibilityDistance(1000);
 
         // whenever we receive new matrices from the editor, update the 3d scene
         spatialInterface.addMatrixListener(renderScene);
 
         spatialInterface.initNode('pathPoint', 'pathPoint', 0, 0);
-        spatialInterface.initNode('value', 'node', 0, -200);
+        spatialInterface.initNode('value', 'node', 0, -200, 1.5);
 
         spatialInterface.setMoveDelay(300);
 
@@ -288,14 +289,14 @@ function loadPathPointMesh() {
             // Add the loaded object to the scene
             mainContainerObj.add( pathPointMesh );
             pathPointMesh.name = 'pathPointMesh';
-            pathPointMesh.scale.set(60, 60, 60);
+            pathPointMesh.scale.set(130, 130, 130);
             pathPointMesh.position.set(0, 0, 0);
 
             // add spotlight for the shadows
-            var spotLight = new THREE.SpotLight(0xffffff);
-            spotLight.position.set(-30, -30, 150);
-            spotLight.castShadow = true;
-            pathPointMesh.add(spotLight);
+            //var spotLight = new THREE.SpotLight(0xffffff);
+            //spotLight.position.set(-30, -30, 150);
+            //spotLight.castShadow = true;
+            //pathPointMesh.add(spotLight);
 
             let planeGeometry = new THREE.PlaneGeometry( 20, 20, 32 );
             let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide, map: shadowTexture} );
@@ -307,57 +308,39 @@ function loadPathPointMesh() {
             pathPointMesh.add(gp_shadow);
             gp_shadow.position.set(0, -10, 0);
 
-            gp_shadow.scale.set(0.01, 0.01, 0.01);
+            gp_shadow.scale.set(0.1, 0.1, 0.1);
 
             generateHexLabel();
 
             // Height line
 
-            let positionPathPoint = new THREE.Vector3(0, 0, 0);
-            pathPointMesh.getWorldPosition(positionPathPoint);
+            //const positionsArray = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 500, 0)];
+            const positionsArray = [gp_shadow.position, new THREE.Vector3(0, 500, 0)];
+            const geometry = new THREE.Geometry();
+            geometry.vertices = positionsArray;
 
-            let materialLine = new THREE.LineBasicMaterial({
-                color: 0xffffff,
-                linewidth: 1
+            heighlineMeshLine = new MeshLine();
+            heighlineMeshLine.setGeometry(geometry);
+
+            let lineMaterial = new MeshLineMaterial({
+                //map: this.textureArrow,
+                useMap: false,
+                repeat: new THREE.Vector2(10, 1),
+                color: new THREE.Color('#ffffff'),
+                transparent: true,
+                lineWidth: 5,
+                opacity: 1,
+                dashArray: 0.1,
+                dashOffset: 0,
+                dashRatio: 0.5,
+                resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
+                sizeAttenuation: true,
             });
 
-            // CANNOT WORK WITH MESHLINE IF WE ARE NOT IN Version 2020 of Threejs
-            // let material = new MeshLineMaterial({
-            //     color: new THREE.Color('white'),
-            //     transparent:true,
-            //     opacity: 1,
-            //     dashArray: 0.1,
-            //     dashOffset: 0,
-            //     dashRatio: 0.5,
-            //     resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
-            //     sizeAttenuation: true,
-            //     lineWidth: 5,
-            //     depthWrite: true,
-            //     depthTest: true
-            //     //near: camera.near,
-            //     //far: camera.far
-            // });
-
-            let randomPos = new THREE.Vector3(0, 0, 0);
-
-            heightLineGeometry = new THREE.BufferGeometry();
-
-            let vertices = new Float32Array(6); // 2 vertices x (x,y,z)
-            let posAttr = new THREE.BufferAttribute(vertices, 3);
-            heightLineGeometry.addAttribute('position', posAttr);
-
-            vertices[0] = gp_shadow.position.x;
-            vertices[1] = gp_shadow.position.y;
-            vertices[2] = gp_shadow.position.z;
-            vertices[3] = randomPos.x;
-            vertices[4] = randomPos.y;
-            vertices[5] = randomPos.z;
-
-            posAttr.needsUpdate = true;
-
-            heightLine = new THREE.Line(heightLineGeometry, materialLine);
-            heightLine.name = 'heightline';
+            heightLine = new THREE.Mesh(heighlineMeshLine.geometry, lineMaterial);
             groundplaneContainerObj.add(heightLine);
+            
+            console.log('Height Line: ', heighlineMeshLine);
 
             pendingLoads.loadPathPointMesh = false;
         },
@@ -476,10 +459,8 @@ function alignPathPointToGroundPlane() {
         if (framecount >= 50) {
             if (debugPathPoint) console.log('finished alignment');
             loop.stop();
-            // THREE.SceneUtils.detach( pathPointMesh, groundplaneContainerObj, scene );
-            // THREE.SceneUtils.attach( pathPointMesh, groundplaneContainerObj, mainContainerObj );
 
-            scene.attach(pathPointMesh);
+            //scene.attach(pathPointMesh);
             mainContainerObj.attach(pathPointMesh);
             gp_aligned = true;
 
@@ -533,28 +514,28 @@ function generateHexLabel() {
 
     groundplaneContainerObj.add( hexIndexPlane );
     hexIndexPlane.position = gp_meshPos;
-    hexIndexPlane.scale.set(20, 20, 20);
+    hexIndexPlane.scale.set(50, 50, 50);
 
     // create number labels
     canvasIndexOrder = document.createElement('canvas');
     const ctx = canvasIndexOrder.getContext('2d');
-    canvasIndexOrder.width = canvasIndexOrder.height = 128;
+    canvasIndexOrder.width = canvasIndexOrder.height = 512;
     ctx.fillStyle = 'white';
-    ctx.font = '40px Helvetica';
+    ctx.font = '200px Helvetica';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     let text = (currentIndex + 1).toString() + ' / ' + currentTotal;
 
     if (currentTotal === 0) text = '1';   // If currentTotal is 0, we are not in a path
 
-    ctx.fillText(text, canvasIndexOrder.width / 2, canvasIndexOrder.height / 2);
+    ctx.fillText(text, canvasIndexOrder.width, canvasIndexOrder.height);
 
     let materialText = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvasIndexOrder), transparent: true, side: THREE.DoubleSide });
     let geometryNumber = new THREE.PlaneGeometry( 4, 4, 1 );
     planeIndexOrder = new THREE.Mesh( geometryNumber, materialText );
     groundplaneContainerObj.add( planeIndexOrder );
     planeIndexOrder.position = gp_meshPos;
-    planeIndexOrder.scale.set(20, 20, 20);
+    planeIndexOrder.scale.set(210, 210, 210);
 
     pendingLoads.generateHexLabel = false;
 }
@@ -565,59 +546,55 @@ function updateShadow() {
         return;
     }
 
-    planeIndexOrder.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
-    hexIndexPlane.position.set(gp_meshPos.x, gp_meshPos.y + 120, gp_meshPos.z);
+    planeIndexOrder.position.set(gp_meshPos.x, gp_meshPos.y + 280, gp_meshPos.z);
+    hexIndexPlane.position.set(gp_meshPos.x + 10, gp_meshPos.y + 280, gp_meshPos.z);
+    planeIndexOrder.rotation.set(0, (-1)*Math.PI / 2,0);
+    hexIndexPlane.rotation.set(0, (-1)*Math.PI / 2,0);
+    
     gp_shadow.position.set(gp_meshPos.x, 0, gp_meshPos.z);
     gp_shadow.rotation.set(Math.PI / 2, 0, 0);
 
     // Only adjust scale if the checkpoint has finished alignment with groundplane
     if (gp_aligned) {
-        let shadowScale = toolScale * 3.5;
-        gp_shadow.scale.set(5 * shadowScale, 5 * shadowScale, 5 * shadowScale);
+        let shadowScale = toolScale * 70;
+        gp_shadow.scale.set(shadowScale, shadowScale, shadowScale);
     }
 }
 
 function updateHeighLineAndMeshBlend() {
-    if (!heightLineGeometry) {
+
+    // HEIGHTLINE
+    
+    if (!heighlineMeshLine) {
         return;
     }
-
-    heightLineGeometry.attributes.position.array[0] = gp_shadow.position.x;
-    heightLineGeometry.attributes.position.array[1] = gp_shadow.position.y;
-    heightLineGeometry.attributes.position.array[2] = gp_shadow.position.z;
-    heightLineGeometry.attributes.position.array[3] = gp_meshPos.x;
-    heightLineGeometry.attributes.position.array[4] = gp_meshPos.y - 50;
-    heightLineGeometry.attributes.position.array[5] = gp_meshPos.z;
-
-    heightLineGeometry.attributes.position.needsUpdate = true;
-
+    
+    const positionsArray = [gp_shadow.position, gp_meshPos];
+    const geometry = new THREE.Geometry();
+    geometry.vertices = positionsArray;
+    heighlineMeshLine.setGeometry(geometry);
+    console.log(heighlineMeshLine);
+    
     // MESH BLENDING
-
-
-    /*
-    if (gp_meshPos.y > 90) { // Pyramid to rhombe animation (from floor to floating)
-        if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
-
-            //pathPointShaderMat.uniforms.u_morphFactor.value = 0;
-
-            pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
-                pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
-                0
-            );
-        }
-
-    } else { // Rhombe to pyramid animation (from floating to floor)
+    
+    if (gp_meshPos.y > 150) { // Pyramid to rhombe animation (from floor to floating)
         if (pathPointShaderMat.uniforms.u_morphFactor.value < 1) {
-
-            //pathPointShaderMat.uniforms.u_morphFactor.value = 1;
 
             pathPointShaderMat.uniforms.u_morphFactor.value = Math.min(
                 pathPointShaderMat.uniforms.u_morphFactor.value + 0.1,
                 1
             );
         }
+
+    } else { // Rhombe to pyramid animation (from floating to floor)
+        if (pathPointShaderMat.uniforms.u_morphFactor.value > 0) {
+
+            pathPointShaderMat.uniforms.u_morphFactor.value = Math.max(
+                pathPointShaderMat.uniforms.u_morphFactor.value - 0.1,
+                0
+            );
+        }
     }
-     */
 }
 
 

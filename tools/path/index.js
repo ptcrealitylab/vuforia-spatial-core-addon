@@ -60,38 +60,28 @@ function main() {
     let textureArrow = new THREE.TextureLoader().load('resources/pathArrow2.png');
     splineRenderer = new SplineRender(groundPlaneContainerObj, textureArrow);
 
-    // Create new spline now to avoid problems with glcanvas creating new geometry
-
     let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
     let material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
-    defaultPin = new THREE.Mesh( geometrycube, material );  // red
+    defaultPin = new THREE.Mesh( geometrycube, material );  // white
     groundPlaneContainerObj.add( defaultPin );
     defaultPin.position.set(0, 0, 0);
 
     /*
-        let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
-        let material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-
-        let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
-        let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
-        let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
-        let cube_x = new THREE.Mesh( geometrycube, material );  // red
-        groundPlaneContainerObj.add( cube_x );
-        groundPlaneContainerObj.add( cube_z );
-        groundPlaneContainerObj.add( cube_y );
-        cube_x.position.set(50, 0, 0);
-        cube_y.position.set(0, 50, 0);
-        cube_z.position.set(0, 0, 50);
-        cube_y.name = 'cube_y';
-        cube_z.name = 'cube_z';
-        cube_x.name = 'cube_x';
-
-        let newPos1 = new THREE.Vector3(100, 0, 0);
-        let newPos2 = new THREE.Vector3(0, 100, 0);
-        let newPos3 = new THREE.Vector3(0, 0, 100);
-        let test = [newPos1, newPos2, newPos3];
-        splineRenderer.updateSpline(CAMERA_ID, test);*/
+    let material1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+    let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+    let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+    let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
+    let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
+    let cube_x = new THREE.Mesh( geometrycube, material1 );  // red
+    groundPlaneContainerObj.add( cube_x );
+    groundPlaneContainerObj.add( cube_z );
+    groundPlaneContainerObj.add( cube_y );
+    cube_x.position.set(50, 0, 0);
+    cube_y.position.set(0, 50, 0);
+    cube_z.position.set(0, 0, 50);
+    cube_y.name = 'cube_y';
+    cube_z.name = 'cube_z';
+    cube_x.name = 'cube_x';*/
 
 }
 
@@ -172,6 +162,7 @@ spatialInterface.onRealityInterfaceLoaded(function() {
 
     spatialInterface.subscribeToMatrix();
     //spatialInterface.setMoveDelay(10);
+    spatialInterface.setVisibilityDistance(1000);
 
     spatialInterface.addMatrixListener(function(modelView, _projection) {
 
