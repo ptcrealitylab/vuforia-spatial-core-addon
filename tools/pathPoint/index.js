@@ -262,21 +262,6 @@ function loadPathPointMesh() {
         // Here the loaded data is assumed to be an object
         obj => {
 
-            /*
-            obj.traverse( function ( child ) {
-
-                if ( child instanceof THREE.Mesh ) {
-                    child.materials = materials;
-
-                    if (child.name === "LOCATOR___FLOATING"){
-
-                        console.log('FOUND CHECKPOINT FBX');
-
-                        pathPointMesh = child;
-                    }
-                }
-            } );*/
-
             if (debugPathPoint) console.log(obj);
 
             baseFloating = obj.getObjectByName( 'LOCATOR___FLOATING' );
@@ -460,7 +445,6 @@ function alignPathPointToGroundPlane() {
             if (debugPathPoint) console.log('finished alignment');
             loop.stop();
 
-            //scene.attach(pathPointMesh);
             mainContainerObj.attach(pathPointMesh);
             gp_aligned = true;
 
@@ -555,10 +539,10 @@ function updateShadow() {
     gp_shadow.rotation.set(Math.PI / 2, 0, 0);
 
     // Only adjust scale if the checkpoint has finished alignment with groundplane
-    if (gp_aligned) {
+    //if (gp_aligned) {
         let shadowScale = toolScale * 70;
         gp_shadow.scale.set(shadowScale, shadowScale, shadowScale);
-    }
+    //}
 }
 
 function updateHeighLineAndMeshBlend() {
