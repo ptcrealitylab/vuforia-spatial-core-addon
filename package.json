@@ -23,6 +23,6 @@
     "request": "^2.*"
   },
   "devDependencies": {
-    "eslint": "^7.27.0"
+    "eslint": "^7.28.0"
   }
 }
