@@ -26,7 +26,7 @@ window.addEventListener('load', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-function main() {
+main = function() {
 
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.debug.checkShaderErrors = false;
@@ -126,8 +126,8 @@ let distancesToCenter = {};
 
 //let shouldRender = false;
 
-let THRESHOLD_VERY_CLOSE = 600; // less than 500 = close
-let THRESHOLD_CLOSE = 1600; // less than 1000 = medium
+let THRESHOLD_VERY_CLOSE = 600 * 3; // less than 500 = close
+let THRESHOLD_CLOSE = 1600 * 3; // less than 1000 = medium
 // anything bigger than this is considered far
 // if you want another level, try 2400 for veryFar
 

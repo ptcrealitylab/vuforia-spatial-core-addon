@@ -44,7 +44,7 @@ if (!spatialInterface) {
 // });
 
 // eslint-disable-next-line no-unused-vars
-function main() {
+main = function() {
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.debug.checkShaderErrors = false;
     realRenderer.setPixelRatio(window.devicePixelRatio);
