@@ -21,9 +21,9 @@ let gp_meshPos = new THREE.Vector3(0, 0, 0);
 var isProjectionMatrixSet = false, isGroundPlaneFound = false;
 let currentWorldId = null;
 
-var rendererWidth = screen.height;
-var rendererHeight = screen.width;
-var aspectRatio = rendererWidth / rendererHeight;
+var rendererWidth;
+var rendererHeight;
+var aspectRatio;
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
@@ -45,6 +45,23 @@ if (!spatialInterface) {
 
 // eslint-disable-next-line no-unused-vars
 main = function() {
+
+    spatialInterface.onRealityInterfaceLoaded(function() {
+        spatialInterface.getScreenDimensions(function(width, height) {
+            document.body.width = width + 'px';
+            document.body.height = height + 'px';
+            rendererWidth = width;
+            rendererHeight = height;
+            aspectRatio = rendererWidth / rendererHeight;
+
+            spatialInterface.changeFrameSize(width, height);
+
+            init();
+        });
+    });
+};
+
+function init() {
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.debug.checkShaderErrors = false;
     realRenderer.setPixelRatio(window.devicePixelRatio);
@@ -105,16 +122,6 @@ main = function() {
     spatialInterface.onSpatialInterfaceLoaded(function() {
 
         initEnvelopeContents();
-
-        spatialInterface.getScreenDimensions(function(width, height) {
-            document.body.width = width + 'px';
-            document.body.height = height + 'px';
-            rendererWidth = width;
-            rendererHeight = height;
-            renderer.setSize( rendererWidth, rendererHeight );
-
-            spatialInterface.changeFrameSize(width, height);
-        });
 
         spatialInterface.subscribeToMatrix();
         spatialInterface.setStickyFullScreenOn();
@@ -557,7 +564,7 @@ function updateHeighLineAndMeshBlend() {
     const geometry = new THREE.Geometry();
     geometry.vertices = positionsArray;
     heighlineMeshLine.setGeometry(geometry);
-    console.log(heighlineMeshLine);
+    // console.log(heighlineMeshLine);
     
     // MESH BLENDING
     

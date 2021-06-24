@@ -14,9 +14,9 @@ let currentWorldId = null;
 let pins = {};
 let defaultPin;
 
-let rendererWidth = screen.height; // width is height because landscape orientation
-let rendererHeight = screen.width; // height is width
-var aspectRatio = rendererWidth / rendererHeight;
+let rendererWidth;
+let rendererHeight;
+let aspectRatio;
 
 window.addEventListener('load', function() {
     if (!spatialInterface) {
@@ -27,7 +27,29 @@ window.addEventListener('load', function() {
 
 // eslint-disable-next-line no-unused-vars
 main = function() {
+    spatialInterface.onRealityInterfaceLoaded(function() {
+        spatialInterface.getScreenDimensions(function(width, height) {
+            document.body.width = width + 'px';
+            document.body.height = height + 'px';
+            rendererWidth = width;
+            rendererHeight = height;
+            aspectRatio = rendererWidth / rendererHeight;
 
+            screenWidth = width;
+            screenHeight = height;
+            canvas.width = screenWidth + 'px';
+            canvas.height = screenHeight + 'px';
+            canvas.style.width = screenWidth + 'px';
+            canvas.style.height = screenHeight + 'px';
+
+            spatialInterface.changeFrameSize(width, height);
+
+            init();
+        });
+    });
+};
+
+function init() {
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.debug.checkShaderErrors = false;
     realRenderer.setPixelRatio(window.devicePixelRatio);
@@ -146,16 +168,16 @@ let lastModelViewMatrix = null;
 
 spatialInterface.onRealityInterfaceLoaded(function() {
 
-    spatialInterface.getScreenDimensions(function(width, height) {
-        screenWidth = width;
-        screenHeight = height;
-        canvas.width = screenWidth + 'px';
-        canvas.height = screenHeight + 'px';
-        canvas.style.width = screenWidth + 'px';
-        canvas.style.height = screenHeight + 'px';
-
-        //spatialInterface.changeFrameSize(width, height);
-    });
+    // spatialInterface.getScreenDimensions(function(width, height) {
+    //     screenWidth = width;
+    //     screenHeight = height;
+    //     canvas.width = screenWidth + 'px';
+    //     canvas.height = screenHeight + 'px';
+    //     canvas.style.width = screenWidth + 'px';
+    //     canvas.style.height = screenHeight + 'px';
+    //
+    //     //spatialInterface.changeFrameSize(width, height);
+    // });
 
     spatialInterface.initNode('path', 'path', 0, 0);
     spatialInterface.sendMoveNode('open', 0, 200); // move auto-generated envelope node to new position
