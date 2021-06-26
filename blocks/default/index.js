@@ -56,6 +56,7 @@
 var generalProperties = {
     name: 'default',
     blockSize: 1,
+    category: 1,
     privateData: {},
     publicData: {},
     activeInputs: [true, false, false, false],

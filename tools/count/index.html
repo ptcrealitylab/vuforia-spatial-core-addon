@@ -114,7 +114,7 @@
 <script>
     var text = document.querySelector('#text');
     var resetButton = document.querySelector('#resetButton');
-    var lastTick = false;
+    var lastTick = 0;
     var count = 0;
 
     try {
@@ -150,13 +150,15 @@
     
     try {
         realityInterface.addReadListener('count', function (e) {
-
-            if(e.value >= 0.5 && lastTick === false){
-                lastTick = true;
-                count++;
-            } else if(e.value <=0.4 && lastTick === true) {
-                lastTick = false;
+            if (Math.abs(e.value - lastTick) < 0.01) {
+                return;
             }
+
+            if (e.value > 0.5 && e.value > lastTick + 0.5) {
+                count++;
+                realityInterface.writePublicData("count", 'count', count);
+            }
+            lastTick = e.value;
 
             changetext(count);
         });
@@ -165,7 +167,7 @@
             reset();
         });
 
-        realityInterface.addReadPublicDataListener("count",'count', function (e) {
+        realityInterface.addReadPublicDataListener("count", 'count', function (e) {
             count = e;
             changetext(count);
         });
