@@ -71,7 +71,6 @@
     var isPointerDown = false;
     var initialDistance = null;
     var value = 0;
-    var valueOffset = 0.5;
 
     var realityInterface = new RealityInterface();
     realityInterface.initNode('value', 'node', 0, 0, 1);
@@ -82,29 +81,24 @@
     });
     document.addEventListener('pointerup', function() {
         isPointerDown = false;
-        initialDistance = null;
-        valueOffset = value; // so tapping again preserves previous value
     });
-
-    // document.addEventListener('pointermove', function(e) {
-    //     if (!isPointerDown) { return; }
-    //     render(e.pageX / window.innerWidth);
-    // });
 
     realityInterface.subscribeToMatrix();
     realityInterface.addMatrixListener(function(modelView, _projection) {
-        if (!isPointerDown) { return; }
+
+        // This tool should be always on. Uncomment to only compute while pointer down.
+        // if (!isPointerDown) { return; }
 
         // var scaleFactor = Math.abs(modelView[0]); // distance is relative to scale of frame
-        var scaleFactor_IGNORED = 1; // distance is relative to scale of frame
+        var scaleFactor_IGNORED = 1; // distance is not relative to scale of frame
         var zDistance = Math.abs(modelView[14]);
 
-        if (!initialDistance && isPointerDown) {
+        if (isPointerDown) {
             initialDistance = zDistance;
         }
 
-        var unclippedValue = ((zDistance - initialDistance)/scaleFactor_IGNORED) / (200); // found 200 through trial and error
-        unclippedValue += valueOffset;
+        // when it's at initial distance, value is 1. goes down to 0 as distance approaches 0.
+        var unclippedValue = 1 + (zDistance - initialDistance) / initialDistance;
         value = parseFloat(Math.max(0, Math.min(1, unclippedValue)).toFixed(2)); // rounds to nearest 2 decimal places
 
         realityInterface.write('value', value);
