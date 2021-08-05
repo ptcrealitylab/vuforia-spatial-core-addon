@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <script src="objectDefaultFiles/pep.min.js"></script>
+    <script src="renderer.js"></script>
+    <script src="network.js"></script>
+    <meta charset="UTF-8">
+    <title>Realtime Volumetric Envelope</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 300px;
+            height: 300px;
+            overflow: visible;
+        }
+        #rootElementWhenOpen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 736px; /* gets overwritten by realityInterface.getScreenDimensions but this is a default */
+            height: 414px;
+            color: white;
+            text-align: center;
+            font-size: 24px;
+        }
+        #rootElementWhenClosed {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 300px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            line-height: 200px;
+            color: white;
+        }
+        #count {
+            position: absolute;
+            left: 0;
+            top: 0;
+            text-align: center;
+            width: 300px;
+            line-height: 200px;
+            font-size: 48px;
+            color: cyan;
+        }
+        #backgroundCanvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+<!-- rootElementWhenOpen is the UI that shows when it is in fullscreen 2D mode -->
+<div id="rootElementWhenOpen">
+    <canvas id="backgroundCanvas"></canvas>
+</div>
+<!-- rootElementWhenClosed is the UI that shows when it minimized into an icon in 3D space -->
+<div id="rootElementWhenClosed">
+    <img src="resources/envelope-icon-new.svg">
+    <div id="count"></div>
+</div>
+</body>
+<script>
+    let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
+    let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
+    let count = document.getElementById('count');
+
+    let realityInterface = new RealityInterface();
+
+    // this is how to designate this frame as an envelope, automatically enabling all the associated features
+    let isStackable = false;
+    let areFramesOrdered = false;
+    let compatibleFrameTypes = ['buttonOff', 'buttonOn'];
+    let envelope = new Envelope(realityInterface, compatibleFrameTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
+
+    // re-render anytime it opens / closes / number of contained frames change
+    envelope.onFrameAdded(renderEnvelope);
+    envelope.onFrameDeleted(renderEnvelope);
+    envelope.onOpen(renderEnvelope);
+    envelope.onClose(renderEnvelope);
+    envelope.onPublicDataLoaded(renderEnvelope); // effectively an 'onload', number of contained frames has been loaded
+
+    // opens up the envelope into fullscreen mode when the minimized icon is tapped
+    rootElementWhenClosed.addEventListener('pointerup', function() {
+        envelope.open();
+    });
+
+    /**
+     * Icon shows a counter of how many frames it contains
+     */
+    function renderEnvelope() {
+        let numContainedFrames = Object.keys(envelope.containedFrames).length;
+        if (!envelope.isOpen) {
+            if (numContainedFrames === 0) {
+                count.innerText = '';
+            } else {
+                count.innerText = numContainedFrames;
+            }
+        }
+    }
+    
+    // --------- Volumetric Rendering Code --------- //
+    // all handled in renderer.js and network.js
+
+    const tempUuid = uuidTimeShort();
+    const DEBUG_ZONE_IP = 'http://10.10.10.121:3020';
+
+    // let lastModelViewMatrix = [];
+    // let lastProjectionMatrix = [];
+    // spatialInterface.addMatrixListener(function(modelViewMatrix, projectionMatrix) {
+    //     lastModelViewMatrix = modelViewMatrix;
+    //     lastProjectionMatrix = projectionMatrix;
+    // });
+
+    realityInterface.getScreenDimensions(function(width, height) {
+        document.body.width = width + 'px';
+        document.body.height = height + 'px';
+        
+        console.log('got screen dimensions', parseInt(document.body.width), parseInt(document.body.height));
+
+        realityInterface.addDevicePoseMatrixListener(function(devicePoseMatrix, projectionMatrix) {
+            // projectionMatrix[0] *= -1; // fix aspect ratio discrepancy in unity vs toolbox
+            
+            // // let rotated = [];
+            // // multiplyMatrix(makeGroundPlaneRotationY(Math.PI * 1.1), devicePoseMatrix, rotated);
+            // // let inverted = [];
+            // // multiplyMatrix([-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], rotated, inverted);
+            //
+            // let rotated = [];
+            // let inverted = [];
+            // multiplyMatrix([-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], devicePoseMatrix, rotated);
+            // multiplyMatrix(makeGroundPlaneRotationY(Math.PI * 1.1), rotated, inverted);
+            //
+            // // let cameraNode = realityEditor.sceneGraph.getSceneNodeById('CAMERA');
+            // // virtualCamera = new realityEditor.device.VirtualCamera(cameraNode, 1, 0.001, 10, INITIAL_CAMERA_POSITIONS.LAB, true);
+            // //
+            // // let invertedCoordinatesNodeId = realityEditor.sceneGraph.addVisualElement('INVERTED_COORDINATES', undefined, undefined, [-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
+            // // let invertedCoordinatesNode = realityEditor.sceneGraph.getSceneNodeById(invertedCoordinatesNodeId);
+            // //
+            // // // the 1.1 should be a 1, but it's a bit off because the area target scan wasn't perfectly scanned with the same axes as the original calibrated model
+            // // let rotatedCoordinatesNodeId = realityEditor.sceneGraph.addVisualElement('ROTATED_COORDINATES', invertedCoordinatesNode, undefined, makeGroundPlaneRotationY(Math.PI * 1.1));
+            // // let rotatedCoordinatesNode = realityEditor.sceneGraph.getSceneNodeById(rotatedCoordinatesNodeId);
+            // //
+            // // // sceneNodeRotateX.setLocalMatrix(makeGroundPlaneRotationX(-(Math.PI/2)));
+            // //
+            // // // let unityCameraNodeId = realityEditor.sceneGraph.addVisualElement('UNITY_CAMERA', invertedCoordinatesNode);
+            // // let unityCameraNodeId = realityEditor.sceneGraph.addVisualElement('UNITY_CAMERA', rotatedCoordinatesNode);
+            // // let unityCameraNode = realityEditor.sceneGraph.getSceneNodeById(unityCameraNodeId);
+            // // unityCamera = new realityEditor.device.VirtualCamera(unityCameraNode, 1, 0.001, 10, INITIAL_CAMERA_POSITIONS.LAB, true);
+            //
+            //
+            // window.network.sendMatricesToRealityZones(inverted, projectionMatrix);
+
+            window.network.sendMatricesToRealityZones(devicePoseMatrix, projectionMatrix);
+        });
+
+        setTimeout(function() {
+            window.network.establishConnectionWithZone(DEBUG_ZONE_IP);
+        }, 1000);
+    });
+
+    /**
+     * Generates a random 8 character unique identifier using uppercase, lowercase, and numbers (e.g. "jzY3y338")
+     * @return {string}
+     */
+    function uuidTimeShort() {
+        var dateUuidTime = new Date();
+        var abcUuidTime = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var stampUuidTime = parseInt("" + dateUuidTime.getMilliseconds() + dateUuidTime.getMinutes() + dateUuidTime.getHours() + dateUuidTime.getDay()).toString(36);
+        while (stampUuidTime.length < 8) stampUuidTime = abcUuidTime.charAt(Math.floor(Math.random() * abcUuidTime.length)) + stampUuidTime;
+        return stampUuidTime;
+    }
+
+    /**
+     * @desc This function multiplies one m16 matrix with a second m16 matrix
+     * @param {Array.<number>} m2 - origin matrix to be multiplied with
+     * @param {Array.<number>} m1 - second matrix that multiplies.
+     * @return {Array.<number>} m16 matrix result of the multiplication
+     */
+    function multiplyMatrix(m2, m1, r) {
+        // var r = [];
+        // Cm1che only the current line of the second mm1trix
+        r[0] = m2[0] * m1[0] + m2[1] * m1[4] + m2[2] * m1[8] + m2[3] * m1[12];
+        r[1] = m2[0] * m1[1] + m2[1] * m1[5] + m2[2] * m1[9] + m2[3] * m1[13];
+        r[2] = m2[0] * m1[2] + m2[1] * m1[6] + m2[2] * m1[10] + m2[3] * m1[14];
+        r[3] = m2[0] * m1[3] + m2[1] * m1[7] + m2[2] * m1[11] + m2[3] * m1[15];
+
+        r[4] = m2[4] * m1[0] + m2[5] * m1[4] + m2[6] * m1[8] + m2[7] * m1[12];
+        r[5] = m2[4] * m1[1] + m2[5] * m1[5] + m2[6] * m1[9] + m2[7] * m1[13];
+        r[6] = m2[4] * m1[2] + m2[5] * m1[6] + m2[6] * m1[10] + m2[7] * m1[14];
+        r[7] = m2[4] * m1[3] + m2[5] * m1[7] + m2[6] * m1[11] + m2[7] * m1[15];
+
+        r[8] = m2[8] * m1[0] + m2[9] * m1[4] + m2[10] * m1[8] + m2[11] * m1[12];
+        r[9] = m2[8] * m1[1] + m2[9] * m1[5] + m2[10] * m1[9] + m2[11] * m1[13];
+        r[10] = m2[8] * m1[2] + m2[9] * m1[6] + m2[10] * m1[10] + m2[11] * m1[14];
+        r[11] = m2[8] * m1[3] + m2[9] * m1[7] + m2[10] * m1[11] + m2[11] * m1[15];
+
+        r[12] = m2[12] * m1[0] + m2[13] * m1[4] + m2[14] * m1[8] + m2[15] * m1[12];
+        r[13] = m2[12] * m1[1] + m2[13] * m1[5] + m2[14] * m1[9] + m2[15] * m1[13];
+        r[14] = m2[12] * m1[2] + m2[13] * m1[6] + m2[14] * m1[10] + m2[15] * m1[14];
+        r[15] = m2[12] * m1[3] + m2[13] * m1[7] + m2[14] * m1[11] + m2[15] * m1[15];
+    }
+
+    function makeGroundPlaneRotationY(theta) {
+        var c = Math.cos(theta), s = Math.sin(theta);
+        return [
+            c, 0, s, 0,
+            0, 1, 0, 0,
+            -s, 0, c, 0,
+            0, 0, 0, 1
+        ];
+    }
+
+</script>
+</html>
