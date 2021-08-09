@@ -111,14 +111,7 @@
     // all handled in renderer.js and network.js
 
     const tempUuid = uuidTimeShort();
-    const DEBUG_ZONE_IP = 'http://10.10.10.121:3020';
-
-    // let lastModelViewMatrix = [];
-    // let lastProjectionMatrix = [];
-    // spatialInterface.addMatrixListener(function(modelViewMatrix, projectionMatrix) {
-    //     lastModelViewMatrix = modelViewMatrix;
-    //     lastProjectionMatrix = projectionMatrix;
-    // });
+    const DEBUG_ZONE_IP = 'http://10.10.10.121:3020'; // TODO: get this programmatically
 
     realityInterface.getScreenDimensions(function(width, height) {
         document.body.width = width + 'px';
@@ -127,6 +120,8 @@
         console.log('got screen dimensions', parseInt(document.body.width), parseInt(document.body.height));
 
         realityInterface.addDevicePoseMatrixListener(function(devicePoseMatrix, projectionMatrix) {
+            if (!envelope.isOpen) { return; }
+
             // projectionMatrix[0] *= -1; // fix aspect ratio discrepancy in unity vs toolbox
             
             // // let rotated = [];
@@ -163,7 +158,7 @@
         });
 
         setTimeout(function() {
-            window.network.establishConnectionWithZone(DEBUG_ZONE_IP);
+            window.network.establishConnectionWithZone(DEBUG_ZONE_IP); // TODO: wait to do this until it is opened the first time
         }, 1000);
     });
 
