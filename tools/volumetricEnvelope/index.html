@@ -6,20 +6,22 @@
     <script src="objectDefaultFiles/pep.min.js"></script>
     <script src="renderer.js"></script>
     <script src="network.js"></script>
+    <script src="territory.js" type="module"></script>
+    <script src="pathToMesh.js" type="module"></script>
     <meta charset="UTF-8">
     <title>Realtime Volumetric Envelope</title>
     <style>
         body {
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            width: 300px;
-            height: 300px;
+            width: 736px;
+            height: 414px;
             overflow: visible;
         }
         #rootElementWhenOpen {
             position: absolute;
             left: 0;
             top: 0;
-            width: 736px; /* gets overwritten by realityInterface.getScreenDimensions but this is a default */
+            width: 736px; /* gets overwritten by spatialInterface.getScreenDimensions but this is a default */
             height: 414px;
             color: white;
             text-align: center;
@@ -29,24 +31,24 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 300px;
-            height: 300px;
-            border-radius: 10px;
+            width: 736px;
+            height: 414px;
+            /*border-radius: 10px;*/
             text-align: center;
             font-size: 24px;
             line-height: 200px;
             color: white;
         }
-        #count {
-            position: absolute;
-            left: 0;
-            top: 0;
-            text-align: center;
-            width: 300px;
-            line-height: 200px;
-            font-size: 48px;
-            color: cyan;
-        }
+        /*#count {*/
+        /*    position: absolute;*/
+        /*    left: 0;*/
+        /*    top: 0;*/
+        /*    text-align: center;*/
+        /*    width: 300px;*/
+        /*    line-height: 200px;*/
+        /*    font-size: 48px;*/
+        /*    color: cyan;*/
+        /*}*/
         #backgroundCanvas {
             position: absolute;
             left: 0;
@@ -64,47 +66,50 @@
 </div>
 <!-- rootElementWhenClosed is the UI that shows when it minimized into an icon in 3D space -->
 <div id="rootElementWhenClosed">
-    <img src="resources/envelope-icon-new.svg">
-    <div id="count"></div>
+<!--    <img src="resources/envelope-icon-new.svg">-->
+<!--    <div id="count"></div>-->
 </div>
 </body>
 <script>
     let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
     let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
-    let count = document.getElementById('count');
+    // let count = document.getElementById('count');
 
-    let realityInterface = new RealityInterface();
+    let spatialInterface = new SpatialInterface();
 
     // this is how to designate this frame as an envelope, automatically enabling all the associated features
     let isStackable = false;
     let areFramesOrdered = false;
     let compatibleFrameTypes = ['buttonOff', 'buttonOn'];
-    let envelope = new Envelope(realityInterface, compatibleFrameTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
+    let envelope = new Envelope(spatialInterface, compatibleFrameTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
 
     // re-render anytime it opens / closes / number of contained frames change
     envelope.onFrameAdded(renderEnvelope);
     envelope.onFrameDeleted(renderEnvelope);
     envelope.onOpen(renderEnvelope);
-    envelope.onClose(renderEnvelope);
+    envelope.onClose(function() {
+        spatialInterface.setFullScreenOn(); // switch back to fullscreen because closing automatically removes it
+        renderEnvelope();
+    })
     envelope.onPublicDataLoaded(renderEnvelope); // effectively an 'onload', number of contained frames has been loaded
 
     // opens up the envelope into fullscreen mode when the minimized icon is tapped
-    rootElementWhenClosed.addEventListener('pointerup', function() {
-        envelope.open();
-    });
+    // rootElementWhenClosed.addEventListener('pointerup', function() {
+    //     envelope.open();
+    // });
 
     /**
      * Icon shows a counter of how many frames it contains
      */
     function renderEnvelope() {
-        let numContainedFrames = Object.keys(envelope.containedFrames).length;
-        if (!envelope.isOpen) {
-            if (numContainedFrames === 0) {
-                count.innerText = '';
-            } else {
-                count.innerText = numContainedFrames;
-            }
-        }
+        // let numContainedFrames = Object.keys(envelope.containedFrames).length;
+        // if (!envelope.isOpen) {
+        //     if (numContainedFrames === 0) {
+        //         count.innerText = '';
+        //     } else {
+        //         count.innerText = numContainedFrames;
+        //     }
+        // }
     }
     
     // --------- Volumetric Rendering Code --------- //
@@ -113,13 +118,36 @@
     const tempUuid = uuidTimeShort();
     const DEBUG_ZONE_IP = 'http://10.10.10.121:3020'; // TODO: get this programmatically
 
-    realityInterface.getScreenDimensions(function(width, height) {
+    spatialInterface.getScreenDimensions(function(width, height) {
         document.body.width = width + 'px';
         document.body.height = height + 'px';
-        
+        rootElementWhenClosed.style.width = width + 'px';
+        rootElementWhenClosed.style.height = height + 'px';
+        rootElementWhenOpen.style.width = width + 'px';
+        rootElementWhenOpen.style.height = height + 'px';
+
         console.log('got screen dimensions', parseInt(document.body.width), parseInt(document.body.height));
 
-        realityInterface.addDevicePoseMatrixListener(function(devicePoseMatrix, projectionMatrix) {
+        window.territory.onLoaded(function() {
+            console.log('territory three.js scene loaded');
+        });
+        window.territory.onContentPressed(function() {
+            console.log('territory content pressed');
+            // envelope.open();
+        });
+        window.territory.onOccupancyChanged(function(isOccupied) {
+            if (isOccupied) {
+                envelope.open();
+            } else {
+                envelope.close();
+            }
+        });
+        window.territory.init(spatialInterface, width, height, rootElementWhenClosed);
+
+        // resize tool to fill the screen because closed envelope usually doesn't
+        spatialInterface.changeFrameSize(width, height);
+        
+        spatialInterface.addDevicePoseMatrixListener(function(devicePoseMatrix, projectionMatrix) {
             if (!envelope.isOpen) { return; }
 
             // projectionMatrix[0] *= -1; // fix aspect ratio discrepancy in unity vs toolbox
