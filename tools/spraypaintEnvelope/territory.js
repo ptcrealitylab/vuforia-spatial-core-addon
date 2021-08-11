@@ -66,9 +66,10 @@ window.territory = {};
         shadowGroup = new THREE.Group();
         
         let planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
-        let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xff0000, transparent:true, opacity:0.5} );
+        let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xff0000} ); //, transparent:true, opacity:0.5} );
         let planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
         planeMesh.rotation.x = -Math.PI / 2;
+        planeMesh.visible = false;
         planeMesh.name = 'planeMesh';
         shadowGroup.add( planeMesh );
 
@@ -294,8 +295,26 @@ window.territory = {};
 
     function pointerUp(_screenX, _screenY) {
         console.log('pointerUp in territory')
+        
+        let hullPoints = [];
+        pointsInProgress.forEach(function(point) {
+            hullPoints.push([point.x, point.z]);
+        });
 
-        window.storage.write('shape', pointsInProgress);
+        const concavity = Infinity; // Infinite concavity = convex hull (what we want!)
+        let rawHullPath = hull(hullPoints, concavity);
+        
+        let validHullPath = rawHullPath.map(function(hullPoint) {
+            return {
+                x: hullPoint[0],
+                y: 0,
+                z: hullPoint[1]
+            };
+        });
+
+        updatePathMesh(validHullPath, 1);
+
+        window.storage.write('shape', validHullPath);
         pointsInProgress = [];
     }
 
