@@ -6,7 +6,7 @@ window.territory = {};
 
     let spatialInterface, rendererWidth, rendererHeight;
     let camera, scene, renderer;
-    let containerObj, groundPlaneContainerObj, mesh, shadowMesh, defaultPin, shadowGroup, pathMesh;
+    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh;
     let pendingLoads = {
         crate: true,
     };
@@ -20,13 +20,14 @@ window.territory = {};
     };
     
     const radius = 1000;
-    let defaultScale = 0.25;
+    let defaultScale = 1;
     let isRadiusOccupied = false;
     let lastComputedScale = undefined;
     let lastComputedShape = undefined;
     let lastModelMatrix = undefined;
     
-    const planeSize = 3000;
+    const planeSize = 5000;
+    let pointsInProgress = [];
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
         console.log('init renderer');
@@ -62,8 +63,20 @@ window.territory = {};
         groundPlaneContainerObj.matrixAutoUpdate = false;
         scene.add(groundPlaneContainerObj);
         groundPlaneContainerObj.name = 'groundPlaneContainerObj';
+        
+        cameraShadowGroup = new THREE.Group();
+        let cameraShadowMesh = new THREE.Mesh( new THREE.BoxGeometry( 100, 100, 100 ), new THREE.MeshBasicMaterial( {color: 0x00ffff} ) );
+        cameraShadowGroup.add(cameraShadowMesh);
+        groundPlaneContainerObj.add(cameraShadowGroup);
 
         shadowGroup = new THREE.Group();
+
+        const gridSize = planeSize;
+        const divisions = planeSize / 1000;
+        const colorCenterLine = new THREE.Color(0, 1, 1);
+        const colorGrid = new THREE.Color(0, 1, 1);
+        let gridHelper = new THREE.GridHelper( gridSize, divisions, colorCenterLine, colorGrid );
+        shadowGroup.add(gridHelper);
         
         let planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
         let planeMaterial = new THREE.MeshBasicMaterial( {color: 0xff0000} ); //, transparent:true, opacity:0.5} );
@@ -125,6 +138,11 @@ window.territory = {};
             groundPlaneContainerObj.worldToLocal(meshCoordinates);   // convert to ground plane coordinates
 
             shadowGroup.position.set(meshCoordinates.x, 0, meshCoordinates.z);
+            
+            let cameraCoordinates = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+            cameraShadowGroup.parent.worldToLocal(cameraCoordinates);
+
+            cameraShadowGroup.position.set(cameraCoordinates.x, 0, cameraCoordinates.z);
         }
     }
     
@@ -145,7 +163,6 @@ window.territory = {};
         // 10. Every frame, set the position of the containerObj to the modelViewMatrix
         if (isProjectionMatrixSet && modelView && modelView.length === 16) {
             setMatrixFromArray(containerObj.matrix, modelView);
-            mesh.rotation.z += 0.01; // make it spin
             // if (lastModelMatrix) {
             //     updatePathMesh(lastModelMatrix[0]);
             // }
@@ -154,29 +171,107 @@ window.territory = {};
         }
     }
     
-    function onSceneRendered() {
-        // calculate distance in world coordinates
-        let meshCoordinates = new THREE.Vector3(mesh.position.x, mesh.position.y, mesh.position.z);    // world coordinates
-        mesh.parent.localToWorld(meshCoordinates);
-        let cameraCoordinates = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);    // world coordinates
-        camera.localToWorld(cameraCoordinates);
-
-        let distance = meshCoordinates.distanceTo(cameraCoordinates);
-        // console.log(distance);
-
-        let scaledRadius = (radius * lastComputedScale / defaultScale) || radius;
+    function isShapeDefined() {
+        return lastComputedShape && JSON.parse(lastComputedShape).length > 2 && pointsInProgress.length === 0;
+    }
+    
+    function getShapeCenter() {
+        if (!isShapeDefined()) { return {x: 0, y: 0}; }
         
-        if (isRadiusOccupied && distance > scaledRadius) {
+        let sumX = 0;
+        let sumY = 0;
+        let sumZ = 0;
+
+        let shape = JSON.parse(lastComputedShape);
+        shape.forEach(function(point) {
+            sumX += point.x;
+            sumY += point.y;
+            sumZ += point.z;
+        });
+        sumX *= 1.0 / shape.length;
+        sumY *= 1.0 / shape.length;
+        sumZ *= 1.0 / shape.length;
+        
+        return {
+            x: sumX,
+            y: sumY,
+            z: sumZ
+        };
+    }
+    
+    function getShapeRadius() {
+        let center = getShapeCenter();
+        let shape = JSON.parse(lastComputedShape);
+        let maxRadius = 0;
+        shape.forEach(function(point) {
+            let diff = { x: point.x - center.x, y: point.y - center.y, z: point.z - center.z };
+            let thisRadius = Math.sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
+            if (thisRadius > maxRadius) { maxRadius = thisRadius; }
+        });
+        return maxRadius;
+    }
+    
+    function onSceneRendered() {
+        if (!isShapeDefined()) { return; }
+        
+        // calculate distance in world coordinates
+        // let shadowGroupCoordinates = new THREE.Vector3(shadowGroup.position.x, shadowGroup.position.y, shadowGroup.position.z);    // world coordinates
+        // shadowGroup.parent.localToWorld(shadowGroupCoordinates);
+
+        let cameraCoordinates = new THREE.Vector3(cameraShadowGroup.position.x, cameraShadowGroup.position.y, cameraShadowGroup.position.z);    // world coordinates
+        cameraShadowGroup.parent.localToWorld(cameraCoordinates);
+        // shadowGroup.parent.worldToLocal(cameraCoordinates);   // convert to ground plane coordinates
+
+        // console.log(getShapeCenter());
+
+        // calculate using even-odd rule
+        let hullPoints = JSON.parse(lastComputedShape).map(function(point) {
+            let worldCoords = new THREE.Vector3(point.x, point.y, point.z);    // world coordinates
+            shadowGroup.localToWorld(worldCoords);
+            // return [point.x + shadowGroupCoordinates.x, point.z + shadowGroupCoordinates.z];
+            return [worldCoords.x, worldCoords.z];
+        });
+        let isInside = checkPointConcave(cameraCoordinates.x, cameraCoordinates.z, hullPoints);
+        // let isInside = checkPointConvex(cameraCoordinates.x, cameraCoordinates.z, hullPoints);
+        // console.log('isInside', isInside);
+
+        if (isInside) {
+            mesh.rotation.z += 0.03; // make it spin
+        }
+
+        if (isRadiusOccupied && !isInside) {
             isRadiusOccupied = false;
             callbacks.onOccupancyChanged.forEach(function(callback) {
                 callback(false);
             });
-        } else if (!isRadiusOccupied && distance < scaledRadius) {
+        } else if (!isRadiusOccupied && isInside) {
             isRadiusOccupied = true;
             callbacks.onOccupancyChanged.forEach(function(callback) {
                 callback(true);
             });
         }
+        
+        // let shapeCenter = getShapeCenter();
+        // let shapeCenterCoordinates = new THREE.Vector3(shapeCenter.x, shapeCenter.y, shapeCenter.z);
+        // pathMesh.parent.localToWorld(shapeCenterCoordinates);
+        //
+        // let distance = shapeCenterCoordinates.distanceTo(cameraCoordinates);
+        // // console.log(distance);
+        //
+        // // let scaledRadius = (radius * lastComputedScale / defaultScale) || radius;
+        // let scaledRadius = getShapeRadius();
+        //
+        // if (isRadiusOccupied && distance > scaledRadius) {
+        //     isRadiusOccupied = false;
+        //     callbacks.onOccupancyChanged.forEach(function(callback) {
+        //         callback(false);
+        //     });
+        // } else if (!isRadiusOccupied && distance < scaledRadius) {
+        //     isRadiusOccupied = true;
+        //     callbacks.onOccupancyChanged.forEach(function(callback) {
+        //         callback(true);
+        //     });
+        // }
 
         // if less than radius, change occupied
     }
@@ -237,7 +332,7 @@ window.territory = {};
                 return; // if neither shape or scale has changed, don't recompute the scaled shape path
             }
         }
-        if (pathMesh) {
+        if (pathMesh) { 
             shadowGroup.remove(pathMesh);
         }
         let scaledShapePath = shape; // TODO: scale everything up relative to the origin
@@ -259,8 +354,6 @@ window.territory = {};
         //3. compute intersections
         return raycaster.intersectObjects( scene.children, true );
     }
-
-    let pointsInProgress = [];
 
     function pointerDown(_screenX, _screenY) {
         console.log('pointerDown in territory')
@@ -316,6 +409,76 @@ window.territory = {};
 
         window.storage.write('shape', validHullPath);
         pointsInProgress = [];
+    }
+
+    /**
+     * Uses the even-odd rule (https://en.wikipedia.org/wiki/Even–odd_rule) to check if a point is inside the shape.
+     * Casts a ray horizontally to the right from this point and counts the number of segment intersections
+     * @param {number} x
+     * @param {number} y
+     * @param {Array.<Array.<number>>} hull - list of points that form the hull [[x1, y1], [x2, y2], ...]
+     * @returns {boolean}
+     */
+    function checkPointConcave(x, y, hull) {
+        let evenOddCounter = 0;
+        for (let i = 0; i < hull.length; i++) {
+            let x1 = hull[i][0];
+            let y1 = hull[i][1];
+            let x2, y2;
+            if (i+1 < hull.length) {
+                x2 = hull[i+1][0];
+                y2 = hull[i+1][1];
+            } else {
+                x2 = hull[0][0]; // edge case for last segment
+                y2 = hull[0][1];
+            }
+
+            if (x1 < x && x2 < x) {
+                continue;
+            }
+
+            if (y1 < y && y2 > y || y1 > y && y2 < y) {
+                evenOddCounter += 1; // intersection between horizontal ray and segment
+            }
+        }
+
+        return evenOddCounter % 2 === 1;
+    }
+
+    function checkPointConvex(x, y, hull) {
+        let isInAnyTriangle = false;
+        let pt0 = hull[0];
+        for (let i = 1; i < hull.length - 1; i++) {
+            let pt1 = hull[i];
+            let pt2 = hull[i+1];
+
+            // check if x,y is within the triangle [pt0, pt1, pt2]
+            if (isPointWithinTriangle(x, y, pt0[0], pt0[1], pt1[0], pt1[1], pt2[0], pt2[1])) {
+                isInAnyTriangle = true;
+            }
+        }
+        return isInAnyTriangle;
+    }
+
+    function isPointWithinTriangle(x, y, x1, y1, x2, y2, x3, y3) {
+        /* Calculate area of triangle ABC */
+        let A = triangleArea (x1, y1, x2, y2, x3, y3);
+
+        /* Calculate area of triangle PBC */
+        let A1 = triangleArea (x, y, x2, y2, x3, y3);
+
+        /* Calculate area of triangle PAC */
+        let A2 = triangleArea (x1, y1, x, y, x3, y3);
+
+        /* Calculate area of triangle PAB */
+        let A3 = triangleArea (x1, y1, x2, y2, x, y);
+
+        /* Check if sum of A1, A2 and A3 is same as A */
+        return (A === A1 + A2 + A3);
+    }
+
+    function triangleArea(x1, y1, x2, y2, x3, y3) {
+        return Math.abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0);
     }
 
     exports.init = init;
