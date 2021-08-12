@@ -135,8 +135,15 @@
         window.territory.onLoaded(function() {
             console.log('territory three.js scene loaded');
         });
-        window.territory.onContentPressed(function() {
+        window.territory.onContentPressed(function(intersects) {
             console.log('territory content pressed');
+            console.log(intersects);
+            if (intersects.length > 0) {
+                if (intersects[0].object.name === 'toggleMesh') {
+                    console.log('pressed handle');
+                    window.territory.toggleEditingMode();
+                }
+            }
             // envelope.open();
         });
         window.territory.onOccupancyChanged(function(isOccupied) {

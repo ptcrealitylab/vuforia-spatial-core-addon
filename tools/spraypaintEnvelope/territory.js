@@ -1,4 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
+// import { SceneUtils } from 'https://unpkg.com/three@0.126.1/examples/jsm/utils/SceneUtils.js';
 
 window.territory = {};
 
@@ -6,10 +7,8 @@ window.territory = {};
 
     let spatialInterface, rendererWidth, rendererHeight;
     let camera, scene, renderer;
-    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh;
-    let pendingLoads = {
-        crate: true,
-    };
+    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
+
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
     let isProjectionMatrixSet = false;
@@ -18,9 +17,9 @@ window.territory = {};
         onContentPressed: [],
         onOccupancyChanged: []
     };
-    
-    const radius = 1000;
-    let defaultScale = 1;
+
+    // const radius = 1000;
+    // let defaultScale = 1;
     let isRadiusOccupied = false;
     let lastComputedScale = undefined;
     let lastComputedShape = undefined;
@@ -28,6 +27,9 @@ window.territory = {};
     
     const planeSize = 5000;
     let pointsInProgress = [];
+
+    let isEditingMode = true;
+    let isDrawingPointerDown = false;
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
         console.log('init renderer');
@@ -50,14 +52,30 @@ window.territory = {};
         containerObj.matrixAutoUpdate = false;
         scene.add(containerObj);
 
-        let texture = new THREE.TextureLoader().load('textures/crate.gif', function() {
-            pendingLoads.crate = false;
-        });
         let geometry = new THREE.BoxBufferGeometry(500, 500, 500);
-        let material = new THREE.MeshBasicMaterial({map: texture});
+        // let material = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.7});
+        // let material = new THREE.MeshPhongMaterial( { color: 0x00ffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } );
+
+        let material = new THREE.MeshStandardMaterial({color: 0x00ffff}); //, transparent: true, opacity: 1.0});
+
+        // var materials = [
+        //     new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } ),
+        //     new THREE.MeshBasicMaterial( { color: 0x000000, flatShading: true, wireframe: true, transparent: true } )
+        // ];
+        // mesh = SceneUtils.createMultiMaterialObject( geometry, materials );
+        //
         mesh = new THREE.Mesh(geometry, material);
-        mesh.position.setZ(50);
+        mesh.rotation.z = Math.PI / 4;
+        mesh.rotation.x = Math.PI / 4;
+        mesh.name = 'handleMesh';
         containerObj.add(mesh);
+
+        let toggleMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(250, 250, 250), new THREE.MeshStandardMaterial({color: 0xffff00})); //, transparent: true, opacity: 1.0}));
+        toggleMesh.rotation.z = Math.PI / 4;
+        toggleMesh.rotation.x = Math.PI / 4;
+        toggleMesh.position.y = 800;
+        toggleMesh.name = 'toggleMesh';
+        containerObj.add(toggleMesh);
 
         groundPlaneContainerObj = new THREE.Object3D();
         groundPlaneContainerObj.matrixAutoUpdate = false;
@@ -75,7 +93,7 @@ window.territory = {};
         const divisions = planeSize / 1000;
         const colorCenterLine = new THREE.Color(0, 1, 1);
         const colorGrid = new THREE.Color(0, 1, 1);
-        let gridHelper = new THREE.GridHelper( gridSize, divisions, colorCenterLine, colorGrid );
+        gridHelper = new THREE.GridHelper( gridSize, divisions, colorCenterLine, colorGrid );
         shadowGroup.add(gridHelper);
         
         let planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -118,6 +136,16 @@ window.territory = {};
         // shadowGroup.add(pathMesh);
         
         // updatePathMesh(1);
+
+        // light the scene with a combination of ambient and directional white light
+        var ambLight = new THREE.AmbientLight(0xffffff);
+        groundPlaneContainerObj.add(ambLight);
+        var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight1.position.set(0, 5000, 0);
+        groundPlaneContainerObj.add(dirLight1);
+        var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight2.position.set(-100, -100, -100);
+        groundPlaneContainerObj.add(dirLight2);
 
         // spatialInterface.addMatrixListener(renderScene);
         spatialInterface.addGroundPlaneMatrixListener(updateGroundplane);
@@ -175,69 +203,23 @@ window.territory = {};
         return lastComputedShape && JSON.parse(lastComputedShape).length > 2 && pointsInProgress.length === 0;
     }
     
-    function getShapeCenter() {
-        if (!isShapeDefined()) { return {x: 0, y: 0}; }
-        
-        let sumX = 0;
-        let sumY = 0;
-        let sumZ = 0;
-
-        let shape = JSON.parse(lastComputedShape);
-        shape.forEach(function(point) {
-            sumX += point.x;
-            sumY += point.y;
-            sumZ += point.z;
-        });
-        sumX *= 1.0 / shape.length;
-        sumY *= 1.0 / shape.length;
-        sumZ *= 1.0 / shape.length;
-        
-        return {
-            x: sumX,
-            y: sumY,
-            z: sumZ
-        };
-    }
-    
-    function getShapeRadius() {
-        let center = getShapeCenter();
-        let shape = JSON.parse(lastComputedShape);
-        let maxRadius = 0;
-        shape.forEach(function(point) {
-            let diff = { x: point.x - center.x, y: point.y - center.y, z: point.z - center.z };
-            let thisRadius = Math.sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
-            if (thisRadius > maxRadius) { maxRadius = thisRadius; }
-        });
-        return maxRadius;
-    }
-    
     function onSceneRendered() {
         if (!isShapeDefined()) { return; }
         
-        // calculate distance in world coordinates
-        // let shadowGroupCoordinates = new THREE.Vector3(shadowGroup.position.x, shadowGroup.position.y, shadowGroup.position.z);    // world coordinates
-        // shadowGroup.parent.localToWorld(shadowGroupCoordinates);
-
         let cameraCoordinates = new THREE.Vector3(cameraShadowGroup.position.x, cameraShadowGroup.position.y, cameraShadowGroup.position.z);    // world coordinates
         cameraShadowGroup.parent.localToWorld(cameraCoordinates);
-        // shadowGroup.parent.worldToLocal(cameraCoordinates);   // convert to ground plane coordinates
-
-        // console.log(getShapeCenter());
 
         // calculate using even-odd rule
         let hullPoints = JSON.parse(lastComputedShape).map(function(point) {
             let worldCoords = new THREE.Vector3(point.x, point.y, point.z);    // world coordinates
             shadowGroup.localToWorld(worldCoords);
-            // return [point.x + shadowGroupCoordinates.x, point.z + shadowGroupCoordinates.z];
             return [worldCoords.x, worldCoords.z];
         });
         let isInside = checkPointConcave(cameraCoordinates.x, cameraCoordinates.z, hullPoints);
-        // let isInside = checkPointConvex(cameraCoordinates.x, cameraCoordinates.z, hullPoints);
-        // console.log('isInside', isInside);
 
-        if (isInside) {
-            mesh.rotation.z += 0.03; // make it spin
-        }
+        // if (isInside) {
+        //     mesh.rotation.z += 0.03; // make it spin
+        // }
 
         if (isRadiusOccupied && !isInside) {
             isRadiusOccupied = false;
@@ -250,30 +232,6 @@ window.territory = {};
                 callback(true);
             });
         }
-        
-        // let shapeCenter = getShapeCenter();
-        // let shapeCenterCoordinates = new THREE.Vector3(shapeCenter.x, shapeCenter.y, shapeCenter.z);
-        // pathMesh.parent.localToWorld(shapeCenterCoordinates);
-        //
-        // let distance = shapeCenterCoordinates.distanceTo(cameraCoordinates);
-        // // console.log(distance);
-        //
-        // // let scaledRadius = (radius * lastComputedScale / defaultScale) || radius;
-        // let scaledRadius = getShapeRadius();
-        //
-        // if (isRadiusOccupied && distance > scaledRadius) {
-        //     isRadiusOccupied = false;
-        //     callbacks.onOccupancyChanged.forEach(function(callback) {
-        //         callback(false);
-        //     });
-        // } else if (!isRadiusOccupied && distance < scaledRadius) {
-        //     isRadiusOccupied = true;
-        //     callbacks.onOccupancyChanged.forEach(function(callback) {
-        //         callback(true);
-        //     });
-        // }
-
-        // if less than radius, change occupied
     }
 
     function touchDecider(eventData) {
@@ -290,7 +248,7 @@ window.territory = {};
         
         if (intersects.length > 0) {
             callbacks.onContentPressed.forEach(function(callback) {
-                callback();
+                callback(intersects);
             });
         }
 
@@ -317,13 +275,9 @@ window.territory = {};
         callbacks.onOccupancyChanged.push(callback);
     }
     
-    let shape = [];
-    
     function loadShapeData(points) {
         console.log('load shape data', points);
-        shape = JSON.parse(JSON.stringify(points));
-        
-        updatePathMesh(shape, 1.0);
+        updatePathMesh(JSON.parse(JSON.stringify(points)), 1.0);
     }
 
     function updatePathMesh(shape, scale) {
@@ -355,12 +309,23 @@ window.territory = {};
         return raycaster.intersectObjects( scene.children, true );
     }
 
-    function pointerDown(_screenX, _screenY) {
-        console.log('pointerDown in territory')
-        pointsInProgress = [];
+    function pointerDown(screenX, screenY) {
+        if (!isEditingMode) { return; }
+
+        const intersects = getRaycastIntersects(screenX, screenY);
+        if (intersects.length > 0) {
+            if (intersects[0].object.name === 'planeMesh') {
+                console.log('pointerDown in territory')
+                pointsInProgress = [];
+                isDrawingPointerDown = true;
+            }
+        }
     }
 
     function pointerMove(screenX, screenY) {
+        if (!isEditingMode) { return; }
+        if (!isDrawingPointerDown) { return; }
+
         console.log('pointerMove in territory')
 
         // calculate objects intersecting the picking ray
@@ -387,6 +352,9 @@ window.territory = {};
     }
 
     function pointerUp(_screenX, _screenY) {
+        if (!isEditingMode) { return; }
+        if (!isDrawingPointerDown) { return; }
+
         console.log('pointerUp in territory')
         
         let hullPoints = [];
@@ -409,6 +377,7 @@ window.territory = {};
 
         window.storage.write('shape', validHullPath);
         pointsInProgress = [];
+        isDrawingPointerDown = false;
     }
 
     /**
@@ -444,41 +413,16 @@ window.territory = {};
 
         return evenOddCounter % 2 === 1;
     }
-
-    function checkPointConvex(x, y, hull) {
-        let isInAnyTriangle = false;
-        let pt0 = hull[0];
-        for (let i = 1; i < hull.length - 1; i++) {
-            let pt1 = hull[i];
-            let pt2 = hull[i+1];
-
-            // check if x,y is within the triangle [pt0, pt1, pt2]
-            if (isPointWithinTriangle(x, y, pt0[0], pt0[1], pt1[0], pt1[1], pt2[0], pt2[1])) {
-                isInAnyTriangle = true;
-            }
+    
+    function toggleEditingMode() {
+        isEditingMode = !isEditingMode;
+        if (isEditingMode) {
+            // show gridHelper
+            gridHelper.visible = true;
+        } else {
+            // hide gridHelper
+            gridHelper.visible = false;
         }
-        return isInAnyTriangle;
-    }
-
-    function isPointWithinTriangle(x, y, x1, y1, x2, y2, x3, y3) {
-        /* Calculate area of triangle ABC */
-        let A = triangleArea (x1, y1, x2, y2, x3, y3);
-
-        /* Calculate area of triangle PBC */
-        let A1 = triangleArea (x, y, x2, y2, x3, y3);
-
-        /* Calculate area of triangle PAC */
-        let A2 = triangleArea (x1, y1, x, y, x3, y3);
-
-        /* Calculate area of triangle PAB */
-        let A3 = triangleArea (x1, y1, x2, y2, x, y);
-
-        /* Check if sum of A1, A2 and A3 is same as A */
-        return (A === A1 + A2 + A3);
-    }
-
-    function triangleArea(x1, y1, x2, y2, x3, y3) {
-        return Math.abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0);
     }
 
     exports.init = init;
@@ -491,5 +435,6 @@ window.territory = {};
     exports.pointerMove = pointerMove;
     exports.pointerUp = pointerUp;
 
+    exports.toggleEditingMode = toggleEditingMode;
 
 })(window.territory);
