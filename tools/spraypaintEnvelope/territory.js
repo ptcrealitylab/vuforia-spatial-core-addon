@@ -7,7 +7,7 @@ window.territory = {};
 
     let spatialInterface, rendererWidth, rendererHeight;
     let camera, scene, renderer;
-    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
+    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, cylinderMesh, gridHelper;
 
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
@@ -36,6 +36,7 @@ window.territory = {};
     let floorDestinationOpacity = 0.3;
     let topDestinationBrightness = 0;
     let prevPointerPosition = null;
+    let cylinderDestinationOpacity = 0;
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
         console.log('init renderer');
@@ -47,6 +48,7 @@ window.territory = {};
         renderer = new THREE.WebGLRenderer( { alpha: true } );
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( rendererWidth, rendererHeight );
+        renderer.domElement.id = 'threejsCanvas';
         parentElement_.appendChild( renderer.domElement );
         renderer.domElement.style.position = 'absolute';
         renderer.domElement.style.left = '0';
@@ -206,6 +208,27 @@ window.territory = {};
     function isShapeDefined() {
         return lastComputedShape && JSON.parse(lastComputedShape).length > 2 && pointsInProgress.length === 0;
     }
+
+    function getShapeCenter(shape) {
+        let sumX = 0;
+        let sumY = 0;
+        let sumZ = 0;
+
+        shape.forEach(function(point) {
+            sumX += point.x;
+            sumY += point.y;
+            sumZ += point.z;
+        });
+        sumX *= 1.0 / shape.length;
+        sumY *= 1.0 / shape.length;
+        sumZ *= 1.0 / shape.length;
+
+        return {
+            x: sumX,
+            y: sumY,
+            z: sumZ
+        };
+    }
     
     function onSceneRendered() {
         if (isEditingMode && isDrawingPointerDown && prevPointerPosition) {
@@ -249,10 +272,12 @@ window.territory = {};
             pathDestinationY = 0;
             floorDestinationOpacity = 0.3;
             topDestinationBrightness = 0;
+            cylinderDestinationOpacity = 0;
         } else {
             pathDestinationY = 300;
             floorDestinationOpacity = 0;
             topDestinationBrightness = 1;
+            cylinderDestinationOpacity = 0.4;
         }
         if (pathMesh) {
             let pathMeshY = pathMesh.position.y;
@@ -262,10 +287,50 @@ window.territory = {};
             let opacity = floorMesh.material.opacity;
             floorMesh.material.opacity += (floorDestinationOpacity - opacity) * 0.2;
 
-            let topMesh = pathMesh.getObjectByName('pathTopMesh')
-            let brightness = topMesh.material.color.getHSL().l;
+            let topMesh = pathMesh.getObjectByName('pathTopMesh');
+            let color = {};
+            topMesh.material.color.getHSL(color);
+            let brightness = color.l;
             brightness += (topDestinationBrightness - brightness) * 0.2;
             topMesh.material.color.setHSL(0, 0, brightness);
+        }
+        
+        if (cylinderMesh) {
+            // console.log('todo');
+            // cylinderMesh.rotation.y += 0.01;
+
+            cylinderMesh.traverse(function(child) {
+                if (child && child.material) {
+                    let opacity = child.material.opacity;
+                    opacity += (cylinderDestinationOpacity - opacity) * 0.1;
+                    child.material.opacity = opacity;
+                }
+            });
+
+        } else if (!isEditingMode) {
+            // create a cylinder mesh slightly smaller than the pathMesh but taller
+            let shapeData = JSON.parse(lastComputedShape);
+            
+            let center = getShapeCenter(shapeData);
+            
+            let adjustedShapeData = [];
+            
+            shapeData.forEach(function(point) {
+                let dx = point.x - center.x;
+                let dz = point.z - center.z;
+                let r2 = Math.max(Math.sqrt(dx * dx + dz * dz) * 0.5, Math.sqrt(dx * dx + dz * dz) - 200);
+                let theta = Math.atan2(dz, dx);
+
+                adjustedShapeData.push({
+                    x: center.x + (r2 * Math.cos(theta)),
+                    y: point.y,
+                    z: center.z + (r2 * Math.sin(theta))
+                });
+            });
+
+            cylinderMesh = window.pathToMesh(adjustedShapeData, 20, 1500, 0.5);
+            // cylinderMesh.renderOrder = 1;
+            shadowGroup.add(cylinderMesh);
         }
     }
 
@@ -367,7 +432,7 @@ window.territory = {};
         if (!isEditingMode) { return; }
         if (!isDrawingPointerDown) { return; }
 
-        console.log('pointerMove in territory')
+        // console.log('pointerMove in territory')
 
         // calculate objects intersecting the picking ray
         const intersects = getRaycastIntersects(screenX, screenY);
@@ -472,6 +537,34 @@ window.territory = {};
         if (isEditingMode) {
             // show gridHelper
             gridHelper.visible = true;
+            if (cylinderMesh && cylinderMesh.parent) {
+                try {
+                    let objsToRemove = [];
+                    cylinderMesh.traverse(function(child) {
+                        if (child.material) {
+                            child.material.dispose();
+                        }
+                        if (child.geometry) {
+                            child.geometry.dispose();
+                        }
+                        objsToRemove.push(child);
+                    });
+                    
+                    objsToRemove.forEach(function(obj) {
+                        obj.parent.remove(obj);
+                    });
+                    renderer.renderLists.dispose();
+                } catch (e) {
+                    console.warn('error removing cylinder mesh', e);
+                }
+
+                if (cylinderMesh.parent) {
+                    cylinderMesh.parent.remove(cylinderMesh);
+                } else {
+                    scene.remove(cylinderMesh);
+                }
+                cylinderMesh = null;
+            }
         } else {
             // hide gridHelper
             gridHelper.visible = false;

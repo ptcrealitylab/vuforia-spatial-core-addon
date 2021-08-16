@@ -2,7 +2,7 @@ window.hud = {};
 
 (function(exports) {
     let spatialInterface;
-    let container, reticle, pencilButton;
+    let container, reticle, pencilButton, cancelButton;
     let screenWidth, screenHeight;
     let isEditingMode = false;
     const reticleSize = 300;
@@ -31,6 +31,10 @@ window.hud = {};
         pencilButton = createButton('pencilButton', 'resources/pencil-icon.svg', 60, {left: '30px', bottom: '30px', pointerEvents: 'auto'});
         pencilButton.addEventListener('pointerup', onPencilButtonPressed);
         container.appendChild(pencilButton);
+
+        cancelButton = createButton('cancelButton', 'resources/cancel-icon.svg', 60, {left: '30px', bottom: '30px', pointerEvents: 'auto', display: 'none'});
+        cancelButton.addEventListener('pointerup', onCancelButtonPressed);
+        container.appendChild(cancelButton);
     }
 
     function createButton(id, src, size, style) {
@@ -68,12 +72,25 @@ window.hud = {};
         return thisButton;
     }
 
-    function onPencilButtonPressed() {
+    function onPencilButtonPressed(e) {
+        e.stopPropagation();
+
         console.log('pencil button pressed');
         // showEditingHUD();
 
         callbacks.onIsEditingChanged.forEach(function(callback) {
             callback(true);
+        });
+    }
+
+    function onCancelButtonPressed(e) {
+        e.stopPropagation();
+
+        console.log('cancel button pressed');
+        // showEditingHUD();
+
+        callbacks.onIsEditingChanged.forEach(function(callback) {
+            callback(false);
         });
     }
 
@@ -94,6 +111,7 @@ window.hud = {};
 
         reticle.style.display = '';
         pencilButton.style.display = 'none';
+        cancelButton.style.display = '';
     }
 
     function hideEditingHUD() {
@@ -104,6 +122,7 @@ window.hud = {};
             reticle.style.display = 'none';
         }
         pencilButton.style.display = '';
+        cancelButton.style.display = 'none';
     }
 
     function pointerDown() {
