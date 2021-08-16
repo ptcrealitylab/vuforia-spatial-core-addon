@@ -191,6 +191,11 @@ import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
         const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
         const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
         floorMesh.rotation.x = Math.PI / 2;
+
+        topMesh.name = 'pathTopMesh';
+        wallMesh.name = 'pathWallMesh';
+        floorMesh.name = 'pathFloorMesh';
+
         const group = new THREE.Group();
         group.add(topMesh);
         group.add(wallMesh);

@@ -9,6 +9,7 @@
     <script src="network.js"></script>
     <script src="territory.js" type="module"></script>
     <script src="pathToMesh.js" type="module"></script>
+    <script src="hud.js"></script>
     <script src="PersistentStorage.js"></script>
     <meta charset="UTF-8">
     <title>Realtime Volumetric Envelope</title>
@@ -41,16 +42,6 @@
             line-height: 200px;
             color: white;
         }
-        /*#count {*/
-        /*    position: absolute;*/
-        /*    left: 0;*/
-        /*    top: 0;*/
-        /*    text-align: center;*/
-        /*    width: 300px;*/
-        /*    line-height: 200px;*/
-        /*    font-size: 48px;*/
-        /*    color: cyan;*/
-        /*}*/
         #backgroundCanvas {
             position: absolute;
             left: 0;
@@ -58,6 +49,17 @@
             width: 100vw;
             height: 100vh;
             background-color: rgba(0, 255, 255, 0.5);
+        }
+        .remoteOperatorButton {
+            position: absolute;
+            border: 2px solid cyan;
+            transform: translateZ(10000px);
+        }
+        .remoteOperatorButton:hover {
+            background-color: rgba(0, 255, 255, 0.3);
+        }
+        .remoteOperatorButton:active {
+            background-color: rgba(0, 255, 255, 0.7);
         }
     </style>
 </head>
@@ -146,6 +148,16 @@
             }
             // envelope.open();
         });
+        window.territory.onIsEditingChanged(function(isEditing) {
+            if (isEditing) {
+                window.hud.showEditingHUD();
+            } else {
+                window.hud.hideEditingHUD();
+            }
+        });
+        window.hud.onIsEditingChanged(function(isEditing) {
+            window.territory.setEditingMode(isEditing);
+        });
         window.territory.onOccupancyChanged(function(isOccupied) {
             if (isOccupied) {
                 envelope.open();
@@ -154,6 +166,7 @@
             }
         });
         window.territory.init(spatialInterface, width, height, rootElementWhenClosed);
+        window.hud.init(spatialInterface, width, height, rootElementWhenClosed);
 
         window.storage.listen('shape', function(points) {
             window.territory.loadShapeData(points);
@@ -171,12 +184,14 @@
 
             isPointerDown = true;
             window.territory.pointerDown(e.clientX, e.clientY);
+            window.hud.pointerDown();
         });
         rootElementWhenClosed.addEventListener('pointermove', function(e) {
             if (!isEditingMode) { return; }
             if (!isPointerDown) { return; }
 
             window.territory.pointerMove(e.clientX, e.clientY);
+            window.hud.pointerMove(e.clientX, e.clientY);
         });
         rootElementWhenClosed.addEventListener('pointerup', function(e) {
             if (!isEditingMode) { return; }
@@ -184,6 +199,7 @@
 
             isPointerDown = false;
             window.territory.pointerUp(e.clientX, e.clientY);
+            window.hud.pointerUp();
         });
 
         // resize tool to fill the screen because closed envelope usually doesn't

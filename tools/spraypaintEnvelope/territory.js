@@ -7,7 +7,7 @@ window.territory = {};
 
     let spatialInterface, rendererWidth, rendererHeight;
     let camera, scene, renderer;
-    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
+    let containerObj, groundPlaneContainerObj, mesh, toggleMesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
 
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
@@ -15,7 +15,8 @@ window.territory = {};
     let callbacks = {
         onLoaded: [],
         onContentPressed: [],
-        onOccupancyChanged: []
+        onOccupancyChanged: [],
+        onIsEditingChanged: []
     };
 
     // const radius = 1000;
@@ -28,7 +29,7 @@ window.territory = {};
     const planeSize = 5000;
     let pointsInProgress = [];
 
-    let isEditingMode = true;
+    let isEditingMode = false;
     let isDrawingPointerDown = false;
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
@@ -52,7 +53,7 @@ window.territory = {};
         containerObj.matrixAutoUpdate = false;
         scene.add(containerObj);
 
-        let geometry = new THREE.BoxBufferGeometry(500, 500, 500);
+        let geometry = new THREE.BoxBufferGeometry(250, 250, 250);
         // let material = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.7});
         // let material = new THREE.MeshPhongMaterial( { color: 0x00ffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } );
 
@@ -65,15 +66,15 @@ window.territory = {};
         // mesh = SceneUtils.createMultiMaterialObject( geometry, materials );
         //
         mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.z = Math.PI / 4;
-        mesh.rotation.x = Math.PI / 4;
+        // mesh.rotation.z = Math.PI / 4;
+        // mesh.rotation.x = Math.PI / 4;
         mesh.name = 'handleMesh';
         containerObj.add(mesh);
 
-        let toggleMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(250, 250, 250), new THREE.MeshStandardMaterial({color: 0xffff00})); //, transparent: true, opacity: 1.0}));
-        toggleMesh.rotation.z = Math.PI / 4;
-        toggleMesh.rotation.x = Math.PI / 4;
-        toggleMesh.position.y = 800;
+        toggleMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(250, 250, 250), new THREE.MeshStandardMaterial({color: 0xffff00})); //, transparent: true, opacity: 1.0}));
+        // toggleMesh.rotation.z = Math.PI / 4;
+        // toggleMesh.rotation.x = Math.PI / 4;
+        toggleMesh.position.x = 300;
         toggleMesh.name = 'toggleMesh';
         containerObj.add(toggleMesh);
 
@@ -138,12 +139,12 @@ window.territory = {};
         // updatePathMesh(1);
 
         // light the scene with a combination of ambient and directional white light
-        var ambLight = new THREE.AmbientLight(0xffffff);
+        var ambLight = new THREE.AmbientLight(0xaaaaaa);
         groundPlaneContainerObj.add(ambLight);
-        var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        var dirLight1 = new THREE.DirectionalLight(0xaaaaaa, 0.8);
         dirLight1.position.set(0, 5000, 0);
         groundPlaneContainerObj.add(dirLight1);
-        var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        var dirLight2 = new THREE.DirectionalLight(0xaaaaaa, 0.5);
         dirLight2.position.set(-100, -100, -100);
         groundPlaneContainerObj.add(dirLight2);
 
@@ -232,6 +233,12 @@ window.territory = {};
                 callback(true);
             });
         }
+
+        if (isEditingMode) {
+            toggleMesh.visible = false;
+        } else {
+            toggleMesh.visible = true;
+        }
     }
 
     function touchDecider(eventData) {
@@ -275,6 +282,10 @@ window.territory = {};
         callbacks.onOccupancyChanged.push(callback);
     }
     
+    function onIsEditingChanged(callback) {
+        callbacks.onIsEditingChanged.push(callback);
+    }
+    
     function loadShapeData(points) {
         console.log('load shape data', points);
         updatePathMesh(JSON.parse(JSON.stringify(points)), 1.0);
@@ -314,7 +325,8 @@ window.territory = {};
 
         const intersects = getRaycastIntersects(screenX, screenY);
         if (intersects.length > 0) {
-            if (intersects[0].object.name === 'planeMesh') {
+            let validNames = ['planeMesh', 'pathTopMesh', 'pathWallMesh', 'pathFloorMesh'];
+            if (validNames.includes(intersects[0].object.name)) {
                 console.log('pointerDown in territory')
                 pointsInProgress = [];
                 isDrawingPointerDown = true;
@@ -378,6 +390,9 @@ window.territory = {};
         window.storage.write('shape', validHullPath);
         pointsInProgress = [];
         isDrawingPointerDown = false;
+        if (isEditingMode) {
+            toggleEditingMode();
+        }
     }
 
     /**
@@ -414,6 +429,12 @@ window.territory = {};
         return evenOddCounter % 2 === 1;
     }
     
+    function setEditingMode(newMode) {
+        if (newMode !== isEditingMode) {
+            toggleEditingMode();
+        }
+    }
+
     function toggleEditingMode() {
         isEditingMode = !isEditingMode;
         if (isEditingMode) {
@@ -423,12 +444,16 @@ window.territory = {};
             // hide gridHelper
             gridHelper.visible = false;
         }
+        callbacks.onIsEditingChanged.forEach(function(callback) {
+            callback(isEditingMode);
+        });
     }
 
     exports.init = init;
     exports.onLoaded = onLoaded;
     exports.onContentPressed = onContentPressed;
     exports.onOccupancyChanged = onOccupancyChanged;
+    exports.onIsEditingChanged = onIsEditingChanged;
     exports.loadShapeData = loadShapeData;
 
     exports.pointerDown = pointerDown;
@@ -436,5 +461,6 @@ window.territory = {};
     exports.pointerUp = pointerUp;
 
     exports.toggleEditingMode = toggleEditingMode;
+    exports.setEditingMode = setEditingMode;
 
 })(window.territory);
