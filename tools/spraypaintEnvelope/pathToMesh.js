@@ -28,7 +28,7 @@ import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
     }
 
     // Converts a path in 3D space to a three.js mesh
-    const pathToMesh = (path, width, height, opacityModifier) => {
+    const pathToMesh = (path, width, height, meshColor, opacityModifier) => {
         if (path.length < 2) {
             return new THREE.Group();
         }
@@ -200,6 +200,12 @@ import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
             topMesh.material.opacity *= opacityModifier;
             wallMesh.material.opacity *= opacityModifier;
             floorMesh.material.opacity *= opacityModifier;
+        }
+
+        if (typeof meshColor !== 'undefined') {
+            // topMesh.material.color.setHex(meshColor);
+            wallMesh.material.color.setHex(meshColor);
+            floorMesh.material.color.setHex(meshColor);
         }
 
         const group = new THREE.Group();

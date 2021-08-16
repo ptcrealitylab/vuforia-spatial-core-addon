@@ -37,6 +37,8 @@ window.territory = {};
     let topDestinationBrightness = 0;
     let prevPointerPosition = null;
     let cylinderDestinationOpacity = 0;
+    
+    const meshColor = 0xfed003;
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_, includeCylinder_) {
         console.log('init renderer');
@@ -97,9 +99,9 @@ window.territory = {};
         shadowGroup = new THREE.Group();
 
         const gridSize = planeSize;
-        const divisions = planeSize / 1000;
-        const colorCenterLine = new THREE.Color(0, 1, 1);
-        const colorGrid = new THREE.Color(0, 1, 1);
+        const divisions = planeSize / 500;
+        const colorCenterLine = new THREE.Color(1, 1, 1);
+        const colorGrid = new THREE.Color(1, 1, 1);
         gridHelper = new THREE.GridHelper( gridSize, divisions, colorCenterLine, colorGrid );
         gridHelper.visible = false; // because defaults to not being in editing mode
         shadowGroup.add(gridHelper);
@@ -276,9 +278,9 @@ window.territory = {};
             topDestinationBrightness = 0;
             cylinderDestinationOpacity = 0;
         } else {
-            pathDestinationY = 300;
+            pathDestinationY = 600;
             floorDestinationOpacity = 0;
-            topDestinationBrightness = 1;
+            topDestinationBrightness = 0.5;
             cylinderDestinationOpacity = 0.4;
         }
         if (pathMesh) {
@@ -294,7 +296,7 @@ window.territory = {};
             topMesh.material.color.getHSL(color);
             let brightness = color.l;
             brightness += (topDestinationBrightness - brightness) * 0.2;
-            topMesh.material.color.setHSL(0, 0, brightness);
+            topMesh.material.color.setHSL(49/360, 0.99, brightness);
         }
         
         if (includeCylinder) {
@@ -310,7 +312,7 @@ window.territory = {};
             cylinderMesh.traverse(function(child) {
                 if (child && child.material) {
                     let opacity = child.material.opacity;
-                    opacity += (cylinderDestinationOpacity - opacity) * 0.1;
+                    opacity += (cylinderDestinationOpacity - opacity) * 0.05;
                     child.material.opacity = opacity;
                 }
             });
@@ -336,7 +338,7 @@ window.territory = {};
                 });
             });
 
-            cylinderMesh = window.pathToMesh(adjustedShapeData, 20, 1500, 0.5);
+            cylinderMesh = window.pathToMesh(adjustedShapeData, 20, 1500, undefined, 0.1);
             // cylinderMesh.renderOrder = 1;
             shadowGroup.add(cylinderMesh);
         }
@@ -403,7 +405,7 @@ window.territory = {};
         }
         let scaledShapePath = shape; // TODO: scale everything up relative to the origin
 
-        pathMesh = window.pathToMesh(scaledShapePath);
+        pathMesh = window.pathToMesh(scaledShapePath, 50, 50, meshColor, undefined);
         shadowGroup.add(pathMesh);
 
         lastComputedScale = scale;
@@ -435,6 +437,8 @@ window.territory = {};
             }
         }
     }
+    
+    let lastAddedPoint = null;
 
     function pointerMove(screenX, screenY) {
         if (!isEditingMode) { return; }
@@ -455,13 +459,26 @@ window.territory = {};
         });
 
         if (planeIntersect) {
-            pointsInProgress.push({
+            let newPoint = {
                 x: (planeIntersect.uv.x - 0.5) * planeSize, // times (dScale between draw time and now)
                 y: 0,
                 z: -1 * (planeIntersect.uv.y - 0.5) * planeSize
-            });
+            };
             
-            updatePathMesh(pointsInProgress, 1);
+            if (lastAddedPoint) {
+                let dx = (newPoint.x - lastAddedPoint.x);
+                let dz = (newPoint.z - lastAddedPoint.z);
+                let distance = Math.sqrt(dx * dx + dz * dz);
+                if (distance > 5) { // filter out too-close points
+                    pointsInProgress.push(newPoint);
+                    lastAddedPoint = JSON.parse(JSON.stringify(newPoint));
+                    updatePathMesh(pointsInProgress, 1);
+                }
+            } else {
+                pointsInProgress.push(newPoint);
+                lastAddedPoint = JSON.parse(JSON.stringify(newPoint));
+                updatePathMesh(pointsInProgress, 1);
+            }
         }
 
         prevPointerPosition = { x: screenX, y: screenY };
@@ -495,6 +512,7 @@ window.territory = {};
         pointsInProgress = [];
         isDrawingPointerDown = false;
         prevPointerPosition = null;
+        lastAddedPoint = null;
         if (isEditingMode) {
             toggleEditingMode();
         }

@@ -190,7 +190,7 @@
                 envelope.close();
             }
         });
-        window.territory.init(spatialInterface, width, height, rootElementWhenClosed, true);
+        window.territory.init(spatialInterface, width, height, rootElementWhenClosed, false);
         window.hud.init(spatialInterface, width, height, rootElementWhenClosed);
 
         window.storage.listen('shape', function(points) {
