@@ -120,5 +120,14 @@ window.renderer = {};
         });
     }
 
+    function easeIn() {
+        document.getElementById('rootElementWhenOpen').classList.add('visibleFadeIn');
+    }
+    function easeOut() {
+        document.getElementById('rootElementWhenOpen').classList.remove('visibleFadeIn');
+    }
+
     exports.processImageFromSource = processImageFromSource;
+    exports.easeIn = easeIn;
+    exports.easeOut = easeOut;
 })(window.renderer);

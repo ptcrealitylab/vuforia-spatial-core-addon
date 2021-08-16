@@ -7,7 +7,7 @@ window.territory = {};
 
     let spatialInterface, rendererWidth, rendererHeight;
     let camera, scene, renderer;
-    let containerObj, groundPlaneContainerObj, mesh, toggleMesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
+    let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, gridHelper;
 
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
@@ -32,6 +32,11 @@ window.territory = {};
     let isEditingMode = false;
     let isDrawingPointerDown = false;
 
+    let pathDestinationY = 0;
+    let floorDestinationOpacity = 0.3;
+    let topDestinationBrightness = 0;
+    let prevPointerPosition = null;
+
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
         console.log('init renderer');
 
@@ -53,11 +58,13 @@ window.territory = {};
         containerObj.matrixAutoUpdate = false;
         scene.add(containerObj);
 
-        let geometry = new THREE.BoxBufferGeometry(250, 250, 250);
+        // let geometry = new THREE.BoxBufferGeometry(250, 250, 250);
+        let geometry = new THREE.BoxBufferGeometry(100, 100, 100);
         // let material = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.7});
         // let material = new THREE.MeshPhongMaterial( { color: 0x00ffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } );
 
-        let material = new THREE.MeshStandardMaterial({color: 0x00ffff}); //, transparent: true, opacity: 1.0});
+        // let material = new THREE.MeshStandardMaterial({color: 0x00ffff}); //, transparent: true, opacity: 1.0});
+        let material = new THREE.MeshStandardMaterial({color: 0xffffff}); //, transparent: true, opacity: 1.0});
 
         // var materials = [
         //     new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } ),
@@ -71,21 +78,17 @@ window.territory = {};
         mesh.name = 'handleMesh';
         containerObj.add(mesh);
 
-        toggleMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(250, 250, 250), new THREE.MeshStandardMaterial({color: 0xffff00})); //, transparent: true, opacity: 1.0}));
-        // toggleMesh.rotation.z = Math.PI / 4;
-        // toggleMesh.rotation.x = Math.PI / 4;
-        toggleMesh.position.x = 300;
-        toggleMesh.name = 'toggleMesh';
-        containerObj.add(toggleMesh);
-
         groundPlaneContainerObj = new THREE.Object3D();
         groundPlaneContainerObj.matrixAutoUpdate = false;
         scene.add(groundPlaneContainerObj);
         groundPlaneContainerObj.name = 'groundPlaneContainerObj';
         
         cameraShadowGroup = new THREE.Group();
-        let cameraShadowMesh = new THREE.Mesh( new THREE.BoxGeometry( 100, 100, 100 ), new THREE.MeshBasicMaterial( {color: 0x00ffff} ) );
-        cameraShadowGroup.add(cameraShadowMesh);
+        const SHOW_CAMERA_SHADOW = false;
+        if (SHOW_CAMERA_SHADOW) {
+            let cameraShadowMesh = new THREE.Mesh( new THREE.BoxGeometry( 100, 100, 100 ), new THREE.MeshBasicMaterial( {color: 0x00ffff} ) );
+            cameraShadowGroup.add(cameraShadowMesh);
+        }
         groundPlaneContainerObj.add(cameraShadowGroup);
 
         shadowGroup = new THREE.Group();
@@ -205,6 +208,10 @@ window.territory = {};
     }
     
     function onSceneRendered() {
+        if (isEditingMode && isDrawingPointerDown && prevPointerPosition) {
+            pointerMove(prevPointerPosition.x, prevPointerPosition.y);
+        }
+        
         if (!isShapeDefined()) { return; }
         
         let cameraCoordinates = new THREE.Vector3(cameraShadowGroup.position.x, cameraShadowGroup.position.y, cameraShadowGroup.position.z);    // world coordinates
@@ -222,22 +229,43 @@ window.territory = {};
         //     mesh.rotation.z += 0.03; // make it spin
         // }
 
-        if (isRadiusOccupied && !isInside) {
-            isRadiusOccupied = false;
-            callbacks.onOccupancyChanged.forEach(function(callback) {
-                callback(false);
-            });
-        } else if (!isRadiusOccupied && isInside) {
-            isRadiusOccupied = true;
-            callbacks.onOccupancyChanged.forEach(function(callback) {
-                callback(true);
-            });
+        // calculate when the person walks into or out of the shape (only when not in editing mode)
+        if (!isEditingMode) {
+            if (isRadiusOccupied && !isInside) {
+                isRadiusOccupied = false;
+                callbacks.onOccupancyChanged.forEach(function(callback) {
+                    callback(false);
+                });
+            } else if (!isRadiusOccupied && isInside) {
+                isRadiusOccupied = true;
+                callbacks.onOccupancyChanged.forEach(function(callback) {
+                    callback(true);
+                });
+            }
         }
-
+        
+        // animate y position of path
         if (isEditingMode) {
-            toggleMesh.visible = false;
+            pathDestinationY = 0;
+            floorDestinationOpacity = 0.3;
+            topDestinationBrightness = 0;
         } else {
-            toggleMesh.visible = true;
+            pathDestinationY = 300;
+            floorDestinationOpacity = 0;
+            topDestinationBrightness = 1;
+        }
+        if (pathMesh) {
+            let pathMeshY = pathMesh.position.y;
+            pathMesh.position.y += (pathDestinationY - pathMeshY) * 0.2;
+            
+            let floorMesh = pathMesh.getObjectByName('pathFloorMesh');
+            let opacity = floorMesh.material.opacity;
+            floorMesh.material.opacity += (floorDestinationOpacity - opacity) * 0.2;
+
+            let topMesh = pathMesh.getObjectByName('pathTopMesh')
+            let brightness = topMesh.material.color.getHSL().l;
+            brightness += (topDestinationBrightness - brightness) * 0.2;
+            topMesh.material.color.setHSL(0, 0, brightness);
         }
     }
 
@@ -330,6 +358,7 @@ window.territory = {};
                 console.log('pointerDown in territory')
                 pointsInProgress = [];
                 isDrawingPointerDown = true;
+                prevPointerPosition = { x: screenX, y: screenY };
             }
         }
     }
@@ -361,6 +390,8 @@ window.territory = {};
             
             updatePathMesh(pointsInProgress, 1);
         }
+
+        prevPointerPosition = { x: screenX, y: screenY };
     }
 
     function pointerUp(_screenX, _screenY) {
@@ -390,6 +421,7 @@ window.territory = {};
         window.storage.write('shape', validHullPath);
         pointsInProgress = [];
         isDrawingPointerDown = false;
+        prevPointerPosition = null;
         if (isEditingMode) {
             toggleEditingMode();
         }
