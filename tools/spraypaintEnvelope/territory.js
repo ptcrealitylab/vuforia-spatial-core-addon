@@ -5,7 +5,7 @@ window.territory = {};
 
 (function(exports) {
 
-    let spatialInterface, rendererWidth, rendererHeight;
+    let spatialInterface, rendererWidth, rendererHeight, includeCylinder;
     let camera, scene, renderer;
     let containerObj, groundPlaneContainerObj, mesh, cameraShadowGroup, defaultPin, shadowGroup, pathMesh, cylinderMesh, gridHelper;
 
@@ -38,12 +38,13 @@ window.territory = {};
     let prevPointerPosition = null;
     let cylinderDestinationOpacity = 0;
 
-    function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_) {
+    function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_, includeCylinder_) {
         console.log('init renderer');
 
         spatialInterface = spatialInterface_;
         rendererWidth = rendererWidth_;
         rendererHeight = rendererHeight_;
+        includeCylinder = includeCylinder_;
         
         renderer = new THREE.WebGLRenderer( { alpha: true } );
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -100,6 +101,7 @@ window.territory = {};
         const colorCenterLine = new THREE.Color(0, 1, 1);
         const colorGrid = new THREE.Color(0, 1, 1);
         gridHelper = new THREE.GridHelper( gridSize, divisions, colorCenterLine, colorGrid );
+        gridHelper.visible = false; // because defaults to not being in editing mode
         shadowGroup.add(gridHelper);
         
         let planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -295,6 +297,12 @@ window.territory = {};
             topMesh.material.color.setHSL(0, 0, brightness);
         }
         
+        if (includeCylinder) {
+            renderCylinderIfNeeded();
+        }
+    }
+    
+    function renderCylinderIfNeeded() {
         if (cylinderMesh) {
             // console.log('todo');
             // cylinderMesh.rotation.y += 0.01;
@@ -310,11 +318,11 @@ window.territory = {};
         } else if (!isEditingMode) {
             // create a cylinder mesh slightly smaller than the pathMesh but taller
             let shapeData = JSON.parse(lastComputedShape);
-            
+
             let center = getShapeCenter(shapeData);
-            
+
             let adjustedShapeData = [];
-            
+
             shapeData.forEach(function(point) {
                 let dx = point.x - center.x;
                 let dz = point.z - center.z;
@@ -531,42 +539,46 @@ window.territory = {};
             toggleEditingMode();
         }
     }
+    
+    function tryRemovingCylinder() {
+        if (cylinderMesh && cylinderMesh.parent) {
+            try {
+                let objsToRemove = [];
+                cylinderMesh.traverse(function(child) {
+                    if (child.material) {
+                        child.material.dispose();
+                    }
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                    }
+                    objsToRemove.push(child);
+                });
+
+                objsToRemove.forEach(function(obj) {
+                    obj.parent.remove(obj);
+                });
+                renderer.renderLists.dispose();
+            } catch (e) {
+                console.warn('error removing cylinder mesh', e);
+            }
+
+            if (cylinderMesh.parent) {
+                cylinderMesh.parent.remove(cylinderMesh);
+            } else {
+                scene.remove(cylinderMesh);
+            }
+            cylinderMesh = null;
+        }
+    }
 
     function toggleEditingMode() {
         isEditingMode = !isEditingMode;
         if (isEditingMode) {
-            // show gridHelper
             gridHelper.visible = true;
-            if (cylinderMesh && cylinderMesh.parent) {
-                try {
-                    let objsToRemove = [];
-                    cylinderMesh.traverse(function(child) {
-                        if (child.material) {
-                            child.material.dispose();
-                        }
-                        if (child.geometry) {
-                            child.geometry.dispose();
-                        }
-                        objsToRemove.push(child);
-                    });
-                    
-                    objsToRemove.forEach(function(obj) {
-                        obj.parent.remove(obj);
-                    });
-                    renderer.renderLists.dispose();
-                } catch (e) {
-                    console.warn('error removing cylinder mesh', e);
-                }
-
-                if (cylinderMesh.parent) {
-                    cylinderMesh.parent.remove(cylinderMesh);
-                } else {
-                    scene.remove(cylinderMesh);
-                }
-                cylinderMesh = null;
+            if (includeCylinder) {
+                tryRemovingCylinder();
             }
         } else {
-            // hide gridHelper
             gridHelper.visible = false;
         }
         callbacks.onIsEditingChanged.forEach(function(callback) {
