@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <script src="objectDefaultFiles/pep.min.js"></script>
+    <script src="thirdPartyCode/hull.js"></script>
+    <script src="renderer.js"></script>
+    <script src="network.js"></script>
+    <script src="territory.js" type="module"></script>
+    <script src="pathToMesh.js" type="module"></script>
+    <script src="hud.js"></script>
+    <script src="PersistentStorage.js"></script>
+    <meta charset="UTF-8">
+    <title>Realtime Volumetric Envelope</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 736px;
+            height: 414px;
+            overflow: visible;
+        }
+        #rootElementWhenOpen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 736px; /* gets overwritten by spatialInterface.getScreenDimensions but this is a default */
+            height: 414px;
+            color: white;
+            text-align: center;
+            font-size: 24px;
+        }
+        #rootElementWhenClosed {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 736px;
+            height: 414px;
+            /*border-radius: 10px;*/
+            text-align: center;
+            font-size: 24px;
+            line-height: 200px;
+            color: white;
+        }
+        #backgroundCanvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 255, 255, 0.5);
+        }
+        .remoteOperatorButton {
+            position: absolute;
+            border: 2px solid cyan;
+            transform: translateZ(10000px);
+        }
+        .remoteOperatorButton:hover {
+            background-color: rgba(0, 255, 255, 0.3);
+        }
+        .remoteOperatorButton:active {
+            background-color: rgba(0, 255, 255, 0.7);
+        }
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        .visibleFadeIn {
+            opacity: 1;
+
+            animation-name: fadeIn;
+            animation-duration: 500ms;
+            -webkit-animation-fill-mode: forwards; /* Chrome, Safari, Opera */
+            -webkit-animation-timing-function: ease-out;
+        }
+
+    </style>
+</head>
+<body>
+<!-- rootElementWhenOpen is the UI that shows when it is in fullscreen 2D mode -->
+<div id="rootElementWhenOpen">
+    <canvas id="backgroundCanvas"></canvas>
+</div>
+<!-- rootElementWhenClosed is the UI that shows when it minimized into an icon in 3D space -->
+<div id="rootElementWhenClosed">
+<!--    <img src="resources/envelope-icon-new.svg">-->
+<!--    <div id="count"></div>-->
+</div>
+</body>
+<script>
+    let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
+    let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
+    // let count = document.getElementById('count');
+
+    let spatialInterface = new SpatialInterface();
+
+    // this is how to designate this frame as an envelope, automatically enabling all the associated features
+    let isStackable = false;
+    let areFramesOrdered = false;
+    let compatibleFrameTypes = [];
+    let envelope = new Envelope(spatialInterface, compatibleFrameTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);
+
+    // re-render anytime it opens / closes / number of contained frames change
+    envelope.onFrameAdded(renderEnvelope);
+    envelope.onFrameDeleted(renderEnvelope);
+    envelope.onOpen(function() {
+        renderEnvelope();
+        if (window.renderer) {
+            window.renderer.easeIn();
+        }
+    });
+    envelope.onClose(function() {
+        spatialInterface.setFullScreenOn(); // switch back to fullscreen because closing automatically removes it
+        renderEnvelope();
+        if (window.renderer) {
+            window.renderer.easeOut();
+        }
+    })
+    envelope.onPublicDataLoaded(renderEnvelope); // effectively an 'onload', number of contained frames has been loaded
+
+    // opens up the envelope into fullscreen mode when the minimized icon is tapped
+    // rootElementWhenClosed.addEventListener('pointerup', function() {
+    //     envelope.open();
+    // });
+
+    /**
+     * Icon shows a counter of how many frames it contains
+     */
+    function renderEnvelope() {
+        // let numContainedFrames = Object.keys(envelope.containedFrames).length;
+        // if (!envelope.isOpen) {
+        //     if (numContainedFrames === 0) {
+        //         count.innerText = '';
+        //     } else {
+        //         count.innerText = numContainedFrames;
+        //     }
+        // }
+    }
+    
+    // --------- Volumetric Rendering Code --------- //
+    // all handled in renderer.js and network.js
+
+    const tempUuid = uuidTimeShort();
+    const DEBUG_ZONE_IP = 'http://10.10.10.121:3020'; // TODO: get this programmatically
+
+    spatialInterface.getScreenDimensions(function(width, height) {
+        document.body.width = width + 'px';
+        document.body.height = height + 'px';
+        rootElementWhenClosed.style.width = width + 'px';
+        rootElementWhenClosed.style.height = height + 'px';
+        rootElementWhenOpen.style.width = width + 'px';
+        rootElementWhenOpen.style.height = height + 'px';
+
+        console.log('got screen dimensions', parseInt(document.body.width), parseInt(document.body.height));
+
+        window.initStorage(spatialInterface, 'storage');
+
+        window.territory.onLoaded(function() {
+            console.log('territory three.js scene loaded');
+        });
+        window.territory.onContentPressed(function(intersects) {
+            console.log('territory content pressed');
+            // console.log(intersects);
+            // if (intersects.length > 0) {
+            //     if (intersects[0].object.name === 'toggleMesh') {
+            //         console.log('pressed handle');
+            //         window.territory.toggleEditingMode();
+            //     }
+            // }
+            // envelope.open();
+        });
+        window.territory.onIsEditingChanged(function(isEditing) {
+            if (isEditing) {
+                window.hud.showEditingHUD();
+            } else {
+                window.hud.hideEditingHUD();
+            }
+        });
+        window.hud.onIsEditingChanged(function(isEditing) {
+            window.territory.setEditingMode(isEditing);
+        });
+        window.territory.onOccupancyChanged(function(isOccupied) {
+            if (isOccupied) {
+                envelope.open();
+            } else {
+                envelope.close();
+            }
+        });
+        window.territory.init(spatialInterface, width, height, rootElementWhenClosed, true);
+        window.hud.init(spatialInterface, width, height, rootElementWhenClosed);
+
+        window.storage.listen('shape', function(points) {
+            window.territory.loadShapeData(points);
+        });
+        window.storage.load();
+
+        // const pathData = JSON.parse("[{\"x\":341.71792306026754,\"y\":0,\"z\":0},{\"x\":195.55390760077245,\"y\":0,\"z\":142.07823038959197},{\"x\":74.69494607063868,\"y\":0,\"z\":229.887405831798},{\"x\":-74.69494607063865,\"y\":0,\"z\":229.88740583179802},{\"x\":-195.55390760077242,\"y\":0,\"z\":142.078230389592},{\"x\":-241.71792306026754,\"y\":0,\"z\":2.960190807723028e-14},{\"x\":-195.55390760077245,\"y\":0,\"z\":-142.07823038959194},{\"x\":-74.69494607063871,\"y\":0,\"z\":-229.887405831798},{\"x\":74.69494607063862,\"y\":0,\"z\":-229.88740583179802},{\"x\":195.55390760077242,\"y\":0,\"z\":-142.07823038959202},{\"x\":241.71792306026754,\"y\":0,\"z\":0}]");
+        // const pathData = JSON.parse("[{\"x\":241.71792306026754,\"y\":0,\"z\":0},{\"x\":195.55390760077245,\"y\":0,\"z\":142.07823038959197},{\"x\":74.69494607063868,\"y\":0,\"z\":229.887405831798},{\"x\":-74.69494607063865,\"y\":0,\"z\":229.88740583179802},{\"x\":-195.55390760077242,\"y\":0,\"z\":142.078230389592},{\"x\":-241.71792306026754,\"y\":0,\"z\":2.960190807723028e-14},{\"x\":-195.55390760077245,\"y\":0,\"z\":-142.07823038959194},{\"x\":-74.69494607063871,\"y\":0,\"z\":-229.887405831798},{\"x\":74.69494607063862,\"y\":0,\"z\":-229.88740583179802},{\"x\":195.55390760077242,\"y\":0,\"z\":-142.07823038959202},{\"x\":241.71792306026754,\"y\":0,\"z\":0}]");
+        // window.territory.loadShapeData(pathData);
+
+        const isEditingMode = true;
+        let isPointerDown = false;
+        let canvas = document.getElementById('threejsCanvas');
+        canvas.addEventListener('pointerdown', function(e) {
+            if (!isEditingMode) { return; }
+
+            isPointerDown = true;
+            window.territory.pointerDown(e.clientX, e.clientY);
+            window.hud.pointerDown();
+        });
+        canvas.addEventListener('pointermove', function(e) {
+            if (!isEditingMode) { return; }
+            if (!isPointerDown) { return; }
+
+            window.territory.pointerMove(e.clientX, e.clientY);
+            window.hud.pointerMove(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('pointerup', function(e) {
+            if (!isEditingMode) { return; }
+            if (!isPointerDown) { return; }
+
+            isPointerDown = false;
+            window.territory.pointerUp(e.clientX, e.clientY);
+            window.hud.pointerUp();
+        });
+
+        // resize tool to fill the screen because closed envelope usually doesn't
+        spatialInterface.changeFrameSize(width, height);
+        
+        spatialInterface.addUnityCameraMatrixListener(function(unityCameraMatrix, projectionMatrix) {
+            if (!envelope.isOpen) { return; }
+
+            window.network.sendMatricesToRealityZones(unityCameraMatrix, projectionMatrix);
+        });
+
+        setTimeout(function() {
+            window.network.establishConnectionWithZone(DEBUG_ZONE_IP); // TODO: wait to do this until it is opened the first time
+        }, 1000);
+    });
+
+    /**
+     * Generates a random 8 character unique identifier using uppercase, lowercase, and numbers (e.g. "jzY3y338")
+     * @return {string}
+     */
+    function uuidTimeShort() {
+        var dateUuidTime = new Date();
+        var abcUuidTime = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var stampUuidTime = parseInt("" + dateUuidTime.getMilliseconds() + dateUuidTime.getMinutes() + dateUuidTime.getHours() + dateUuidTime.getDay()).toString(36);
+        while (stampUuidTime.length < 8) stampUuidTime = abcUuidTime.charAt(Math.floor(Math.random() * abcUuidTime.length)) + stampUuidTime;
+        return stampUuidTime;
+    }
+
+    /**
+     * @desc This function multiplies one m16 matrix with a second m16 matrix
+     * @param {Array.<number>} m2 - origin matrix to be multiplied with
+     * @param {Array.<number>} m1 - second matrix that multiplies.
+     * @return {Array.<number>} m16 matrix result of the multiplication
+     */
+    function multiplyMatrix(m2, m1, r) {
+        // var r = [];
+        // Cm1che only the current line of the second mm1trix
+        r[0] = m2[0] * m1[0] + m2[1] * m1[4] + m2[2] * m1[8] + m2[3] * m1[12];
+        r[1] = m2[0] * m1[1] + m2[1] * m1[5] + m2[2] * m1[9] + m2[3] * m1[13];
+        r[2] = m2[0] * m1[2] + m2[1] * m1[6] + m2[2] * m1[10] + m2[3] * m1[14];
+        r[3] = m2[0] * m1[3] + m2[1] * m1[7] + m2[2] * m1[11] + m2[3] * m1[15];
+
+        r[4] = m2[4] * m1[0] + m2[5] * m1[4] + m2[6] * m1[8] + m2[7] * m1[12];
+        r[5] = m2[4] * m1[1] + m2[5] * m1[5] + m2[6] * m1[9] + m2[7] * m1[13];
+        r[6] = m2[4] * m1[2] + m2[5] * m1[6] + m2[6] * m1[10] + m2[7] * m1[14];
+        r[7] = m2[4] * m1[3] + m2[5] * m1[7] + m2[6] * m1[11] + m2[7] * m1[15];
+
+        r[8] = m2[8] * m1[0] + m2[9] * m1[4] + m2[10] * m1[8] + m2[11] * m1[12];
+        r[9] = m2[8] * m1[1] + m2[9] * m1[5] + m2[10] * m1[9] + m2[11] * m1[13];
+        r[10] = m2[8] * m1[2] + m2[9] * m1[6] + m2[10] * m1[10] + m2[11] * m1[14];
+        r[11] = m2[8] * m1[3] + m2[9] * m1[7] + m2[10] * m1[11] + m2[11] * m1[15];
+
+        r[12] = m2[12] * m1[0] + m2[13] * m1[4] + m2[14] * m1[8] + m2[15] * m1[12];
+        r[13] = m2[12] * m1[1] + m2[13] * m1[5] + m2[14] * m1[9] + m2[15] * m1[13];
+        r[14] = m2[12] * m1[2] + m2[13] * m1[6] + m2[14] * m1[10] + m2[15] * m1[14];
+        r[15] = m2[12] * m1[3] + m2[13] * m1[7] + m2[14] * m1[11] + m2[15] * m1[15];
+    }
+
+    function makeGroundPlaneRotationY(theta) {
+        var c = Math.cos(theta), s = Math.sin(theta);
+        return [
+            c, 0, s, 0,
+            0, 1, 0, 0,
+            -s, 0, c, 0,
+            0, 0, 0, 1
+        ];
+    }
+
+    /**
+     * @desc inverting a matrix
+     * @param {Array.<number>} a origin matrix
+     * @return {Array.<number>} a inverted copy of the origin matrix
+     */
+    function invertMatrix(a) {
+        var b = [];
+        var c = a[0], d = a[1], e = a[2], g = a[3], f = a[4], h = a[5], i = a[6], j = a[7], k = a[8], l = a[9], o = a[10], m = a[11], n = a[12], p = a[13], r = a[14], s = a[15], A = c * h - d * f, B = c * i - e * f, t = c * j - g * f, u = d * i - e * h, v = d * j - g * h, w = e * j - g * i, x = k * p - l * n, y = k * r - o * n, z = k * s - m * n, C = l * r - o * p, D = l * s - m * p, E = o * s - m * r, q = 1 / (A * E - B * D + t * C + u * z - v * y + w * x);
+        b[0] = (h * E - i * D + j * C) * q;
+        b[1] = ( -d * E + e * D - g * C) * q;
+        b[2] = (p * w - r * v + s * u) * q;
+        b[3] = ( -l * w + o * v - m * u) * q;
+        b[4] = ( -f * E + i * z - j * y) * q;
+        b[5] = (c * E - e * z + g * y) * q;
+        b[6] = ( -n * w + r * t - s * B) * q;
+        b[7] = (k * w - o * t + m * B) * q;
+        b[8] = (f * D - h * z + j * x) * q;
+        b[9] = ( -c * D + d * z - g * x) * q;
+        b[10] = (n * v - p * t + s * A) * q;
+        b[11] = ( -k * v + l * t - m * A) * q;
+        b[12] = ( -f * C + h * y - i * x) * q;
+        b[13] = (c * C - d * y + e * x) * q;
+        b[14] = ( -n * u + p * B - r * A) * q;
+        b[15] = (k * u - l * B + o * A) * q;
+        return b;
+    }
+
+</script>
+</html>
