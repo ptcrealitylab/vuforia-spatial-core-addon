@@ -16,7 +16,8 @@ window.territory = {};
         onLoaded: [],
         onContentPressed: [],
         onOccupancyChanged: [],
-        onIsEditingChanged: []
+        onIsEditingChanged: [],
+        onDistanceChanged: []
     };
 
     // const radius = 1000;
@@ -165,7 +166,7 @@ window.territory = {};
         // updatePathMesh(1);
 
         // light the scene with a combination of ambient and directional white light
-        var ambLight = new THREE.AmbientLight(0xaaaaaa);
+        var ambLight = new THREE.AmbientLight(0xcccccc);
         groundPlaneContainerObj.add(ambLight);
         var dirLight1 = new THREE.DirectionalLight(0xaaaaaa, 0.8);
         dirLight1.position.set(0, 5000, 0);
@@ -264,10 +265,20 @@ window.territory = {};
             pointerMove(prevPointerPosition.x, prevPointerPosition.y);
         }
         
-        if (!isShapeDefined()) { return; }
-        
         let cameraCoordinates = new THREE.Vector3(cameraShadowGroup.position.x, cameraShadowGroup.position.y, cameraShadowGroup.position.z);    // world coordinates
         cameraShadowGroup.parent.localToWorld(cameraCoordinates);
+
+        let meshCoordinates = new THREE.Vector3(shadowGroup.position.x, shadowGroup.position.y, shadowGroup.position.z);    // world coordinates
+        shadowGroup.parent.localToWorld(meshCoordinates);
+
+        let dx = cameraCoordinates.x - meshCoordinates.x;
+        let dz = cameraCoordinates.y - meshCoordinates.z;
+        let distanceToMesh = Math.sqrt(dx * dx + dz * dz);
+        callbacks.onDistanceChanged.forEach(function(callback) {
+            callback(distanceToMesh);
+        });
+
+        if (!isShapeDefined()) { return; }
 
         // calculate using even-odd rule
         let hullPoints = JSON.parse(lastComputedShape).map(function(point) {
@@ -413,7 +424,11 @@ window.territory = {};
     function onIsEditingChanged(callback) {
         callbacks.onIsEditingChanged.push(callback);
     }
-    
+
+    function onDistanceChanged(callback) {
+        callbacks.onDistanceChanged.push(callback);
+    }
+
     function loadShapeData(points) {
         console.log('load shape data', points);
         updatePathMesh(JSON.parse(JSON.stringify(points)), 1.0);
@@ -634,6 +649,7 @@ window.territory = {};
     exports.onContentPressed = onContentPressed;
     exports.onOccupancyChanged = onOccupancyChanged;
     exports.onIsEditingChanged = onIsEditingChanged;
+    exports.onDistanceChanged = onDistanceChanged;
     exports.loadShapeData = loadShapeData;
 
     exports.pointerDown = pointerDown;

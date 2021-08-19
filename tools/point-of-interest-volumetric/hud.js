@@ -149,9 +149,18 @@ window.hud = {};
         callbacks.onIsEditingChanged.push(callback);
     }
 
+    function toggleProximityVisibility(newVisibility) {
+        if (newVisibility) {
+            pencilButton.classList.remove('proximityHidden');
+        } else {
+            pencilButton.classList.add('proximityHidden');
+        }
+    }
+
     exports.init = init;
     exports.showEditingHUD = showEditingHUD;
     exports.hideEditingHUD = hideEditingHUD;
+    exports.toggleProximityVisibility = toggleProximityVisibility;
 
     exports.pointerDown = pointerDown;
     exports.pointerMove = pointerMove;

@@ -48,7 +48,7 @@
             top: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0, 255, 255, 0.5);
+            background-color: transparent; /* rgba(0, 255, 255, 0.5); */
         }
         .remoteOperatorButton {
             position: absolute;
@@ -77,7 +77,9 @@
             -webkit-animation-fill-mode: forwards; /* Chrome, Safari, Opera */
             -webkit-animation-timing-function: ease-out;
         }
-
+        .proximityHidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -190,6 +192,13 @@
                 envelope.close();
             }
         });
+        // window.territory.onDistanceChanged(function(newDistance) {
+        //     if (newDistance > 2000) {
+        //         window.hud.toggleProximityVisibility(false);
+        //     } else {
+        //         window.hud.toggleProximityVisibility(true);
+        //     }
+        // });
         window.territory.init(spatialInterface, width, height, rootElementWhenClosed, true);
         window.hud.init(spatialInterface, width, height, rootElementWhenClosed);
 
