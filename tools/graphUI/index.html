@@ -212,7 +212,7 @@
         }
         
         function scaleVal(number) {
-            return (number * (properties.unitMax-properties.unitMin))+properties.unitMin;
+            return (number * (properties.unitMax - properties.unitMin)) + properties.unitMin;
         }
 
         dataValue.textContent = scaleVal(properties.value).toPrecision(7).substring(0,8);

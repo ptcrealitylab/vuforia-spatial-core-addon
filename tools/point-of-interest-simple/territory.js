@@ -27,7 +27,7 @@ window.territory = {};
     let lastComputedShape = undefined;
     let lastModelMatrix = undefined;
     
-    const planeSize = 5000;
+    const planeSize = 10000;
     let pointsInProgress = [];
 
     let isEditingMode = false;

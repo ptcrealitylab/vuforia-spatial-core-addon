@@ -39,6 +39,10 @@ window.territory = {};
     let cylinderDestinationOpacity = 0;
     
     const meshColor = 0xfed003;
+    
+    let lineGeometry;
+    let linePoints = [];
+    let lineObject;
 
     function init(spatialInterface_, rendererWidth_, rendererHeight_, parentElement_, includeCylinder_) {
         console.log('init renderer');
@@ -64,7 +68,7 @@ window.territory = {};
         scene.add(containerObj);
 
         // let geometry = new THREE.BoxBufferGeometry(250, 250, 250);
-        let geometry = new THREE.BoxBufferGeometry(100, 100, 100);
+        let geometry = new THREE.BoxBufferGeometry(200, 200, 200);
         // let material = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.7});
         // let material = new THREE.MeshPhongMaterial( { color: 0x00ffff, flatShading: true, vertexColors: THREE.VertexColors, shininess: 0 } );
 
@@ -114,27 +118,40 @@ window.territory = {};
         planeMesh.name = 'planeMesh';
         shadowGroup.add( planeMesh );
 
-        let geometrycube = new THREE.BoxGeometry( 10, 10, 10 );
+        let geometrycube = new THREE.BoxGeometry( 30, 10, 30 );
         let materialcube = new THREE.MeshBasicMaterial( {color: 0xffffff} );
         defaultPin = new THREE.Mesh( geometrycube, materialcube );  // white
         shadowGroup.add( defaultPin );
         defaultPin.position.set(0, 0, 0);
-        let material1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
-        let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
-        let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
-        let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
-        let cube_x = new THREE.Mesh( geometrycube, material1 );  // red
-        shadowGroup.add( cube_x );
-        shadowGroup.add( cube_z );
-        shadowGroup.add( cube_y );
-        cube_x.position.set(50, 0, 0);
-        cube_y.position.set(0, 50, 0);
-        cube_z.position.set(0, 0, 50);
-        cube_y.name = 'cube_y';
-        cube_z.name = 'cube_z';
-        cube_x.name = 'cube_x';
+        // let material1 = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+        // let material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        // let material3 = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+        // let cube_z = new THREE.Mesh( geometrycube, material2 ); // green
+        // let cube_y = new THREE.Mesh( geometrycube, material3 ); // blue
+        // let cube_x = new THREE.Mesh( geometrycube, material1 );  // red
+        // shadowGroup.add( cube_x );
+        // shadowGroup.add( cube_z );
+        // shadowGroup.add( cube_y );
+        // cube_x.position.set(50, 0, 0);
+        // cube_y.position.set(0, 50, 0);
+        // cube_z.position.set(0, 0, 50);
+        // cube_y.name = 'cube_y';
+        // cube_z.name = 'cube_z';
+        // cube_x.name = 'cube_x';
         groundPlaneContainerObj.add(shadowGroup);
+
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0xffffff
+        });
+
+        linePoints = [];
+        linePoints.push( new THREE.Vector3( 0, 0, 0 ) );
+        linePoints.push( new THREE.Vector3( 0, 1000, 0 ) );
+
+        lineGeometry = new THREE.BufferGeometry().setFromPoints( linePoints );
+
+        lineObject = new THREE.Line( lineGeometry, lineMaterial );
+        shadowGroup.add( lineObject );
 
         // let path = [];
         // let numPoints = 10;
@@ -176,7 +193,15 @@ window.territory = {};
             groundPlaneContainerObj.worldToLocal(meshCoordinates);   // convert to ground plane coordinates
 
             shadowGroup.position.set(meshCoordinates.x, 0, meshCoordinates.z);
-            
+
+            // update line to match height of mesh
+            linePoints[1] = new THREE.Vector3( 0, meshCoordinates.y, 0 );
+            lineObject.geometry.setFromPoints(linePoints);
+
+            // lineGeometry = new THREE.BufferGeometry().setFromPoints( points );
+            // const line = new THREE.Line( lineGeometry, lineMaterial );
+            // shadowGroup.add( line );
+
             let cameraCoordinates = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
             cameraShadowGroup.parent.worldToLocal(cameraCoordinates);
 

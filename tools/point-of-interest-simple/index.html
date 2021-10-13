@@ -102,7 +102,7 @@
     let spatialInterface = new SpatialInterface();
 
     // this is how to designate this frame as an envelope, automatically enabling all the associated features
-    let isStackable = false;
+    let isStackable = true;
     let areFramesOrdered = false;
     let compatibleFrameTypes = Object.values(Frames);
     let envelope = new Envelope(spatialInterface, compatibleFrameTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areFramesOrdered);

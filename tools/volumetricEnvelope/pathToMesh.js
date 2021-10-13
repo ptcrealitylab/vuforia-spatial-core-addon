@@ -28,7 +28,7 @@ import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
     }
 
     // Converts a path in 3D space to a three.js mesh
-    const pathToMesh = (path) => {
+    const pathToMesh = (path, width_, height_) => {
         if (path.length < 2) {
             return new THREE.Group();
         }
@@ -37,8 +37,8 @@ import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
         const rampRatio = Math.tan(rampAngle * Math.PI / 180);
         const rampLength = rampHeight / rampRatio;
         path[path.length - 1].y = path[0].y; // Simplifies math later
-        const pathWidth = 50; // 50mm
-        const pathHeight = 500; // 50mm
+        const pathWidth = width_ || 50; // 50mm
+        const pathHeight =  height_ || 500; // 50mm
         const topGeometry = new THREE.BufferGeometry(); // The top represents the flat black top of the line
         const wallGeometry = new THREE.BufferGeometry(); // The wall represents the yellow sides of the line
         let topVertices = [];
