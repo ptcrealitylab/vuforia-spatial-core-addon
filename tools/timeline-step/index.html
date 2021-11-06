@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 1. Include envelopeContents.js instead of envelope.js -->
+    <script src="objectDefaultFiles/envelopeContents.js"></script>
+    <meta charset="UTF-8">
+    <title>Timeline Step</title>
+    <style>
+        #container {
+            width: 290px;
+            height: 290px;
+            border: 5px solid black;
+            border-radius: 50%;
+        }
+        .red {
+            background-color: rgb(242,22,121);
+        }
+        .green {
+            background-color: #3AF431;
+        }
+        #number {
+            color: white;
+            font-size: 150px;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 300px;
+            height: 300px;
+            text-align: center;
+            line-height: 300px;
+        }
+    </style>
+</head>
+
+<body style="width: 300px; height: 300px">
+<div id="container">
+    <!-- 2. Add a div inside the container to display the number in the sequence-->
+    <div id="number"></div>
+</div>
+
+<script>
+    let container = document.getElementById('container');
+    let numberField = document.getElementById('number');
+    
+    let spatialInterface = new SpatialInterface();
+    // 2. Allow this tool to be accepted by envelopes by instantiating an EnvelopeContents
+    let envelopeContents = new EnvelopeContents(spatialInterface, document.getElementById('container'));
+    
+    let isStepActive = false;
+    turnOff();
+
+    // 4. Whenever a tool is added or removed from the envelope, this function will trigger for 
+    //    every tool contained by the envelope, and recalculate its position in the sequence
+    envelopeContents.onOrderUpdated(function(event) {
+        console.log('onOrderUpdated');
+        let index = event.index;
+        // let total = event.total;
+        numberField.innerText = (index + 1);// + ' / ' + total;
+    });
+    
+    container.addEventListener('pointerup', function(event) {
+        isStepActive = !isStepActive;
+        
+        if (isStepActive) {
+            turnOn();
+        } else {
+            turnOff();
+        }
+    });
+    
+    function turnOn() {
+        container.classList.add('green');
+        container.classList.remove('red');
+
+        envelopeContents.sendMessageToEnvelope({
+            stepActive: true
+        });
+    }
+    
+    function turnOff() {
+        container.classList.add('red');
+        container.classList.remove('green');
+
+        envelopeContents.sendMessageToEnvelope({
+            stepActive: false
+        });
+    }
+    
+    // envelopeContents.onMessageFromEnvelope(function(envelopeMessage) {
+    //     // trigger onOrderUpdated if needed
+    //     if (typeof envelopeMessage.highlightTarget !== 'undefined') {
+    //         if (envelopeMessage.highlightTarget) {
+    //             // document.getElementById('container').style.backgroundColor = 'rgb(205,255,130)';
+    //             document.getElementById('container').style.borderColor = 'cyan';
+    //         } else {
+    //             document.getElementById('container').style.backgroundColor = '';
+    //             document.getElementById('container').style.borderColor = '';
+    //         }
+    //     }
+    // });
+    
+</script>
+</body>
+</html>

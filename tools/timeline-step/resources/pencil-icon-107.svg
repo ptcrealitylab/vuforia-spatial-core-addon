@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52.06 72.27">
+  <g id="UI">
+    <g>
+      <rect x="4.74" y="24.47" width="41.25" height="20.02" transform="translate(-17.33 37.53) rotate(-57.75)"/>
+      <polygon points="3.29 69.47 21 60.16 4.07 49.47 3.29 69.47"/>
+      <path d="M35.72.26H39a6.55,6.55,0,0,1,6.55,6.55v6.91A6.55,6.55,0,0,1,39,20.28h-3.3a0,0,0,0,1,0,0V.26A0,0,0,0,1,35.72.26Z" transform="translate(10.27 39.16) rotate(-57.75)"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 92.79 91.58">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: aqua;
+        opacity: 0.5;
+      }
+
+      .cls-2 {
+        fill: none;
+        stroke: aqua;
+        stroke-miterlimit: 10;
+        stroke-width: 8px;
+      }
+    </style>
+  </defs>
+  <g id="UI">
+    <polygon class="cls-1" points="31.5 36.91 31.5 54.12 46.4 62.72 61.3 54.12 61.3 36.91 46.4 28.31 31.5 36.91"/>
+    <polygon class="cls-2" points="30.59 36.39 30.59 54.65 46.4 63.77 62.2 54.65 62.2 36.39 46.4 27.26 30.59 36.39"/>
+  </g>
+</svg>

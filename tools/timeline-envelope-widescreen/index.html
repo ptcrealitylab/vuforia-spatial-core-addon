@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Import the Envelope Container APIs -->
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <script src="thirdPartyCode/graph.js"></script>
+    <script src="pathfinding.js"></script>
+    <meta charset="UTF-8">
+    <title>Timeline Envelope</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 1000px;
+            height: 500px;
+            font-size: 24px;
+            text-align: center;
+            overflow: visible;
+        }
+        /* semi-transparent blue fullscreen div */
+        #rootElementWhenOpen {
+            position: absolute;
+            left: 0;
+            top: 0;
+            /* gets overwritten by the envelope APIs to be fullscreen but this is a default */
+            width: 736px;
+            height: 414px;
+            color: white;
+        }
+        /* small cyan icon div */
+        #rootElementWhenClosed {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1000px;
+            height: 500px;
+            overflow: visible;
+        }
+        #canvas {
+            width: 736px;
+            height: 414px;
+        }
+        #smallIcon {
+            position: absolute;
+            left: 150px;
+            top: 150px;
+            width: 200px;
+            height: 200px;
+            transition: all 500ms;
+        }
+        .fadeoutSmallIcon {
+            opacity: 0;
+            transform: scale(3.0);
+        }
+        #bigIcon {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            width: 300px;
+            height: 300px;
+            transition: all 500ms;
+        }
+        .fadeoutBigIcon {
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        .extraBig {
+            /*transform: scale(1.5) rotate(120deg);*/
+            transform: rotate(120deg);
+        }
+        #graphics {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            width: 300px;
+            height: 300px;
+            transition: all 500ms;
+        }
+        .fadeoutGraphics {
+            transform: scale(0.1);
+            opacity: 0;
+        }
+        #details {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            z-index: -1;
+            transition: all 500ms;
+        }
+        .fadeoutDetails {
+            opacity: 0;
+        }
+        #mainDetailText {
+            position: absolute;
+            left: 300px;
+            top: 80px;
+            line-height: 85px;
+            font-size: 42px;
+            font-weight: 500; /* semi-bold */
+        }
+        #subDetailText {
+            position: absolute;
+            left: 300px;
+            top: 172px;
+            line-height: 45px;
+            color: cyan;
+        }
+        #editNameIcon {
+            position: absolute;
+            left: 623px;
+            top: 71px;
+            padding: 30px;
+            z-index: 10;
+        }
+        .modeButton {
+            position: absolute;
+            left: 20px;
+            width: 150px;
+            height: 32px;
+            border: 3px solid cyan;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: cyan;
+            font-size: 12px;
+            line-height: 32px;
+            border-radius: 5px;
+        }
+        .selectedMode {
+            background-color: rgba(0, 255, 255, 0.4);
+        }
+        .modeButton:active {
+            background-color: rgba(0, 255, 255, 0.7);
+        }
+        #startButton {
+            bottom: 55px;
+        }
+        #resetButton {
+            bottom: 10px;
+        }
+        #timelineContainer {
+            position: absolute;
+            left: 190px;
+            width: 595px;
+            height: 85px;
+            bottom: 10px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+        .row {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            height: 10px;
+            width: 400px;
+            /*border-radius: 5px;*/
+            /*background-color: #00ffe6;*/
+        }
+        .interval {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 10px;
+            width: 100px;
+            border-radius: 5px;
+            /*background-color: #00ffe6;*/
+        }
+    </style>
+</head>
+<body>
+<!-- Create a rootElementWhenOpen with the UI that shows when it is in fullscreen 2D mode -->
+<div id="rootElementWhenOpen">
+    <canvas id="canvas" width="736px" height="414px"></canvas>
+    <div id="startButton" class="modeButton">START</div>
+    <div id="resetButton" class="modeButton">RESET</div>
+    <div id="timelineContainer"></div>
+</div>
+<!-- Create a rootElementWhenClosed with the UI that shows when it minimized into an icon -->
+<div id="rootElementWhenClosed">
+    <div id="close">
+        <img id="bigIcon" src="resources/large-icon.svg" width="300px" height="300px">
+        <img id="graphics" src="resources/timeline-icon-no-bkg-153.svg" width="300px" height="300px">
+        <div id="details">
+            <img id="detailsIcon" src="resources/icon-extension.svg" width="858px" height="300px">
+            <div id="mainDetailText">TIMELINE</div>
+            <div id="subDetailText">0 STEPS</div>
+            <img id="editNameIcon" src="resources/pencil-icon-107.svg" width="42px" height="46px">
+        </div>
+    </div>
+    <div id="far">
+        <img id="smallIcon" src="resources/small-icon.svg" width="100px" height="100px">
+    </div>
+</div>
+</body>
+<script>
+    let spatialInterface = new SpatialInterface();
+
+    let frameMetadata = {}; // holds info about each step, such as isCompleted
+
+    // Define a list of the names of tools that can go inside this envelope
+    let compatibleToolTypes = ['timeline-step'];
+    let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
+    let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+
+    let smallIcon = document.getElementById('smallIcon');
+    let bigIcon = document.getElementById('bigIcon');
+    let graphics = document.getElementById('graphics');
+    let details = document.getElementById('details');
+    let mainDetailText = document.getElementById('mainDetailText');
+    let subDetailText = document.getElementById('subDetailText');
+    let editNameIcon = document.getElementById('editNameIcon');
+    
+    let startButton = document.getElementById('startButton');
+    let resetButton = document.getElementById('resetButton');
+    let timelineContainer = document.getElementById('timelineContainer');
+
+    let screenWidth = 736;
+    let screenHeight = 414;
+    
+    let defaultName = 'TIMELINE';
+    let name = defaultName;
+    
+    let currentStep = 0;
+    let isTimelineRunning = false;
+    let timelineData = {};
+    let timelineStartTime;
+
+    // Designate this tool as an envelope by, automatically enabling all the associated features
+    let isStackable = false;
+    let areToolsOrdered = true;
+    let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areToolsOrdered);
+
+    let shouldRender = false;
+
+    let THRESHOLD_VERY_CLOSE = 1200; // less than 500 = close
+    let THRESHOLD_CLOSE = 3200; // less than 1000 = medium
+    // anything bigger than this is considered far
+    // if you want another level, try 2400 for veryFar
+
+    let DISTANCES = Object.freeze({
+        veryClose: 'veryClose',
+        close: 'close',
+        far: 'far'
+    });
+
+    let currentDistance = DISTANCES.close;
+
+    spatialInterface.addMatrixListener(function(modelView, _projection) {
+        var scaleFactor = Math.abs(modelView[0]);
+        var zDistance = Math.abs(modelView[14]);
+
+        let scaledDistance = zDistance/scaleFactor;
+
+        if (scaledDistance < THRESHOLD_VERY_CLOSE) {
+            renderIcon(DISTANCES.veryClose);
+        } else if (scaledDistance < THRESHOLD_CLOSE) {
+            renderIcon(DISTANCES.close);
+        } else {
+            renderIcon(DISTANCES.far);
+        }
+    });
+
+    function renderIcon(distance, forceRender) {
+        if (distance === currentDistance && !forceRender) { return; } // don't re-render redundantly
+
+        currentDistance = distance;
+
+        if (distance === DISTANCES.close || distance === DISTANCES.veryClose) {
+            if (distance === DISTANCES.veryClose) {
+                // render a preview with info related to what's inside
+                if (!bigIcon.classList.contains('extraBig')) {
+                    bigIcon.classList.add('extraBig');
+                }
+
+                if (details.classList.contains('fadeoutDetails')) {
+                    details.classList.remove('fadeoutDetails');
+                }
+
+                mainDetailText.textContent = name.toUpperCase();
+                let fontSize = 42; // pixels
+                if (name.length > 9) { // (max width = 42 * 9 = 378) => (W = 42 * length) => (378/length = fontSize)
+                    fontSize = (42 * 9) / name.length;
+                }
+                mainDetailText.style.fontSize = fontSize + 'px';
+
+                // let numPointsOfInterest = (pathfinder.pointsOfInterest.length-1);
+                let numPointsOfInterest = Object.keys(envelope.containedFrames).length;
+                let plural = numPointsOfInterest === 1 ? '' : 'S';
+                subDetailText.textContent = numPointsOfInterest + ' CHECKPOINT' + plural;
+            } else {
+                if (bigIcon.classList.contains('extraBig')) {
+                    bigIcon.classList.remove('extraBig');
+                }
+
+                if (!details.classList.contains('fadeoutDetails')) {
+                    details.classList.add('fadeoutDetails');
+                }
+            }
+
+            // render the hexagon icon with details
+            if (!smallIcon.classList.contains('fadeoutSmallIcon')) {
+                smallIcon.classList.add('fadeoutSmallIcon');
+            }
+
+            if (bigIcon.classList.contains('fadeoutBigIcon')) {
+                bigIcon.classList.remove('fadeoutBigIcon');
+                graphics.classList.remove('fadeoutGraphics');
+            }
+
+        } else if (distance === DISTANCES.far) {
+            // render a small hexagon
+            if (smallIcon.classList.contains('fadeoutSmallIcon')) {
+                smallIcon.classList.remove('fadeoutSmallIcon');
+            }
+
+            if (!bigIcon.classList.contains('fadeoutBigIcon')) {
+                bigIcon.classList.add('fadeoutBigIcon');
+                graphics.classList.add('fadeoutGraphics');
+            }
+
+            if (bigIcon.classList.contains('extraBig')) {
+                bigIcon.classList.remove('extraBig');
+            }
+
+            if (!details.classList.contains('fadeoutDetails')) {
+                details.classList.add('fadeoutDetails');
+            }
+        }
+    }
+    
+    let isListeningForKeyboard = false;
+
+    function onKeyUp(e) {
+        if (!isListeningForKeyboard) { return; }
+
+        var isCharacter = !!e.key.match(/^[a-zA-Z0-9]$/);
+
+        if (isCharacter) {
+            name = name + e.key;
+        } else {
+            if (e.key === "Backspace") {
+                name = name.slice(0, -1); // remove last character
+            } else if (e.key === " ") {
+                name = name + "\u00a0"; // special space character doesn't get escaped
+            }
+        }
+
+        renderIcon(currentDistance, true);
+
+        // resizeText();
+        spatialInterface.writePublicData("storage", "name",  name);
+    }
+
+    spatialInterface.onKeyboardClosed(function() {
+        isListeningForKeyboard = false; // stop listening once the keyboard closes
+        if (name === '') {
+            name = defaultName;
+            renderIcon(currentDistance, true);
+        }
+        console.log('reset label frame text selection');
+    });
+
+    spatialInterface.addReadPublicDataListener('storage', "name", function (e) {
+        if (typeof e === 'string') {
+            name = e;
+            if (name === '') {
+                name = defaultName;
+            }
+            renderIcon(currentDistance, true);
+        }
+    });
+
+    spatialInterface.onKeyUp(onKeyUp);
+
+    let wasClosedIconPressed = false;
+    rootElementWhenClosed.addEventListener('pointerdown', function(e) {
+        wasClosedIconPressed = true;
+    });
+
+    // Add a touch event that opens up the envelope into fullscreen mode when the icon is tapped
+    rootElementWhenClosed.addEventListener('pointerup', function(e) {
+        if (currentDistance === DISTANCES.close || currentDistance === DISTANCES.veryClose) {
+
+            // if overlapping pencil icon
+            let pencilRect = editNameIcon.getClientRects()[0];
+            if (e.pageX > pencilRect.left && e.pageX < pencilRect.right &&
+                e.pageY > pencilRect.top && e.pageY < pencilRect.bottom) {
+                console.log('edit name');
+
+                isListeningForKeyboard = true;
+
+                if (name === defaultName) {
+                    name = '';
+                    renderIcon(currentDistance, true);
+                }
+
+                spatialInterface.openKeyboard();
+
+            } else {
+
+                if (wasClosedIconPressed) {
+                    console.log('open!');
+                    envelope.open();
+                }
+                
+            }
+        }
+
+        wasClosedIconPressed = false;
+    });
+    
+    startButton.addEventListener('pointerup', function(e) {
+        if (!isTimelineRunning) {
+            startTimeline();
+        } else {
+            stopTimeline();
+        }
+    });
+    
+    function startTimeline() {
+        isTimelineRunning = true;
+        timelineStartTime = Date.now();
+        startButton.innerText = 'STOP';
+    }
+    
+    function stopTimeline() {
+        isTimelineRunning = false;
+        startButton.innerText = 'START';
+    }
+    
+    resetButton.addEventListener('pointerup', function(e) {
+        console.log('TODO: reset timeline when pressed');
+        timelineData = {};
+        frameMetadata = {};
+        isTimelineRunning = false;
+        startButton.innerText = 'START';
+        while (timelineContainer.hasChildNodes()) {
+            timelineContainer.removeChild(timelineContainer.lastChild);
+        }
+    });
+
+    spatialInterface.addReadPublicDataListener('storage', 'viewMode', function (e) {
+        if (typeof e === 'string') {
+            setMode(e);
+        }
+    });
+    
+    // This is the "onload" for the envelope - inside this, containedFrames will be correct
+    envelope.onPublicDataLoaded(function() {
+
+        // Subscribe to positions of all contained tools
+        envelope.forEachFrame(function(frameId, frameData) {
+            // subscribeToFramePosition(frameId, frameData);
+
+            // if (frameData.type === 'navigation-obstacle') {
+            //     pathfinder.addObstacle(frameId);
+            // } else if (frameData.type === 'navigation-point-of-interest') {
+            //     pathfinder.addPointOfInterest(frameId);
+                renderIcon(currentDistance, true);
+            // }
+        });
+        
+    });
+
+    // Subscribe to the positions of any new frames as they get added
+    // {objectId: string, frameId: string, frameType: string}
+    envelope.onFrameAdded(function(frameAddedMessage) {
+        let frameId = frameAddedMessage.frameId;
+        let frameData = envelope.containedFrames[frameId];
+        // subscribeToFramePosition(frameId, frameData);
+
+        // if (frameData.type === 'navigation-obstacle') {
+        //     pathfinder.addObstacle(frameId);
+        // } else if (frameData.type === 'navigation-point-of-interest') {
+        //     pathfinder.addPointOfInterest(frameId);
+            renderIcon(currentDistance, true);
+        // }
+    });
+
+    envelope.onFrameDeleted(function(frameDeletedMessage) {
+        let frameId = frameDeletedMessage.frameId;
+        let frameType = frameDeletedMessage.frameType;
+        // if (frameType === 'navigation-obstacle') {
+        //     pathfinder.removeObstacle(frameId);
+        // } else if (frameType === 'navigation-point-of-interest') {
+        //     pathfinder.removePointOfInterest(frameId);
+            renderIcon(currentDistance, true);
+        // }
+    });
+    
+    // listen for isStepCompleted messages and screenPosition messages from steps
+    envelope.onMessageFromContainedFrame(function(message) {
+        // update completion status of steps in response to isStepCompleted messages
+        if (typeof message.stepActive !== 'undefined') {
+            if (typeof frameMetadata[message.sourceFrame] === 'undefined') {
+                frameMetadata[message.sourceFrame] = {
+                    startsAndStops: []
+                };
+            }
+
+            if (message.stepActive && !isTimelineRunning) {
+                startTimeline();
+            }
+            
+            frameMetadata[message.sourceFrame].stepActive = message.stepActive;
+            frameMetadata[message.sourceFrame].startsAndStops.push({state: message.stepActive, time: Date.now()});
+
+        }
+    });
+
+    render();
+
+    function render() {
+        // if (!shouldRender) {
+        //     requestAnimationFrame(render);
+        //     return;
+        // }
+
+        try {
+            
+            if (isTimelineRunning) {
+                
+                // let activeSteps = [];
+                //
+                // envelope.forEachFrame(function(frameId, frameData) {
+                //     let metadata = frameMetadata[frameId];
+                //     if (metadata.stepActive) {
+                //         let stepIndex = envelope.getFrameIndex(frameId, 'timeline-step');
+                //     }
+                // });
+                
+                renderTimeline();
+                
+            }
+            
+            // let numTools = Object.keys(envelope.containedFrames).length;
+
+            // shouldRender = false;
+            requestAnimationFrame(render);
+        } catch (e) {
+            console.warn('error in render function');
+            requestAnimationFrame(render);
+        }
+    }
+    
+    function renderTimeline() {
+        
+        // create divs for each step
+        envelope.forEachFrame(function(frameId, frameData) {
+            if (!frameMetadata[frameId]) { return; }
+            
+            let stepIndex = envelope.getFrameIndex(frameId, 'timeline-step').index;
+            
+            // make this an empty container for the whole row
+            let div = getOrAddRow(frameId, stepIndex);
+            div.style.top = (5 + (15 * stepIndex)) + 'px';
+
+            // make as many lines as needed for the intervals
+            let intervals = [];
+            
+            let inProgressEntry = {};
+            frameMetadata[frameId].startsAndStops.forEach(function(entry) {
+                if (entry.state === true) {
+                    inProgressEntry.startTime = entry.time - timelineStartTime;
+                } else if (typeof inProgressEntry.startTime !== 'undefined') {
+                    inProgressEntry.endTime = entry.time - timelineStartTime;
+                    intervals.push(JSON.parse(JSON.stringify(inProgressEntry)));
+                    inProgressEntry = {};
+                }
+            });
+
+            if (typeof inProgressEntry.startTime !== 'undefined') {
+                inProgressEntry.endTime = Date.now() - timelineStartTime;
+                intervals.push(JSON.parse(JSON.stringify(inProgressEntry)));
+            }
+            
+            // console.log(intervals);
+            
+            intervals.forEach(function(intervalData) {
+                let intervalDiv = getOrAddInterval(div, intervalData.startTime, intervalData.endTime);
+                intervalDiv.style.backgroundColor = getColorForRow(stepIndex);
+
+                intervalDiv.style.left = Math.floor(intervalData.startTime/100) + 'px';
+                intervalDiv.style.width = Math.floor((intervalData.endTime-intervalData.startTime)/100) + 'px';
+                
+            });
+            
+            // console.log('intervals', intervals);
+        });
+        
+    }
+    
+    function getOrAddRow(frameId, index) {
+        let rowDiv = document.getElementById('row' + frameId);
+        if (!rowDiv) {
+            rowDiv = document.createElement('div');
+            rowDiv.classList.add('row');
+            rowDiv.id = 'row' + frameId;
+            document.getElementById('timelineContainer').appendChild(rowDiv);
+        }
+        return rowDiv;
+    }
+
+    function getOrAddInterval(parent, startTime, endTime) {
+        let intervalDiv = document.getElementById(parent.id + startTime);
+        if (!intervalDiv) {
+            intervalDiv = document.createElement('div');
+            intervalDiv.classList.add('interval');
+            intervalDiv.id = parent.id + startTime;
+            intervalDiv.style.left = Math.floor(startTime/100) + 'px';
+            intervalDiv.style.width = Math.floor((endTime-startTime)/100) + 'px';
+            parent.appendChild(intervalDiv);
+        }
+        return intervalDiv;
+    }
+    
+    function getColorForRow(index) {
+        if (index < 1) {
+            return '#96f592';
+        } else if (index === 1) {
+            return '#d751ed';
+        } else if (index === 2) {
+            return '#e08444';
+        } else if (index === 3) {
+            return '#6136ea';
+        } else if (index === 4) {
+            return '#fefb73';
+        } else {
+            return '#d9456f';
+        }
+    }
+
+</script>
+</html>

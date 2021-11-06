@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 337.46 383.15">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: aqua;
+      }
+
+      .cls-2 {
+        fill: none;
+        stroke: aqua;
+        stroke-miterlimit: 10;
+        stroke-width: 10px;
+      }
+    </style>
+  </defs>
+  <g id="UI">
+    <g>
+      <circle class="cls-1" cx="170.2" cy="304.28" r="11.52"/>
+      <circle class="cls-1" cx="240.38" cy="168.92" r="11.52"/>
+      <circle class="cls-1" cx="170.2" cy="90.94" r="11.52"/>
+      <circle class="cls-1" cx="94.06" cy="233.73" r="11.52"/>
+      <path class="cls-2" d="M170.2,304.28c-67.46-36.81-78.75-58-76.14-70.55,7.56-36.39,136.36-25,146.32-64.81,6-24.09-34.39-55.16-70.18-78"/>
+    </g>
+  </g>
+</svg>

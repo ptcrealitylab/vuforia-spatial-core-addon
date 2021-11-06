@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 337.46 383.15">
+  <defs>
+    <style>
+      .cls-1, .cls-3, .cls-4, .cls-5 {
+        fill: none;
+        stroke-width: 6px;
+      }
+
+      .cls-1, .cls-3 {
+        stroke: teal;
+      }
+
+      .cls-1, .cls-5 {
+        stroke-linejoin: round;
+      }
+
+      .cls-2 {
+        fill: teal;
+      }
+
+      .cls-3, .cls-4 {
+        stroke-miterlimit: 10;
+      }
+
+      .cls-4, .cls-5 {
+        stroke: aqua;
+      }
+
+      .cls-6 {
+        fill: aqua;
+      }
+    </style>
+  </defs>
+  <g id="UI">
+    <g>
+      <polyline class="cls-1" points="141.03 181.55 102.34 256.19 60.35 217.29 102.34 256.19 102.34 138.55"/>
+      <g>
+        <polygon class="cls-2" points="102.34 126.96 90.12 148.13 114.56 148.13 102.34 126.96"/>
+        <polygon class="cls-2" points="146.68 169.13 127.62 182.64 148.85 192.39 146.68 169.13"/>
+        <polygon class="cls-2" points="48.87 205.81 55.32 229.88 72.94 212.26 48.87 205.81"/>
+      </g>
+    </g>
+    <g>
+      <g>
+        <circle class="cls-2" cx="242.43" cy="254.05" r="6.74"/>
+        <circle class="cls-2" cx="283.53" cy="174.77" r="6.74"/>
+        <circle class="cls-2" cx="242.43" cy="129.1" r="6.74"/>
+        <circle class="cls-2" cx="197.84" cy="212.73" r="6.74"/>
+      </g>
+      <path class="cls-3" d="M242.43,254.05c-39.51-21.57-46.12-34-44.59-41.32,4.43-21.31,79.86-14.63,85.69-38,3.52-14.11-20.14-32.3-41.1-45.67"/>
+    </g>
+    <line class="cls-4" x1="168.73" y1="11.09" x2="168.73" y2="372.07"/>
+    <g>
+      <polyline class="cls-5" points="139.03 179.55 100.34 254.19 58.35 215.29 100.34 254.19 100.34 136.55"/>
+      <polygon class="cls-6" points="100.34 124.96 88.12 146.13 112.56 146.13 100.34 124.96"/>
+      <polygon class="cls-6" points="144.68 167.13 125.62 180.64 146.85 190.39 144.68 167.13"/>
+      <polygon class="cls-6" points="46.87 203.81 53.32 227.88 70.94 210.26 46.87 203.81"/>
+    </g>
+    <g>
+      <circle class="cls-6" cx="240.43" cy="252.05" r="6.74"/>
+      <circle class="cls-6" cx="281.53" cy="172.77" r="6.74"/>
+      <circle class="cls-6" cx="240.43" cy="127.1" r="6.74"/>
+      <circle class="cls-6" cx="195.84" cy="210.73" r="6.74"/>
+      <path class="cls-4" d="M240.43,252.05c-39.51-21.57-46.12-34-44.59-41.32,4.43-21.31,79.86-14.63,85.69-38,3.52-14.11-20.14-32.3-41.1-45.67"/>
+    </g>
+  </g>
+</svg>
