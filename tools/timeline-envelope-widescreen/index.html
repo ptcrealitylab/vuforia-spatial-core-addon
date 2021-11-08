@@ -4,7 +4,6 @@
     <!-- Import the Envelope Container APIs -->
     <script src="objectDefaultFiles/envelope.js"></script>
     <script src="thirdPartyCode/graph.js"></script>
-    <script src="pathfinding.js"></script>
     <meta charset="UTF-8">
     <title>Timeline Envelope</title>
     <style>
@@ -25,6 +24,7 @@
             width: 736px;
             height: 414px;
             color: white;
+            pointer-events: none;
         }
         /* small cyan icon div */
         #rootElementWhenClosed {
@@ -34,10 +34,6 @@
             width: 1000px;
             height: 500px;
             overflow: visible;
-        }
-        #canvas {
-            width: 736px;
-            height: 414px;
         }
         #smallIcon {
             position: absolute;
@@ -122,6 +118,7 @@
             font-size: 12px;
             line-height: 32px;
             border-radius: 5px;
+            pointer-events: auto;
         }
         .selectedMode {
             background-color: rgba(0, 255, 255, 0.4);
@@ -138,7 +135,7 @@
         #timelineContainer {
             position: absolute;
             left: 190px;
-            width: 595px;
+            width: calc(100vw - 273px);
             height: 85px;
             bottom: 10px;
             background-color: rgba(0,0,0,0.5);
@@ -167,7 +164,6 @@
 <body>
 <!-- Create a rootElementWhenOpen with the UI that shows when it is in fullscreen 2D mode -->
 <div id="rootElementWhenOpen">
-    <canvas id="canvas" width="736px" height="414px"></canvas>
     <div id="startButton" class="modeButton">START</div>
     <div id="resetButton" class="modeButton">RESET</div>
     <div id="timelineContainer"></div>
@@ -193,13 +189,13 @@
     let spatialInterface = new SpatialInterface();
 
     let frameMetadata = {}; // holds info about each step, such as isCompleted
+    
+    const speed = 50;
 
     // Define a list of the names of tools that can go inside this envelope
-    let compatibleToolTypes = ['timeline-step'];
+    let compatibleToolTypes = ['timeline-step', 'spatial-sensor'];
     let rootElementWhenOpen = document.getElementById('rootElementWhenOpen');
     let rootElementWhenClosed = document.getElementById('rootElementWhenClosed');
-    let canvas = document.getElementById('canvas');
-    let ctx = canvas.getContext('2d');
 
     let smallIcon = document.getElementById('smallIcon');
     let bigIcon = document.getElementById('bigIcon');
@@ -228,7 +224,7 @@
     let isStackable = false;
     let areToolsOrdered = true;
     let envelope = new Envelope(spatialInterface, compatibleToolTypes, rootElementWhenOpen, rootElementWhenClosed, isStackable, areToolsOrdered);
-
+    
     let shouldRender = false;
 
     let THRESHOLD_VERY_CLOSE = 1200; // less than 500 = close
@@ -243,6 +239,14 @@
     });
 
     let currentDistance = DISTANCES.close;
+    
+    envelope.onOpen(function() {
+        spatialInterface.ignoreAllTouches(true);
+    });
+    
+    envelope.onClose(function() {
+        spatialInterface.ignoreAllTouches(false);
+    });
 
     spatialInterface.addMatrixListener(function(modelView, _projection) {
         var scaleFactor = Math.abs(modelView[0]);
@@ -250,13 +254,19 @@
 
         let scaledDistance = zDistance/scaleFactor;
 
-        if (scaledDistance < THRESHOLD_VERY_CLOSE) {
+        // if (scaledDistance < THRESHOLD_VERY_CLOSE) {
+        //     renderIcon(DISTANCES.veryClose);
+        // } else if (scaledDistance < THRESHOLD_CLOSE) {
+        //     renderIcon(DISTANCES.close);
+        // } else {
+        //     renderIcon(DISTANCES.far);
+        // }
+
+        if (scaledDistance < THRESHOLD_CLOSE) {
             renderIcon(DISTANCES.veryClose);
-        } else if (scaledDistance < THRESHOLD_CLOSE) {
-            renderIcon(DISTANCES.close);
         } else {
-            renderIcon(DISTANCES.far);
-        }
+            renderIcon(DISTANCES.close);
+        } // don't render DISTANCES.far, it makes it basically invisible on the remote operator
     });
 
     function renderIcon(distance, forceRender) {
@@ -548,7 +558,7 @@
         envelope.forEachFrame(function(frameId, frameData) {
             if (!frameMetadata[frameId]) { return; }
             
-            let stepIndex = envelope.getFrameIndex(frameId, 'timeline-step').index;
+            let stepIndex = envelope.getFrameIndex(frameId, 'spatial-sensor').index;
             
             // make this an empty container for the whole row
             let div = getOrAddRow(frameId, stepIndex);
@@ -579,8 +589,8 @@
                 let intervalDiv = getOrAddInterval(div, intervalData.startTime, intervalData.endTime);
                 intervalDiv.style.backgroundColor = getColorForRow(stepIndex);
 
-                intervalDiv.style.left = Math.floor(intervalData.startTime/100) + 'px';
-                intervalDiv.style.width = Math.floor((intervalData.endTime-intervalData.startTime)/100) + 'px';
+                intervalDiv.style.left = Math.floor(intervalData.startTime/speed) + 'px';
+                intervalDiv.style.width = Math.floor((intervalData.endTime-intervalData.startTime)/speed) + 'px';
                 
             });
             
@@ -606,8 +616,8 @@
             intervalDiv = document.createElement('div');
             intervalDiv.classList.add('interval');
             intervalDiv.id = parent.id + startTime;
-            intervalDiv.style.left = Math.floor(startTime/100) + 'px';
-            intervalDiv.style.width = Math.floor((endTime-startTime)/100) + 'px';
+            intervalDiv.style.left = Math.floor(startTime/speed) + 'px';
+            intervalDiv.style.width = Math.floor((endTime-startTime)/speed) + 'px';
             parent.appendChild(intervalDiv);
         }
         return intervalDiv;
