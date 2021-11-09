@@ -13,18 +13,14 @@
     var threejsContainerObj;
     var realityInterface;
     var mesh;
-
     var isProjectionMatrixSet = false;
-
     var rendererWidth = screen.height;
     var rendererHeight = screen.width;
     var aspectRatio = rendererWidth / rendererHeight;
-    
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
 
     window.addEventListener('load', function() {
-        
         // create a fullscreen webgl renderer for the threejs content and add to the dom
         renderer = new THREE.WebGLRenderer( { alpha: true } );
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -35,23 +31,42 @@
         camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
         scene = new THREE.Scene();
 
-        // create a parent 3D object to contain all the three js objects
-        // we can apply the marker transform to this object and all of its
-        // children objects will be affected
         threejsContainerObj = new THREE.Object3D();
         threejsContainerObj.matrixAutoUpdate = false;
         scene.add(threejsContainerObj);
 
-        // light the scene with a combination of ambient and directional white light
         var ambLight = new THREE.AmbientLight(0x404040);
         scene.add(ambLight);
-        var dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight1.position.set(100, 100, 100);
-        scene.add(dirLight1);
-        var dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight2.position.set(-100, -100, -100);
-        scene.add(dirLight2);
+        
+        createMesh();
 
+        // make the frame fullscreen within the reality editor,
+        // and subscribe to the modelview and projection matrices
+        realityInterface = new RealityInterface();
+        
+        realityInterface.onRealityInterfaceLoaded(function() {
+
+            realityInterface.getScreenDimensions(function(width, height) {
+                document.body.width = width + 'px';
+                document.body.height = height + 'px';
+                rendererWidth = width;
+                rendererHeight = height;
+                renderer.setSize( rendererWidth, rendererHeight );
+                realityInterface.changeFrameSize(width, height);
+            });
+            
+            realityInterface.setFullScreenOn();
+            realityInterface.setMoveDelay(400);
+            realityInterface.registerTouchDecider(touchDecider);
+            
+            // IMPORTANT: no need to separately subscribe to groundplane and modelview
+            // replace addMatrixListener and addGroundPlaneMatrixListener with addAnchoredModelViewListener
+            realityInterface.subscribeToAnchoredModelView();
+            realityInterface.addAnchoredModelViewListener(renderScene);
+        });
+    });
+    
+    function createMesh() {
         let boxWidthMeters = 0.8;
         let boxHeightMeters = 1.5;
         let boxDepthMeters = 0.8;
@@ -69,55 +84,7 @@
         mesh.position.y = boxHeightMeters / 2 * mToUnit;
         mesh.position.z = 0;
         threejsContainerObj.add( mesh );
-
-        // add spotlight for the shadows
-        var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.position.set(-30, -30, 150);
-        spotLight.castShadow = true;
-        mesh.add(spotLight);
-
-        // make the frame fullscreen within the reality editor,
-        // and subscribe to the modelview and projection matrices
-        realityInterface = new RealityInterface();
-        
-        realityInterface.onRealityInterfaceLoaded(function() {
-
-            realityInterface.getScreenDimensions(function(width, height) {
-                document.body.width = width + 'px';
-                document.body.height = height + 'px';
-                rendererWidth = width;
-                rendererHeight = height;
-                renderer.setSize( rendererWidth, rendererHeight );
-
-                realityInterface.changeFrameSize(width, height);
-            });
-            
-            realityInterface.setFullScreenOn();
-
-            // whenever we receive new matrices from the editor, update the 3d scene
-            // realityInterface.addMatrixListener(renderScene);
-            realityInterface.subscribeToAnchoredModelView();
-            realityInterface.addAnchoredModelViewListener(renderScene);
-
-            realityInterface.setMoveDelay(400);
-            
-            realityInterface.registerTouchDecider(touchDecider);
-
-            // realityInterface.addIsMovingListener(function(e) {
-            //     if (e) {
-            //         console.log('red ball is moving');
-            //         hue = 0.3;
-            //         saturation = 1;
-            //         // lightness = 0.75;
-            //     } else {
-            //         console.log('red ball is NOT moving');
-            //         hue = 0;
-            //         saturation = 0.75;
-            //         lightness = 0.6;
-            //     }
-            // });
-        });
-    });
+    }
     
     function touchDecider(eventData) {
         //1. sets the mouse position with a coordinate system where the center
@@ -157,7 +124,6 @@
             renderer.render( scene, camera );
         }
     }
-
 </script>
 </body>
 </html>
