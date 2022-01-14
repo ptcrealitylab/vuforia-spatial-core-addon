@@ -30,7 +30,7 @@
     "dat.gui": "^0.7.2",
     "eases": "^1.0.8",
     "eventemitter3": "^4.0.0",
-    "three": "^0.89.0",
+    "three": "^0.125.0",
     "three-fbx-loader": "^1.0.3",
     "three-orbit-controls": "^82.1.0",
     "three.meshline": "1.2.0",
