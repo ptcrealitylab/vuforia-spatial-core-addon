@@ -3,6 +3,9 @@ dropzone.js
 /interfaces/robot
 *.min.js
 /tools/machine-gltf/resources
+/tools/motion/assets
+# Should be enabled when possible
+/tools/motion/js
 /tools/pushMe/resources
 /tools/sphere/resources
 /tools/path/js/THREE.MeshLine.js

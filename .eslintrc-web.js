@@ -67,7 +67,8 @@ module.exports = {
         'webkitConvertPointFromPageToNode': 'writable',
     },
     'parserOptions': {
-        'ecmaVersion': 2018
+        'ecmaVersion': 2018,
+        'sourceType': 'module',
     },
     'rules': {
         'no-undef': 'warn',
