@@ -5,3 +5,7 @@ dropzone.js
 /tools/machine-gltf/resources
 /tools/pushMe/resources
 /tools/sphere/resources
+/tools/path/js/THREE.MeshLine.js
+/tools/path/thirdPartyCode
+/tools/pathPoint/resources
+/tools/path/resources
