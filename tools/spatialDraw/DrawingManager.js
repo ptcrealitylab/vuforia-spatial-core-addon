@@ -12,9 +12,14 @@ class DrawingManager {
         this.toolMap = {
             'LINE': new DrawingManager.Tool.Line(this)
         };
+        this.cursorMap = {
+            'OFFSET': new DrawingManager.Cursor.Offset(),
+            'PROJECTION': new DrawingManager.Cursor.Projection(),
+            'PLANE': new DrawingManager.Cursor.Plane()
+        };
 
         this.tool = this.toolMap['LINE'];
-        this.cursor = new DrawingManager.Cursor.Offset();
+        this.cursor = this.cursorMap['OFFSET'];
 
         this.scene = scene;
         this.camera = camera;
@@ -23,8 +28,11 @@ class DrawingManager {
 
         this.erasing = false;
         this.raycaster = new THREE.Raycaster();
-
+        
         this.eventStack = [];
+        this.updateCallbacks = [];
+        
+        this.pointerDown = false;
     }
 
     /**
@@ -41,27 +49,35 @@ class DrawingManager {
      */
     serializeDrawing() {
         const drawings = [];
-        this.drawingGroup.traverse(obj => {
-            if (obj.serialized) {
-                drawings.push(obj.serialized);
+        this.drawingGroup.children.forEach(drawing => {
+            if (drawing.serialized) {
+                drawings.push(drawing.serialized);
             }
         });
         return {drawings};
     }
 
     /**
-     * Deserializes a serialized drawing and populates it into the scene.
+     * Deserializes a serialized drawing and populates it into the scene, replacing the existing drawing.
      * @param {Object} obj - A serialized JSON object representing the drawing
      */
     deserializeDrawing(obj) {
-        this.drawingGroup.traverse(drawing => {
-            if (drawing.serialized) {
-                drawing.parent.remove(drawing);
+        const newDrawings = obj.drawings.filter(newDrawing => !this.drawingGroup.children.some(drawing => newDrawing.drawingId === drawing.drawingId));
+
+        // Remove drawings which are not present in the JSON
+        this.drawingGroup.children.forEach(drawing => {
+            if (drawing.serialized && !obj.drawings.some(newDrawing => newDrawing.drawingId === drawing.drawingId)) {
+                this.drawingGroup.remove(drawing);
             }
         });
-        obj.drawings.forEach(drawing => {
-            this.toolMap[drawing.tool].drawFromSerialized(this.drawingGroup, drawing);
+
+        // Add drawings that are not present in the scene
+        newDrawings.forEach(newDrawing => {
+            this.toolMap[newDrawing.tool].drawFromSerialized(this.drawingGroup, newDrawing);
         });
+
+        console.log(obj);
+        console.log(this.drawingGroup.children);
     }
 
     /**
@@ -123,7 +139,7 @@ class DrawingManager {
 
         this.raycaster.setFromCamera(new THREE.Vector2(position.x, position.y), this.camera);
         const serializedDrawings = [];
-        this.scene.traverse(obj => {
+        this.drawingGroup.children.forEach(obj => {
             if (obj.serialized) {
                 serializedDrawings.push(obj);
             }
@@ -135,10 +151,18 @@ class DrawingManager {
                     type: 'draw',
                     data: intersect.object.serialized
                 };
-                this.pushEvent(undoEvent);
                 intersect.object.parent.remove(intersect.object);
+                this.pushEvent(undoEvent);
             }
         });
+    }
+
+    /**
+     * Calls updateCallbacks with the current state of the drawing.
+     */
+    shareUpdates() {
+        const serializedDrawings = this.serializeDrawing();
+        this.updateCallbacks.forEach(callback => callback(serializedDrawings));
     }
 
     /**
@@ -147,6 +171,7 @@ class DrawingManager {
      */
     pushEvent(event) {
         this.eventStack.push(event);
+        this.shareUpdates();
     }
 
     /**
@@ -158,7 +183,7 @@ class DrawingManager {
             return;
         }
         if (event.type === 'erase') {
-            const target = this.scene.getObjectByName(event.data.name);
+            const target = this.drawingGroup.children.find(child => event.data.drawingId === child.drawingId);
             if (!target) { // Object may have been erased by another user
                 this.undoEvent(); // Skip this undo and undo the next event in the stack
                 return;
@@ -167,6 +192,15 @@ class DrawingManager {
         } else if (event.type === 'draw') {
             this.toolMap[event.data.tool].drawFromSerialized(this.drawingGroup, event.data);
         }
+        this.shareUpdates();
+    }
+
+    /**
+     * Marks a callback to be executed when the drawing updates.
+     * @param {Function} callback - The callback to be executed.
+     */
+    addUpdateCallback(callback) {
+        this.updateCallbacks.push(callback);
     }
 
     /**
@@ -174,6 +208,7 @@ class DrawingManager {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     onPointerDown(pointerEvent) {
+        this.pointerDown = true;
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing) {
             this.erase(pointerEvent);
@@ -188,7 +223,7 @@ class DrawingManager {
      */
     onPointerMove(pointerEvent) {
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
-        if (this.erasing) {
+        if (this.erasing && this.pointerDown) {
             this.erase(pointerEvent);
         } else {
             this.tool.moveDraw(this.drawingGroup, this.cursor.getPosition());
@@ -200,6 +235,7 @@ class DrawingManager {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     onPointerUp(pointerEvent) {
+        this.pointerDown = false;
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing) {
             this.erase(pointerEvent);
@@ -395,12 +431,12 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
      */
     endDraw(parent, position) {
         if (this.currentLine && this.currentLine.obj) {
-            this.currentLine.obj.name = `${this.currentLine.obj.id}`;
+            this.currentLine.obj.drawingId = `${Math.round(Math.random() * 100000000)}`;
 
             const undoEvent = {
                 type: 'erase',
                 data: {
-                    name: this.currentLine.obj.name
+                    drawingId: this.currentLine.obj.drawingId
                 }
             };
 
@@ -409,12 +445,15 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
                 points: this.currentLine.points,
                 size: this.size,
                 color: this.color,
-                name: this.currentLine.obj.name
+                drawingId: this.currentLine.obj.drawingId
             };
+            this.currentLine = null;
+            this.lastPointTime = 0;
             this.drawingManager.pushEvent(undoEvent);
+        } else {
+            this.currentLine = null;
+            this.lastPointTime = 0;
         }
-        this.currentLine = null;
-        this.lastPointTime = 0;
     }
 
     /**
@@ -426,14 +465,16 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         const brushShape = generateBrushShape(drawing.size);
         const brushMaterial = generateBrushMaterial(drawing.color);
 
-        const curve = new THREE.CatmullRomCurve3(drawing.points);
+        const threePoints = drawing.points.map(point => new THREE.Vector3(point.x, point.y, point.z));
+        const curve = new THREE.CatmullRomCurve3(threePoints);
         const extrudeSettings = {
             extrudePath: curve,
-            steps: drawing.points.length - 1
+            steps: threePoints.length - 1
         };
         const geometry = new THREE.ExtrudeGeometry(brushShape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry, brushMaterial);
-        mesh.name = drawing.name;
+        mesh.drawingId = drawing.drawingId;
+        mesh.serialized = drawing;
         parent.add(mesh);
     }
 
@@ -484,6 +525,99 @@ DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
         const ray = this.raycaster.ray;
 
         this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+    }
+
+    /**
+     * Gets the current cursor position.
+     * @returns {THREE.Vector3} - The position of the cursor in the scene.
+     */
+    getPosition() {
+        return this.position;
+    }
+};
+
+DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
+    /**
+     * Creates a Projection Cursor.
+     */
+    constructor() {
+        super();
+        this.position = new THREE.Vector3(0, 0, 0);
+        this.raycaster = new THREE.Raycaster();
+    }
+
+    /**
+     * Updates the cursor position.
+     * @param {THREE.Scene} scene - The scene to calculate the position in.
+     * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
+     * @param {Object} pointerEvent - The triggering pointer event.
+     */
+    updatePosition(scene, camera, pointerEvent) {
+        const offset = pointerEvent.projectedZ;
+        if (!offset) {
+            return;
+        }
+        const position = {
+            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+        };
+
+        this.raycaster.setFromCamera(position, camera);
+
+        const ray = this.raycaster.ray;
+
+        this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+    }
+
+    /**
+     * Gets the current cursor position.
+     * @returns {THREE.Vector3} - The position of the cursor in the scene.
+     */
+    getPosition() {
+        return this.position;
+    }
+};
+
+DrawingManager.Cursor.Plane = class extends DrawingManager.Cursor {
+    /**
+     * Creates a Plane Cursor.
+     */
+    constructor() {
+        super();
+        this.position = new THREE.Vector3(0, 0, 0);
+        this.raycaster = new THREE.Raycaster();
+        this.plane = null;
+    }
+
+    /**
+     * Updates the cursor position.
+     * @param {THREE.Scene} scene - The scene to calculate the position in.
+     * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
+     * @param {Object} pointerEvent - The triggering pointer event.
+     */
+    updatePosition(scene, camera, pointerEvent) {
+        if (!this.plane) {
+            return new THREE.Vector3(0, 0, 0);
+        }
+        const position = {
+            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+        };
+
+        this.raycaster.setFromCamera(position, camera);
+
+        const ray = this.raycaster.ray;
+        ray.intersectPlane(this.plane, this.position);
+    }
+
+    /**
+     * Defines the plane against which the cursor moves using three points on the plane.
+     * @param a - The points that define the plane.
+     * @param b - The points that define the plane.
+     * @param c - The points that define the plane.
+     */
+    setPlane(a, b, c) {
+        this.plane = new THREE.Plane().setFromCoplanarPoints(a,b,c);
     }
 
     /**

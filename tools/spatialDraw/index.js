@@ -1,7 +1,9 @@
 /* global SpatialInterface, DrawingManager, realGl, gl, proxies */
 
 let drawingManager;
+let loadedDrawing;
 let launchedApp = false;
+let lastSync = 0;
 
 // Various threejs and gl proxy support variables
 let realRenderer, renderer;
@@ -23,24 +25,21 @@ text.style.fontSize = (700 / textLength) + 'pt';
 text.addEventListener('pointerup', function () {
     initRenderer().then(() => {
         initDrawingApp();
-        launchedApp = true;
     });
 }, false);
 
 const ui = document.querySelector('#ui');
 const sizeCircles = Array.from(ui.children).filter(child => child.classList.contains('size'));
-sizeCircles.forEach(circle => {
-    const borderWidth = (50 - circle.dataset.size) / 10 + 4;
-    const width = (20 - 2 * (borderWidth - 4));
-    circle.style.borderWidth = `${borderWidth}px`;
-    circle.style.width = `${width}px`;
-    circle.style.height = `${width}px`;
-    circle.style.backgroundColor = '#FF009F';
+sizeCircles.forEach((circle, i) => {
+    circle.setColor = (color) => {
+        Array.from(circle.children)[0].setAttribute('fill', color);
+    };
     circle.addEventListener('pointerdown', e => {
         e.preventDefault();
         sizeCircles.forEach(sizeCircle => sizeCircle.classList.remove('active'));
-        circle.classList.add('active');
-        drawingManager.setSize(circle.dataset.size);
+        const nextCircle = sizeCircles[(i + 1) % sizeCircles.length];
+        nextCircle.classList.add('active'); // Activate next circle
+        drawingManager.setSize(nextCircle.dataset.size);
     });
 });
 const colorCircles = Array.from(ui.children).filter(child => child.classList.contains('color'));
@@ -49,7 +48,7 @@ colorCircles.forEach(circle => {
     circle.style.backgroundColor = circle.dataset.color;
     circle.addEventListener('pointerdown', e => {
         e.preventDefault();
-        sizeCircles.forEach(sizeCircle => sizeCircle.style.backgroundColor = circle.dataset.color);
+        sizeCircles.forEach(sizeCircle => sizeCircle.setColor(circle.dataset.color));
         colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
         eraseCircle.classList.remove('active');
         circle.classList.add('active');
@@ -66,8 +65,17 @@ const undoCircle = Array.from(ui.children).filter(child => child.classList.conta
 undoCircle.addEventListener('pointerdown', e => {
     e.preventDefault();
     undoCircle.classList.add('active');
-    setTimeout(() => undoCircle.classList.remove('active'), 300);
+    setTimeout(() => undoCircle.classList.remove('active'), 150);
     drawingManager.undoEvent();
+});
+const cursorMenuOptions = document.querySelectorAll('.cursor');
+cursorMenuOptions.forEach(cursorMenuOption => {
+    cursorMenuOption.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        cursorMenuOptions.forEach(option => option.classList.remove('active'));
+        cursorMenuOption.classList.add('active');
+        drawingManager.setCursor(drawingManager.cursorMap[cursorMenuOption.dataset.cursor]);
+    });
 });
 
 function resizeText() {
@@ -90,6 +98,10 @@ resetScroll();
 function initDrawingApp() {
     ui.style.display = '';
     drawingManager = new DrawingManager(mainContainerObj, camera);
+    drawingManager.addUpdateCallback(drawingData => {
+        drawingData.time = Date.now();
+        spatialInterface.writePublicData('storage', 'drawing', drawingData);
+    });
     document.addEventListener('pointerdown', e => {
         drawingManager.onPointerDown(e);
     });
@@ -99,6 +111,11 @@ function initDrawingApp() {
     document.addEventListener('pointerup', e => {
         drawingManager.onPointerUp(e);
     });
+    if (loadedDrawing) {
+        drawingManager.deserializeDrawing(loadedDrawing);
+        loadedDrawing = null;
+    }
+    launchedApp = true;
 }
 
 if (!spatialInterface) {
@@ -109,13 +126,11 @@ if (!spatialInterface) {
     setTimeout(() => {
         spatialInterface.initNode('storage', 'storeData');
         spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-            if (!rendererStarted) {
-                initRenderer().then(() => {
-                    initDrawingApp();
-                    drawingManager.deserializeDrawing(drawing);
-                });
-            } else {
+            if (launchedApp && drawing.time > lastSync) {
+                lastSync = drawing.time;
                 drawingManager.deserializeDrawing(drawing);
+            } else {
+                loadedDrawing = drawing;
             }
         });
     }, 1000);
