@@ -14,7 +14,7 @@ class DrawingManager {
         };
         this.cursorMap = {
             'OFFSET': new DrawingManager.Cursor.Offset(),
-            'PROJECTION': new DrawingManager.Cursor.Projection(),
+            'PROJECTION': new DrawingManager.Cursor.SmoothProjection(),
         };
 
         this.tool = this.toolMap['LINE'];
@@ -588,6 +588,68 @@ DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
         const ray = this.raycaster.ray;
 
         this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+    }
+
+    /**
+     * Gets the current cursor position.
+     * @returns {THREE.Vector3} - The position of the cursor in the scene.
+     */
+    getPosition() {
+        return this.position;
+    }
+};
+
+DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
+    /**
+     * Creates a Smooth Projection Cursor, preventing the cursor from jumping into the distance.
+     */
+    constructor() {
+        super();
+        this.position = new THREE.Vector3(0, 0, 0);
+        this.raycaster = new THREE.Raycaster();
+        this.jumpDistanceLimit = 500; // Distance diff considered to be too big, must be smoothed
+        this.holeOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
+        this.failedStart = false; // Attempted to start drawing in a hole
+    }
+
+    /**
+     * Updates the cursor position.
+     * @param {THREE.Scene} scene - The scene to calculate the position in.
+     * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
+     * @param {Object} pointerEvent - The triggering pointer event.
+     */
+    updatePosition(scene, camera, pointerEvent) {
+        if (pointerEvent.type === 'pointerdown') {
+            if (!pointerEvent.projectedZ) { // Cannot start in a hole
+                this.failedStart = true; // Prevents drawing until a new pointerdown event is fired
+            } else {
+                this.failedStart = false;
+            }
+        }
+        if (this.failedStart) {
+            return;
+        }
+        
+        const position = {
+            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+        };
+        this.raycaster.setFromCamera(position, camera);
+        const ray = this.raycaster.ray;
+        
+        if (pointerEvent.projectedZ) {
+            let offset = pointerEvent.projectedZ;
+            let projectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            if (projectedPosition.distanceTo(this.position) > this.jumpDistanceLimit && pointerEvent.type !== 'pointerdown') { // If hole into other geometry
+                offset = this.holeOffset; // Fill holes at last known draw distance
+                projectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            } else { // If continuous surface
+                this.holeOffset = offset; // Set hole offset with successful draw distance
+            }
+            this.position = projectedPosition;
+        } else { // If hole into empty space
+            this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.holeOffset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        }
     }
 
     /**
