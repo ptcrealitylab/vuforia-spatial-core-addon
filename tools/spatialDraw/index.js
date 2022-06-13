@@ -1,8 +1,9 @@
-/* global SpatialInterface, DrawingManager, realGl, gl, proxies */
+/* global SpatialInterface, Envelope, DrawingManager, realGl, gl, proxies */
 
 let drawingManager;
 let loadedDrawing;
-let launchedApp = false;
+let initializedApp = false;
+let appActive = false;
 let lastSync = 0;
 
 // Various threejs and gl proxy support variables
@@ -18,6 +19,24 @@ let aspectRatio;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 
+if (!spatialInterface) {
+    spatialInterface = new SpatialInterface();
+    spatialInterface.setMoveDelay(500);
+    spatialInterface.useWebGlWorker();
+
+    setTimeout(() => {
+        spatialInterface.initNode('storage', 'storeData');
+        spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
+            if (initializedApp && drawing.time > lastSync) {
+                lastSync = drawing.time;
+                drawingManager.deserializeDrawing(drawing);
+            } else {
+                loadedDrawing = drawing;
+            }
+        });
+    }, 1000);
+}
+
 let text = document.querySelector('#text');
 let textLength = text.innerText.length;
 text.style.fontSize = (700 / textLength) + 'pt';
@@ -28,6 +47,8 @@ text.addEventListener('pointerup', function () {
     });
 }, false);
 
+const launchButton = document.querySelector('#launchButton');
+const uiParent = document.querySelector('#uiParent');
 const ui = document.querySelector('#ui');
 const sizeCircles = Array.from(ui.children).filter(child => child.classList.contains('size'));
 sizeCircles.forEach((circle, i) => {
@@ -78,6 +99,19 @@ cursorMenuOptions.forEach(cursorMenuOption => {
     });
 });
 
+const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
+envelope.onOpen(() => {
+    drawingManager.enableInteractions();
+    appActive = true;
+    scene.visible = true;
+});
+envelope.onClose(() => {
+    drawingManager.disableInteractions();
+    appActive = false;
+    scene.visible = false;
+    location.reload();
+})
+
 function resizeText() {
     text.innerText = text.innerText.toUpperCase();
 
@@ -96,7 +130,6 @@ function resetScroll() {
 resetScroll();
 
 function initDrawingApp() {
-    ui.style.display = '';
     drawingManager = new DrawingManager(mainContainerObj, camera);
     drawingManager.addUpdateCallback(drawingData => {
         drawingData.time = Date.now();
@@ -115,25 +148,9 @@ function initDrawingApp() {
         drawingManager.deserializeDrawing(loadedDrawing);
         loadedDrawing = null;
     }
-    launchedApp = true;
-}
-
-if (!spatialInterface) {
-    spatialInterface = new SpatialInterface();
-    spatialInterface.setMoveDelay(500);
-    spatialInterface.useWebGlWorker();
-
-    setTimeout(() => {
-        spatialInterface.initNode('storage', 'storeData');
-        spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-            if (launchedApp && drawing.time > lastSync) {
-                lastSync = drawing.time;
-                drawingManager.deserializeDrawing(drawing);
-            } else {
-                loadedDrawing = drawing;
-            }
-        });
-    }, 1000);
+    initializedApp = true;
+    console.log('Opening envelope');
+    envelope.open();
 }
 
 let mainData = {
@@ -216,11 +233,7 @@ function initRenderer() {
     return new Promise((resolve) => {
         spatialInterface.onSpatialInterfaceLoaded(function() {
             spatialInterface.subscribeToMatrix();
-            spatialInterface.setFullScreenOn();
-            spatialInterface.setVisibilityDistance(100);
-            spatialInterface.prefersAttachingToWorld();
             spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
-            spatialInterface.setMoveDelay(300);
             spatialInterface.registerTouchDecider(touchDecider);
             resolve();
         });
@@ -228,24 +241,7 @@ function initRenderer() {
 }
 
 function touchDecider(eventData) {
-    if (launchedApp) {
-        // TODO: Make system for disabling draw mode
-        return true;
-    }
-
-    //1. sets the mouse position with a coordinate system where the center
-    //   of the screen is the origin
-    mouse.x = (eventData.x / window.innerWidth) * 2 - 1;
-    mouse.y = - (eventData.y / window.innerHeight) * 2 + 1;
-
-    //2. set the picking ray from the camera position and mouse coordinates
-    raycaster.setFromCamera(mouse, camera);
-
-    //3. compute intersections
-    let intersects = raycaster.intersectObjects(scene.children, true);
-
-    // TODO: modify to include bounding box? Or add bbox as object in scene to grab?
-    return intersects.length > 0;
+    return appActive;
 }
 
 function setMatrixFromArray(matrix, array) {

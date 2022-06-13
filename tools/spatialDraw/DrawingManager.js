@@ -15,7 +15,6 @@ class DrawingManager {
         this.cursorMap = {
             'OFFSET': new DrawingManager.Cursor.Offset(),
             'PROJECTION': new DrawingManager.Cursor.Projection(),
-            'PLANE': new DrawingManager.Cursor.Plane()
         };
 
         this.tool = this.toolMap['LINE'];
@@ -33,6 +32,8 @@ class DrawingManager {
         this.updateCallbacks = [];
         
         this.pointerDown = false;
+
+        this.interactionsActive = true;
     }
 
     /**
@@ -204,10 +205,27 @@ class DrawingManager {
     }
 
     /**
+     * Enables drawing interactions 
+     */
+    enableInteractions() {
+        this.interactionsActive = true;
+    }
+
+    /**
+     * Disables drawing interactions
+     */
+    disableInteractions() {
+        this.interactionsActive = false;
+    }
+
+    /**
      * Calls startDraw on the current tool with the position given by the current cursor.
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     onPointerDown(pointerEvent) {
+        if (!this.interactionsActive) {
+            return;
+        }
         this.pointerDown = true;
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing) {
@@ -222,6 +240,9 @@ class DrawingManager {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     onPointerMove(pointerEvent) {
+        if (!this.interactionsActive) {
+            return;
+        }
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing && this.pointerDown) {
             this.erase(pointerEvent);
@@ -235,6 +256,9 @@ class DrawingManager {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     onPointerUp(pointerEvent) {
+        if (!this.interactionsActive) {
+            return;
+        }
         this.pointerDown = false;
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing) {
@@ -567,57 +591,6 @@ DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
         const ray = this.raycaster.ray;
 
         this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return this.position;
-    }
-};
-
-DrawingManager.Cursor.Plane = class extends DrawingManager.Cursor {
-    /**
-     * Creates a Plane Cursor.
-     */
-    constructor() {
-        super();
-        this.position = new THREE.Vector3(0, 0, 0);
-        this.raycaster = new THREE.Raycaster();
-        this.plane = null;
-    }
-
-    /**
-     * Updates the cursor position.
-     * @param {THREE.Scene} scene - The scene to calculate the position in.
-     * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
-     * @param {Object} pointerEvent - The triggering pointer event.
-     */
-    updatePosition(scene, camera, pointerEvent) {
-        if (!this.plane) {
-            return new THREE.Vector3(0, 0, 0);
-        }
-        const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
-        };
-
-        this.raycaster.setFromCamera(position, camera);
-
-        const ray = this.raycaster.ray;
-        ray.intersectPlane(this.plane, this.position);
-    }
-
-    /**
-     * Defines the plane against which the cursor moves using three points on the plane.
-     * @param a - The points that define the plane.
-     * @param b - The points that define the plane.
-     * @param c - The points that define the plane.
-     */
-    setPlane(a, b, c) {
-        this.plane = new THREE.Plane().setFromCoplanarPoints(a,b,c);
     }
 
     /**
