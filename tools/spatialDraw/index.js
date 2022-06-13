@@ -149,7 +149,6 @@ function initDrawingApp() {
         loadedDrawing = null;
     }
     initializedApp = true;
-    console.log('Opening envelope');
     envelope.open();
 }
 

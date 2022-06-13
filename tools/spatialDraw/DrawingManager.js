@@ -76,9 +76,6 @@ class DrawingManager {
         newDrawings.forEach(newDrawing => {
             this.toolMap[newDrawing.tool].drawFromSerialized(this.drawingGroup, newDrawing);
         });
-
-        console.log(obj);
-        console.log(this.drawingGroup.children);
     }
 
     /**
