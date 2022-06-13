@@ -373,7 +373,7 @@ function generateBrushMaterial(color) {
  */
 function generateBrushShape(radius) {
     const circlePoints = [];
-    const circleResolution = 4; // 4 points
+    const circleResolution = 8; // 8 points
 
     for (let i = 0; i < circleResolution; i++) {
         circlePoints.push(new THREE.Vector2(radius * Math.sin(2 * Math.PI * i / circleResolution), radius * Math.cos(2 * Math.PI * i / circleResolution)));
