@@ -143,13 +143,17 @@ function initDrawingApp() {
         spatialInterface.writePublicData('storage', 'drawing', drawingData);
     });
     document.addEventListener('pointerdown', e => {
-        drawingManager.onPointerDown(e);
+        if (e.button === 0) {
+            drawingManager.onPointerDown(e);
+        }
     });
     document.addEventListener('pointermove', e => {
         drawingManager.onPointerMove(e);
     });
     document.addEventListener('pointerup', e => {
-        drawingManager.onPointerUp(e);
+        if (e.button === 0) {
+            drawingManager.onPointerUp(e);
+        }
     });
     if (loadedDrawing) {
         drawingManager.deserializeDrawing(loadedDrawing);
