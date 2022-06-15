@@ -42,9 +42,7 @@ let textLength = text.innerText.length;
 text.style.fontSize = (700 / textLength) + 'pt';
 
 text.addEventListener('pointerup', function () {
-    initRenderer().then(() => {
-        initDrawingApp();
-    });
+    envelope.open();
 }, false);
 
 const launchButton = document.querySelector('#launchButton');
@@ -101,9 +99,18 @@ cursorMenuOptions.forEach(cursorMenuOption => {
 
 const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
 envelope.onOpen(() => {
-    drawingManager.enableInteractions();
-    appActive = true;
-    scene.visible = true;
+    if (!rendererStarted) {
+        initRenderer().then(() => {
+            initDrawingApp();
+            drawingManager.enableInteractions();
+            appActive = true;
+            scene.visible = true;
+        });
+    } else {
+        drawingManager.enableInteractions();
+        appActive = true;
+        scene.visible = true;
+    }
 });
 envelope.onClose(() => {
     drawingManager.disableInteractions();
@@ -136,20 +143,23 @@ function initDrawingApp() {
         spatialInterface.writePublicData('storage', 'drawing', drawingData);
     });
     document.addEventListener('pointerdown', e => {
-        drawingManager.onPointerDown(e);
+        if (e.button === 0) {
+            drawingManager.onPointerDown(e);
+        }
     });
     document.addEventListener('pointermove', e => {
         drawingManager.onPointerMove(e);
     });
     document.addEventListener('pointerup', e => {
-        drawingManager.onPointerUp(e);
+        if (e.button === 0) {
+            drawingManager.onPointerUp(e);
+        }
     });
     if (loadedDrawing) {
         drawingManager.deserializeDrawing(loadedDrawing);
         loadedDrawing = null;
     }
     initializedApp = true;
-    envelope.open();
 }
 
 let mainData = {
