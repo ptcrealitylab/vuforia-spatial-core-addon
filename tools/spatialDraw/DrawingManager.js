@@ -1,6 +1,3 @@
-const debugGeo = new THREE.BoxGeometry(100, 100, 100);
-const debugMat = new THREE.MeshNormalMaterial();
-
 /** Class that draws to a 3D scene. */
 class DrawingManager {
     /**
@@ -27,10 +24,10 @@ class DrawingManager {
 
         this.erasing = false;
         this.raycaster = new THREE.Raycaster();
-        
+
         this.eventStack = [];
         this.updateCallbacks = [];
-        
+
         this.pointerDown = false;
 
         this.interactionsActive = true;
@@ -202,7 +199,7 @@ class DrawingManager {
     }
 
     /**
-     * Enables drawing interactions 
+     * Enables drawing interactions
      */
     enableInteractions() {
         this.interactionsActive = true;
@@ -608,8 +605,29 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         this.position = new THREE.Vector3(0, 0, 0);
         this.raycaster = new THREE.Raycaster();
         this.jumpDistanceLimit = 500; // Distance diff considered to be too big, must be smoothed
-        this.holeOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
-        this.failedStart = false; // Attempted to start drawing in a hole
+        this.lastOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
+        this.activeCursor = false; // Successful pointerdown over geometry
+        this.planePoints = [];
+        this.logDebug = false;
+    }
+
+    debug(msg) {
+        if (this.logDebug) {
+            console.log(msg);
+        }
+    }
+
+    addPlanePoint(position, scene) {
+        if (this.planePoints.length < 3) {
+            const planePoint = new THREE.Object3D();
+            scene.add(planePoint);
+            planePoint.position.copy(position);
+            this.planePoints.push(planePoint);
+        } else {
+            const planePoint = this.planePoints.shift();
+            planePoint.position.copy(position);
+            this.planePoints.push(planePoint);
+        }
     }
 
     /**
@@ -619,36 +637,76 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     updatePosition(scene, camera, pointerEvent) {
+        const projectedZ = pointerEvent.projectedZ;
         if (pointerEvent.type === 'pointerdown') {
-            if (!pointerEvent.projectedZ) { // Cannot start in a hole
-                this.failedStart = true; // Prevents drawing until a new pointerdown event is fired
-            } else {
-                this.failedStart = false;
-            }
+            this.activeCursor = !!projectedZ;
+            this.planePoints.forEach(planePoint => planePoint.parent.remove(planePoint));
+            this.planePoints = [];
         }
-        if (this.failedStart) {
+        if (pointerEvent.type === 'pointerup') {
+            this.activeCursor = false;
+        }
+        if (!this.activeCursor) {
             return;
         }
-        
+
         const position = {
             x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
             y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
         };
         this.raycaster.setFromCamera(position, camera);
         const ray = this.raycaster.ray;
-        
-        if (pointerEvent.projectedZ) {
-            let offset = pointerEvent.projectedZ;
-            let projectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
-            if (projectedPosition.distanceTo(this.position) > this.jumpDistanceLimit && pointerEvent.type !== 'pointerdown') { // If hole into other geometry
-                offset = this.holeOffset; // Fill holes at last known draw distance
-                projectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
-            } else { // If continuous surface
-                this.holeOffset = offset; // Set hole offset with successful draw distance
+
+        const lastOffsetPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.lastOffset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        if (projectedZ) {
+            const meshProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(projectedZ)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            if (this.planePoints.length === 3) { // If plane has been defined
+                const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
+                if (ray.distanceToPlane(plane) !== null) {
+                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane))).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+                    if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
+                        this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
+                        this.debug('plane projection, jump too big');
+                        this.position = planeProjectedPosition;
+                    } else {
+                        this.lastOffset = projectedZ; // Set hole offset with successful draw distance
+                        this.debug('mesh projection, default');
+                        this.addPlanePoint(meshProjectedPosition, scene);
+                        this.position = meshProjectedPosition;
+                    }
+                } else {
+                    this.lastOffset = projectedZ; // Set hole offset with successful draw distance
+                    this.debug('mesh projection, failed to intersect plane');
+                    this.addPlanePoint(meshProjectedPosition, scene);
+                    this.position = meshProjectedPosition;
+                }
+            } else { // If plane has not yet been defined
+                if (pointerEvent.type === 'pointerdown' || Math.abs(this.lastOffset - projectedZ) < this.jumpDistanceLimit) {
+                    this.lastOffset = projectedZ; // Set hole offset with successful draw distance
+                    this.debug('mesh projection, plane undefined');
+                    this.addPlanePoint(meshProjectedPosition, scene);
+                    this.position = meshProjectedPosition;
+                } else { // If hole into other geometry
+                    this.debug('hole projection, jump too big');
+                    this.position = lastOffsetPosition;
+                }
             }
-            this.position = projectedPosition;
         } else { // If hole into empty space
-            this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.holeOffset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            if (this.planePoints.length === 3) { // If plane has been defined
+                const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
+                if (ray.distanceToPlane(plane) !== null) {
+                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane))).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+                    this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
+                    this.debug('plane projection, no mesh, default');
+                    this.position = planeProjectedPosition;
+                } else {
+                    this.debug('hole projection, no mesh, failed to intersect plane');
+                    this.position = lastOffsetPosition;
+                }
+            } else {
+                this.debug('hole projection, no mesh, plane undefined');
+                this.position = lastOffsetPosition;
+            }
         }
     }
 
