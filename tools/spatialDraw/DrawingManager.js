@@ -643,6 +643,7 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         this.raycaster = new THREE.Raycaster();
         this.jumpDistanceLimit = 500; // Distance diff considered to be too big, must be smoothed
         this.lastOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
+        this.bumpTowardsCamera = 15; // Distance by which to shift the cursor towards the camera to prevent z-fighting with surfaces
         this.activeCursor = false; // Successful pointerdown over geometry
         this.planePoints = [];
         this.logDebug = false;
@@ -694,13 +695,13 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         this.raycaster.setFromCamera(position, camera);
         const ray = this.raycaster.ray;
 
-        const lastOffsetPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.lastOffset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        const lastOffsetPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.lastOffset - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
         if (projectedZ) {
-            const meshProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(projectedZ)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            const meshProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(projectedZ - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (ray.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane))).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane) - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
                     if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
                         this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
                         this.debug('plane projection, jump too big');
@@ -732,7 +733,7 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (ray.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane))).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane) - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
                     this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
                     this.debug('plane projection, no mesh, default');
                     this.position = planeProjectedPosition;
