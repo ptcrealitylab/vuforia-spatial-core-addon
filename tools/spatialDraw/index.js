@@ -16,9 +16,6 @@ let rendererWidth;
 let rendererHeight;
 let aspectRatio;
 
-let raycaster = new THREE.Raycaster();
-let mouse = new THREE.Vector2();
-
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
     spatialInterface.setMoveDelay(500);
@@ -108,13 +105,11 @@ envelope.onClose(() => {
     appActive = false;
     scene.visible = false;
     location.reload();
-})
+});
 
 function resizeText() {
     text.innerText = text.innerText.toUpperCase();
-
-    const textLength = text.innerText.length;
-    const fontSize = Math.min(70, (((textLength * 7) + 500) / (textLength))); // font size increases up to 45pt
+    const fontSize = Math.min(70, (((text.innerText.length * 7) + 500) / (text.innerText.length))); // font size increases up to 45pt
     text.style.fontSize = fontSize + 'pt';
 }
 resizeText();
@@ -133,7 +128,7 @@ function initDrawingApp() {
         drawingData.time = Date.now();
         spatialInterface.writePublicData('storage', 'drawing', drawingData);
     });
-    
+
     document.addEventListener('pointerdown', e => {
         if (e.button === 0) {
             drawingManager.onPointerDown(e);
@@ -265,7 +260,8 @@ function initRenderer() {
     });
 }
 
-function touchDecider(eventData) {
+// Gets passed eventData if needed
+function touchDecider() {
     return appActive;
 }
 

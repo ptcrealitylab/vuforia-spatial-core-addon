@@ -318,7 +318,7 @@ DrawingManager.Tool = class {
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
      */
-    startDraw(parent, position) {
+    startDraw() {
     }
 
     /**
@@ -326,7 +326,7 @@ DrawingManager.Tool = class {
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
      */
-    moveDraw(parent, position) {
+    moveDraw() {
     }
 
     /**
@@ -334,7 +334,7 @@ DrawingManager.Tool = class {
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
      */
-    endDraw(parent, position) {
+    endDraw() {
     }
 
     /**
@@ -342,7 +342,7 @@ DrawingManager.Tool = class {
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {Object} drawing - The serialized object defining the object to be drawn.
      */
-    drawFromSerialized(parent, drawing) {
+    drawFromSerialized() {
     }
 
     /**
@@ -377,7 +377,7 @@ DrawingManager.Cursor = class {
      * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
      * @param {Object} pointerEvent - The triggering pointer event.
      */
-    updatePosition(scene, camera, pointerEvent) {
+    updatePosition() {
     }
 
     /**
@@ -484,7 +484,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
      */
-    endDraw(parent, position) {
+    endDraw() {
         if (this.currentLine && this.currentLine.obj) {
             this.currentLine.obj.drawingId = `${Math.round(Math.random() * 100000000)}`;
 
