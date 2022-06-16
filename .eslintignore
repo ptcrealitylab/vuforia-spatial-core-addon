@@ -7,6 +7,7 @@ dropzone.js
 # Should be enabled when possible
 /tools/motion/js
 /tools/pushMe/resources
+/tools/spatialDraw/resources
 /tools/sphere/resources
 /tools/path/js/THREE.MeshLine.js
 /tools/path/thirdPartyCode
