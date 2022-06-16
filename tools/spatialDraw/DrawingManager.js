@@ -26,11 +26,21 @@ class DrawingManager {
         this.raycaster = new THREE.Raycaster();
 
         this.eventStack = [];
-        this.updateCallbacks = [];
-
         this.pointerDown = false;
 
+        this.tempOffsetMode = false;
+
         this.interactionsActive = true;
+
+        this.callbacks = {
+            'color': [],
+            'cursor': [],
+            'eraseMode': [],
+            'size': [],
+            'tool': [],
+            'update': [],
+            'visibility': []
+        };
     }
 
     /**
@@ -39,6 +49,25 @@ class DrawingManager {
      */
     setVisibility(visibility) {
         this.drawingGroup.visible = visibility;
+        this.triggerCallbacks('visibility', visibility);
+    }
+
+    /**
+     * Adds a callback to the given listener.
+     * @param name - The listener name.
+     * @param cb - The callback.
+     */
+    addCallback(name, cb) {
+        this.callbacks[name].push(cb);
+    }
+
+    /**
+     * Triggers callbacks for the given listener.
+     * @param name - The listener name.
+     * @param value - The value passed to the callbacks.
+     */
+    triggerCallbacks(name, value) {
+        this.callbacks[name].forEach(cb => cb(value));
     }
 
     /**
@@ -80,9 +109,10 @@ class DrawingManager {
      * @param {DrawingManager.Tool} tool - The drawing tool.
      */
     setTool(tool) {
-        this.erasing = false;
+        this.setEraseMode(false);
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
         this.tool = tool;
+        this.triggerCallbacks('tool', tool);
     }
 
     /**
@@ -90,8 +120,10 @@ class DrawingManager {
      * @param {DrawingManager.Cursor} cursor - The cursor type.
      */
     setCursor(cursor) {
+        this.setEraseMode(false);
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
         this.cursor = cursor;
+        this.triggerCallbacks('cursor', cursor);
     }
 
     /**
@@ -99,9 +131,10 @@ class DrawingManager {
      * @param {string} color - The color.
      */
     setColor(color) {
-        this.erasing = false;
+        this.setEraseMode(false);
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
         this.tool.setColor(color);
+        this.triggerCallbacks('color', color);
     }
 
     /**
@@ -111,6 +144,7 @@ class DrawingManager {
     setSize(size) {
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
         this.tool.setSize(size);
+        this.triggerCallbacks('size', size);
     }
 
     /**
@@ -120,6 +154,7 @@ class DrawingManager {
     setEraseMode(value) {
         this.erasing = value;
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
+        this.triggerCallbacks('eraseMode', this.erasing);
     }
 
     /**
@@ -157,7 +192,7 @@ class DrawingManager {
      */
     shareUpdates() {
         const serializedDrawings = this.serializeDrawing();
-        this.updateCallbacks.forEach(callback => callback(serializedDrawings));
+        this.triggerCallbacks('update', serializedDrawings);
     }
 
     /**
@@ -191,14 +226,6 @@ class DrawingManager {
     }
 
     /**
-     * Marks a callback to be executed when the drawing updates.
-     * @param {Function} callback - The callback to be executed.
-     */
-    addUpdateCallback(callback) {
-        this.updateCallbacks.push(callback);
-    }
-
-    /**
      * Enables drawing interactions
      */
     enableInteractions() {
@@ -221,6 +248,12 @@ class DrawingManager {
             return;
         }
         this.pointerDown = true;
+        if (this.cursor === this.cursorMap['PROJECTION'] && !this.erasing) {
+            if (!pointerEvent.projectedZ) {
+                this.setCursor(this.cursorMap['OFFSET']);
+                this.tempOffsetMode = true;
+            }
+        }
         this.cursor.updatePosition(this.scene, this.camera, pointerEvent);
         if (this.erasing) {
             this.erase(pointerEvent);
@@ -259,6 +292,10 @@ class DrawingManager {
             this.erase(pointerEvent);
         } else {
             this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
+        }
+        if (this.tempOffsetMode) {
+            this.tempOffsetMode = false;
+            this.setCursor(this.cursorMap['PROJECTION']);
         }
     }
 }

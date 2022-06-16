@@ -54,10 +54,8 @@ sizeCircles.forEach((circle, i) => {
         Array.from(circle.children)[0].setAttribute('fill', color);
     };
     circle.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        sizeCircles.forEach(sizeCircle => sizeCircle.classList.remove('active'));
+        e.stopPropagation();
         const nextCircle = sizeCircles[(i + 1) % sizeCircles.length];
-        nextCircle.classList.add('active'); // Activate next circle
         drawingManager.setSize(nextCircle.dataset.size);
     });
 });
@@ -66,33 +64,27 @@ const eraseCircle = Array.from(ui.children).filter(child => child.classList.cont
 colorCircles.forEach(circle => {
     circle.style.backgroundColor = circle.dataset.color;
     circle.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        sizeCircles.forEach(sizeCircle => sizeCircle.setColor(circle.dataset.color));
-        colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
-        eraseCircle.classList.remove('active');
-        circle.classList.add('active');
+        e.stopPropagation();
         drawingManager.setColor(circle.dataset.color);
     });
 });
 eraseCircle.addEventListener('pointerdown', e => {
-    e.preventDefault();
+    e.stopPropagation();
     colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
     eraseCircle.classList.add('active');
     drawingManager.setEraseMode(true);
 });
 const undoCircle = Array.from(ui.children).filter(child => child.classList.contains('undo'))[0];
 undoCircle.addEventListener('pointerdown', e => {
-    e.preventDefault();
+    e.stopPropagation();
     undoCircle.classList.add('active');
     setTimeout(() => undoCircle.classList.remove('active'), 150);
     drawingManager.undoEvent();
 });
-const cursorMenuOptions = document.querySelectorAll('.cursor');
+const cursorMenuOptions = Array.from(document.querySelectorAll('.cursor'));
 cursorMenuOptions.forEach(cursorMenuOption => {
     cursorMenuOption.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        cursorMenuOptions.forEach(option => option.classList.remove('active'));
-        cursorMenuOption.classList.add('active');
+        e.stopPropagation();
         drawingManager.setCursor(drawingManager.cursorMap[cursorMenuOption.dataset.cursor]);
     });
 });
@@ -102,7 +94,6 @@ envelope.onOpen(() => {
     if (!rendererStarted) {
         initRenderer().then(() => {
             initDrawingApp();
-            drawingManager.enableInteractions();
             appActive = true;
             scene.visible = true;
         });
@@ -138,10 +129,11 @@ resetScroll();
 
 function initDrawingApp() {
     drawingManager = new DrawingManager(mainContainerObj, camera);
-    drawingManager.addUpdateCallback(drawingData => {
+    drawingManager.addCallback('update', drawingData => {
         drawingData.time = Date.now();
         spatialInterface.writePublicData('storage', 'drawing', drawingData);
     });
+    
     document.addEventListener('pointerdown', e => {
         if (e.button === 0) {
             drawingManager.onPointerDown(e);
@@ -159,6 +151,30 @@ function initDrawingApp() {
         drawingManager.deserializeDrawing(loadedDrawing);
         loadedDrawing = null;
     }
+    drawingManager.enableInteractions();
+
+    drawingManager.addCallback('size', (size) => {
+        sizeCircles.forEach(sizeCircle => sizeCircle.classList.remove('active'));
+        const nextCircle = sizeCircles.find(circle => circle.dataset.size === size);
+        nextCircle.classList.add('active'); // Activates
+    });
+    drawingManager.addCallback('color', (color) => {
+        sizeCircles.forEach(sizeCircle => sizeCircle.setColor(color));
+        colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
+        colorCircles.find(circle => circle.dataset.color === color).classList.add('active');
+    });
+    drawingManager.addCallback('eraseMode', (eraseMode) => {
+        if (eraseMode) {
+            eraseCircle.classList.add('active');
+        } else {
+            eraseCircle.classList.remove('active');
+        }
+    });
+    drawingManager.addCallback('cursor', cursor => {
+        cursorMenuOptions.forEach(option => option.classList.remove('active'));
+        cursorMenuOptions.find(option => cursor === drawingManager.cursorMap[option.dataset.cursor]).classList.add('active');
+    });
+
     initializedApp = true;
 }
 
