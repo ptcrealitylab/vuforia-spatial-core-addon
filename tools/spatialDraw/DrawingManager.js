@@ -10,12 +10,12 @@ class DrawingManager {
             'LINE': new DrawingManager.Tool.Line(this)
         };
         this.cursorMap = {
-            'OFFSET': new DrawingManager.Cursor.Offset(),
             'PROJECTION': new DrawingManager.Cursor.SmoothProjection(),
+            'OFFSET': new DrawingManager.Cursor.Offset(),
         };
 
         this.tool = this.toolMap['LINE'];
-        this.cursor = this.cursorMap['OFFSET'];
+        this.cursor = this.cursorMap['PROJECTION'];
 
         this.scene = scene;
         this.camera = camera;
