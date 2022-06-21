@@ -182,7 +182,7 @@ class DrawingManager {
                     data: intersect.object.serialized
                 };
                 intersect.object.parent.remove(intersect.object);
-                this.pushEvent(undoEvent);
+                this.pushUndoEvent(undoEvent);
             }
         });
     }
@@ -199,7 +199,7 @@ class DrawingManager {
      * Adds an undoable event to the event stack.
      * @param {Object} event - The event to be performed if undo is pressed.
      */
-    pushEvent(event) {
+    pushUndoEvent(event) {
         this.eventStack.push(event);
         this.shareUpdates();
     }
@@ -207,7 +207,7 @@ class DrawingManager {
     /**
      * Performs the most recent event in the event stack.
      */
-    undoEvent() {
+    popUndoEvent() {
         const event = this.eventStack.pop();
         if (!event) {
             return;
@@ -215,7 +215,7 @@ class DrawingManager {
         if (event.type === 'erase') {
             const target = this.drawingGroup.children.find(child => event.data.drawingId === child.drawingId);
             if (!target) { // Object may have been erased by another user
-                this.undoEvent(); // Skip this undo and undo the next event in the stack
+                this.popUndoEvent(); // Skip this undo and undo the next event in the stack
                 return;
             }
             target.parent.remove(target);
@@ -369,6 +369,7 @@ DrawingManager.Cursor = class {
      */
     constructor() {
         this.position = new THREE.Vector3(0, 0, 0);
+        this.raycaster = new THREE.Raycaster();
     }
 
     /**
@@ -385,6 +386,22 @@ DrawingManager.Cursor = class {
      * @returns {THREE.Vector3} - The position of the cursor in the scene.
      */
     getPosition() {
+    }
+
+    //TODO: doc
+    getScreenRay(pointerEvent, camera) {
+        const position = {
+            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+        };
+        this.raycaster.setFromCamera(position, camera);
+        return this.raycaster.ray;
+    }
+
+    //TODO: doc
+    screenProject(pointerEvent, distance, camera, scene) {
+        const ray = this.getScreenRay(pointerEvent, camera);
+        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
     }
 };
 
@@ -504,7 +521,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
             };
             this.currentLine = null;
             this.lastPointTime = 0;
-            this.drawingManager.pushEvent(undoEvent);
+            this.drawingManager.pushUndoEvent(undoEvent);
         } else {
             this.currentLine = null;
             this.lastPointTime = 0;
@@ -560,7 +577,6 @@ DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
         super();
         this.offset = 500; // TODO: Add ability for user to set this by tapping in the scene, like focusing camera lens
         this.position = new THREE.Vector3(0, 0, 0);
-        this.raycaster = new THREE.Raycaster();
     }
 
     /**
@@ -570,16 +586,7 @@ DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     updatePosition(scene, camera, pointerEvent) {
-        const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
-        };
-
-        this.raycaster.setFromCamera(position, camera);
-
-        const ray = this.raycaster.ray;
-
-        this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        this.position = super.screenProject(pointerEvent, this.offset, camera, scene);
     }
 
     /**
@@ -598,7 +605,6 @@ DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
     constructor() {
         super();
         this.position = new THREE.Vector3(0, 0, 0);
-        this.raycaster = new THREE.Raycaster();
     }
 
     /**
@@ -612,16 +618,7 @@ DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
         if (!offset) {
             return;
         }
-        const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
-        };
-
-        this.raycaster.setFromCamera(position, camera);
-
-        const ray = this.raycaster.ray;
-
-        this.position = ray.origin.clone().add(ray.direction.clone().multiplyScalar(offset)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        this.position = super.screenProject(pointerEvent, offset, camera, scene);
     }
 
     /**
@@ -640,7 +637,6 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
     constructor() {
         super();
         this.position = new THREE.Vector3(0, 0, 0);
-        this.raycaster = new THREE.Raycaster();
         this.jumpDistanceLimit = 500; // Distance diff considered to be too big, must be smoothed
         this.lastOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
         this.bumpTowardsCamera = 15; // Distance by which to shift the cursor towards the camera to prevent z-fighting with surfaces
@@ -688,22 +684,16 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
             return;
         }
 
-        const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
-        };
-        this.raycaster.setFromCamera(position, camera);
-        const ray = this.raycaster.ray;
-
-        const lastOffsetPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(this.lastOffset - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        const screenRay = super.getScreenRay(pointerEvent, camera);
+        const lastOffsetPosition = super.screenProject(pointerEvent, this.lastOffset - this.bumpTowardsCamera, camera, scene);
         if (projectedZ) {
-            const meshProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(projectedZ - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+            const meshProjectedPosition = super.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
-                if (ray.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane) - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+                if (screenRay.distanceToPlane(plane) !== null) {
+                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
-                        this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
+                        this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                         this.debug('plane projection, jump too big');
                         this.position = planeProjectedPosition;
                     } else {
@@ -732,9 +722,9 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         } else { // If hole into empty space
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
-                if (ray.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = ray.origin.clone().add(ray.direction.clone().multiplyScalar(ray.distanceToPlane(plane) - this.bumpTowardsCamera)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
-                    this.lastOffset = ray.distanceToPlane(plane); // Set hole offset with successful draw distance
+                if (screenRay.distanceToPlane(plane) !== null) {
+                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
+                    this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                     this.debug('plane projection, no mesh, default');
                     this.position = planeProjectedPosition;
                 } else {

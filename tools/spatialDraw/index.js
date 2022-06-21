@@ -76,7 +76,7 @@ undoCircle.addEventListener('pointerdown', e => {
     e.stopPropagation();
     undoCircle.classList.add('active');
     setTimeout(() => undoCircle.classList.remove('active'), 150);
-    drawingManager.undoEvent();
+    drawingManager.popUndoEvent();
 });
 const cursorMenuOptions = Array.from(document.querySelectorAll('.cursor'));
 cursorMenuOptions.forEach(cursorMenuOption => {
@@ -261,7 +261,7 @@ function initRenderer() {
 }
 
 // Gets passed eventData if needed
-function touchDecider() {
+function touchDecider(eventData) {
     return appActive;
 }
 
