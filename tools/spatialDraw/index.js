@@ -242,14 +242,6 @@ function initRenderer() {
     spotLight.castShadow = true;
     mainContainerObj.add(spotLight);
 
-    const boxGeo = new THREE.BoxGeometry(100, 100, 100);
-    const boxMat = new THREE.MeshNormalMaterial();
-    const box = new THREE.Mesh(boxGeo, boxMat);
-    mainContainerObj.add(box);
-    setInterval(() => {
-        box.scale = new THREE.Vector3(100 + 900 * Math.sin(Date.now() / 1000), 100 + 900 * Math.sin(Date.now() / 1000), 100 + 900 * Math.sin(Date.now() / 1000));
-    }, 100);
-
     return new Promise((resolve) => {
         spatialInterface.onSpatialInterfaceLoaded(function() {
             spatialInterface.subscribeToMatrix();
