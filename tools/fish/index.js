@@ -1,6 +1,6 @@
 /* global SpatialInterface, ThreejsInterface */
 
-import * as THREE from './resources/js/three/three.module.js';
+import * as THREE from './three.module.js';
 import { FBXLoader } from './jsm/loaders/FBXLoader.js';
 import Boid from './Boid.js';
 
@@ -122,9 +122,8 @@ function createWorld(scene) {
             boids.push(new Boid(scene, boids, obj, Math.random(), 2 + Math.random(), Math.random()));
         }
 
-        let prevNow = - 1;
-        function animate() {
-            let now = Date.now();
+        let prevNow = -1;
+        function animate(now) {
             if (prevNow < 0) {
                 prevNow = now;
             }
@@ -135,7 +134,7 @@ function createWorld(scene) {
                 boid.update(dt);
             }
         }
-        setInterval(animate, 100);
+        threejsInterface.onRender(animate);
 
         threejsInterface.removePendingLoad();
     });
