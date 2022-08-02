@@ -256,8 +256,14 @@ function initRenderer() {
     scene.add(groundPlaneContainerObj);
 
     // light the scene with ambient light
-    let ambLight = new THREE.AmbientLight(0xFFFFFF);
+    const ambLight = new THREE.AmbientLight(0x404040);
     scene.add(ambLight);
+    const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
+    directionalLight.position.set(0, 100000, 0);
+    groundPlaneContainerObj.add(directionalLight);
+    const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
+    directionalLight2.position.set(100000, 0, 100000);
+    groundPlaneContainerObj.add(directionalLight2);
 
     return new Promise((resolve) => {
         spatialInterface.onSpatialInterfaceLoaded(function() {
@@ -338,3 +344,11 @@ render = function(_now) {
         }
     }
 };
+
+// Launch automatically on first placement.
+spatialInterface.wasToolJustCreated(justCreated => {
+    if (justCreated) {
+        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
+        setTimeout(() => envelope.open(), 500);
+    }
+});

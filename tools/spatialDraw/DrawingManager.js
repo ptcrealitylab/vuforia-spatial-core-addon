@@ -472,7 +472,7 @@ DrawingManager.Cursor = class {
  * @return {THREE.MeshBasicMaterial} - The generated brush material.
  */
 function generateBrushMaterial(color) {
-    return new THREE.MeshToonMaterial({color});
+    return new THREE.MeshBasicMaterial({color});
 }
 
 /**
@@ -689,7 +689,7 @@ DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
         currentObj.iconName = this.selectedIcon.iconName;
         currentObj.traverse(obj => {
             if (obj.material) {
-                obj.material = new THREE.MeshToonMaterial({color: this.color});
+                obj.material = new THREE.MeshLambertMaterial({color: this.color});
             }
         });
         parent.add(currentObj);
@@ -782,7 +782,7 @@ DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
         obj.iconName = selectedIcon.iconName;
         obj.traverse(child => {
             if (child.material) {
-                child.material = new THREE.MeshToonMaterial({color: drawing.color});
+                child.material = new THREE.MeshLambertMaterial({color: drawing.color});
             }
         });
         parent.add(obj);
