@@ -1,5 +1,7 @@
 /* global SpatialInterface, Envelope, DrawingManager, realGl, gl, proxies */
 
+gl.enableWebGL2 = false;
+
 let drawingManager;
 let loadedDrawing;
 let initializedApp = false;
@@ -35,11 +37,8 @@ if (!spatialInterface) {
     }, 1000);
 }
 
-let text = document.querySelector('#text');
-let textLength = text.innerText.length;
-text.style.fontSize = (700 / textLength) + 'pt';
-
-text.addEventListener('pointerup', function () {
+const launchIcon = document.querySelector('#launchButton');
+launchIcon.addEventListener('pointerup', function () {
     envelope.open();
 }, false);
 
@@ -124,13 +123,6 @@ envelope.onClose(() => {
     scene.visible = false;
     location.reload();
 });
-
-function resizeText() {
-    text.innerText = text.innerText.toUpperCase();
-    const fontSize = Math.min(70, (((text.innerText.length * 7) + 500) / (text.innerText.length))); // font size increases up to 45pt
-    text.style.fontSize = fontSize + 'pt';
-}
-resizeText();
 
 function resetScroll() {
     if (window.scrollX !== 0 || window.scrollY !== 0) {
@@ -224,7 +216,6 @@ function initRenderer() {
     rendererStarted = true;
     document.body.width = mainData.width + 'px';
     document.body.height = mainData.height + 'px';
-    text.remove();
     document.querySelector('svg').remove();
     rendererWidth = mainData.width;
     rendererHeight = mainData.height;
