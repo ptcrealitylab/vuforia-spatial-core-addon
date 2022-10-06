@@ -1,5 +1,6 @@
 import RVLParser from './rvl/RVLParser.js';
 import SceneNode from './sceneGraph/SceneNode.js';
+import { VideoElementPlayer, VideoPolyfillPlayer } from './VideoPolyfillPlayer.js';
 
 const POINT_CLOUD_VERTEX_SHADER = `
 uniform sampler2D map;
@@ -65,6 +66,7 @@ void main() {
 
 const VideoManagerStates = {
     EMPTY: 'EMPTY', // No recording yet
+    WAITING_FOR_USER: 'WAITING_FOR_USER', // URL has been set, but waiting until user starts the load manually
     RECORDING: 'RECORDING', // Currently recording
     SAVING: 'SAVING', // Saving the recording
     LOADING: 'LOADING', // Loading the recording
@@ -75,31 +77,53 @@ const VideoManagerStates = {
 // eslint-disable-next-line no-unused-vars
 class VideoManager {
     constructor(scene, mainContainerObj, groundPlaneContainerObj, camera) {
+        this.callbacks = {
+            'STATE': [],
+            'RENDER': []
+        };
+
         this.scene = scene;
+        this.camera = camera;
+        this.floorOffset = 1.5 * 1000; // TODO: Rough placeholder until we get better info from app to prevent video being underground
         this.mainContainerObj = mainContainerObj;
         this.groundPlaneContainerObj = groundPlaneContainerObj;
         this.phoneParent = new THREE.Group();
         this.phone = new THREE.Group();
         this.phone.matrixAutoUpdate = false; // Phone matrix will be set via pose data
         this.phone.frustumCulled = false;
-        this.button = new THREE.Mesh(new THREE.SphereGeometry(100, 16, 8), new THREE.MeshBasicMaterial({color: 0x444444}));
-        this.mainContainerObj.add(this.button);
         this.groundPlaneContainerObj.add(this.phoneParent);
         this.phoneParent.add(this.phone);
         this.phoneParent.rotateX(Math.PI / 2);
-        this.floorOffset = 1.5 * 1000; // Rough placeholder until we get better info from app to prevent video being underground
         this.phoneParent.position.y = this.floorOffset;
+        this.button = new THREE.Mesh(new THREE.SphereGeometry(100, 16, 8), new THREE.MeshBasicMaterial({color: 0x000000, visible: false}));
+        this.mainContainerObj.add(this.button);
 
-        this.camera = camera;
+        this.spriteMaterials = ['empty', 'loading', 'paused', 'playing', 'recording', 'waitingForUser']
+            .map(spriteName => {
+                const material = new THREE.SpriteMaterial({map: new THREE.TextureLoader().load(`sprites/${spriteName}.png`)});
+                material.name = spriteName;
+                return material;
+            });
+        this.spriteMaterials.getByName = spriteName => this.spriteMaterials.find(material => material.name.toLowerCase() === spriteName.toLowerCase());
+        const savingMaterial = new THREE.SpriteMaterial();
+        savingMaterial.name = 'saving';
+        this.spriteMaterials.push(savingMaterial);
+        const spriteAnimationStartTime = Date.now();
+        const savingSpriteTextures = [0, 1, 2, 3].map(index => new THREE.TextureLoader().load(`sprites/saving${index}.png`));
+        const loadingMaterial = this.spriteMaterials.getByName('loading');
+        this.addCallback('RENDER', () => {
+            const elapsedTime = Date.now() - spriteAnimationStartTime;
+            const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
+            savingMaterial.map = savingSpriteTextures[modulo];
+            loadingMaterial.rotation = (Date.now() - spriteAnimationStartTime) / 1000 * 2 * Math.PI / -4; // One rotation per four seconds
+        });
+        this.buttonSprite = new THREE.Sprite(this.spriteMaterials.getByName('empty'));
+        this.button.add(this.buttonSprite);
+        this.buttonSprite.scale.set(200, 200, 1);
 
         this.state = VideoManagerStates.EMPTY;
-        this.currentTime = 0; // Playback currentTime (using video time)
         this.lastRenderTime = -1; // Last rendered frame time (using video time)
-        this.lastRenderRealTime = -1; // Last rendered frame time (using real time)
         this.videoLength = 0;
-        this.callbacks = {
-            'STATE': [],
-        };
 
         this.canvas = {
             color: this.createCanvasElement('colorCanvas', 960, 540),
@@ -108,9 +132,19 @@ class VideoManager {
         this.canvas.depth.imageData = this.canvas.depth.getContext('2d').createImageData(256, 144);
 
         this.video = {
-            color: this.createVideoElement('colorVideo')
+            color: this.createVideoElement()
         };
         this.video.color.onloadedmetadata = evt => this.onVideoMetadata(evt);
+        // this.video.color.videoElement.oncanplay = () => {
+        //     setInterval(() => {
+        //         createImageBitmap(this.video.color.videoElement).then(image => {
+        //             if (this.textures && this.textures.color) {
+        //                 this.textures.color.image = image;
+        //                 this.textures.color.needsUpdate = true;
+        //             }
+        //         });
+        //     }, 100);
+        // };
 
         this.decoder = new TextDecoder();
 
@@ -122,23 +156,28 @@ class VideoManager {
     }
     addCallback(callbackType, callback) {
         this.callbacks[callbackType].push(callback);
+        return callback;
+    }
+    removeCallback(callbackType, callback) {
+        this.callbacks[callbackType].splice(this.callbacks[callbackType].findIndex(callback), 1);
     }
     setState(state) {
         this.state = state;
         this.callbacks['STATE'].forEach(callback => callback(state));
         if (this.state === VideoManagerStates.EMPTY) {
-            this.button.material.color.set(0x222222); // DARK GRAY
+            this.buttonSprite.material = this.spriteMaterials.getByName('empty');
+        } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
+            this.buttonSprite.material = this.spriteMaterials.getByName('paused'); // TODO: make clearer
         } else if (this.state === VideoManagerStates.RECORDING) {
-            this.button.material.color.set(0xFF0000); // RED
+            this.buttonSprite.material = this.spriteMaterials.getByName('recording');
         } else if (this.state === VideoManagerStates.SAVING) {
-            this.button.material.color.set(0x660000); // DARK RED
+            this.buttonSprite.material = this.spriteMaterials.getByName('saving');
         } else if (this.state === VideoManagerStates.LOADING) {
-            this.button.material.color.set(0x000066); // DARK BLUE
+            this.buttonSprite.material = this.spriteMaterials.getByName('loading');
         } else if (this.state === VideoManagerStates.PAUSED) {
-            this.button.material.color.set(0x888888); // GRAY
+            this.buttonSprite.material = this.spriteMaterials.getByName('paused');
         } else if (this.state === VideoManagerStates.PLAYING) {
-            this.lastRenderRealTime = Date.now();
-            this.button.material.color.set(0x00FF00); // GREEN
+            this.buttonSprite.material = this.spriteMaterials.getByName('playing');
         }
     }
     startRecording() {
@@ -156,36 +195,38 @@ class VideoManager {
 
         return fetch(urls.rvl).then(res => res.arrayBuffer()).then(buf => {
             this.rvl = new RVLParser(buf);
-            this.onVideoMetadata({
-                target: {
-                    duration: this.rvl.getDuration()
-                }
-            });
-            setTimeout(() => {
+            if (this.videoLength !== 0) {
                 this.play();
-            }, 2000);
+            }
         });
     }
-    setCurrentTime(currentTime) {
-        if (this.currentTime > this.videoLength && this.videoLength > 0) {
-            this.currentTime = currentTime % this.videoLength;
+    setDefaultURLs(urls) {
+        if (this.state === VideoManagerStates.EMPTY) {
+            this.defaultURLs = urls;
+            this.setState(VideoManagerStates.WAITING_FOR_USER);
         } else {
-            this.currentTime = currentTime;
+            this.loadFromURLs(urls).then(() => {});
         }
-        this.video.color.currentTime = this.currentTime;
-        // TODO: ensure they stay in sync with each loop, check videoElement listeners
+    }
+    setCurrentTime(currentTime) {
+        if (currentTime > this.videoLength && this.videoLength > 0) {
+            this.video.color.currentTime = currentTime % this.videoLength;
+        } else {
+            this.video.color.currentTime = currentTime;
+        }
     }
     setFloorOffset(floorOffset) {
         this.floorOffset = -floorOffset;
         this.phoneParent.position.y = this.floorOffset;
     }
     play() {
-        // iframe never receives touch events directly so cannot play videos normally. >:(
         this.setState(VideoManagerStates.PLAYING);
+        this.video.color.play();
     }
     pause() {
         this.setState(VideoManagerStates.PAUSED);
-        // TODO: ensure currentTime and state gets synchronized with other players when pause happens, use listeners
+        this.video.color.pause();
+        // TODO: ensure currentTime and state gets synchronized with other players when pause happens
     }
     onPointerDown(e) {
         this.raycastPointer.x = (e.pageX / window.innerWidth) * 2 - 1;
@@ -198,6 +239,8 @@ class VideoManager {
     onButtonPress() {
         if (this.state === VideoManagerStates.EMPTY) {
             this.startRecording();
+        } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
+            this.loadFromURLs(this.defaultURLs).then(() => {});
         } else if (this.state === VideoManagerStates.RECORDING) {
             this.stopRecording();
         } else if (this.state === VideoManagerStates.PAUSED) {
@@ -209,24 +252,21 @@ class VideoManager {
         }
     }
     render() {
+        this.callbacks['RENDER'].forEach(callback => callback());
         if (this.state !== VideoManagerStates.PAUSED && this.state !== VideoManagerStates.PLAYING) {
             return;
         }
-        if (this.lastRenderTime === this.currentTime && this.state === VideoManagerStates.PAUSED) {
+        if (this.lastRenderTime === this.video.color.currentTime && this.state === VideoManagerStates.PAUSED) {
             return; // Do not re-render identical frames
         }
-        if (this.state === VideoManagerStates.PLAYING) {
-            const frameInterval = this.lastRenderRealTime === -1 ? 0 : (Date.now() - this.lastRenderRealTime) / 1000; // Video currentTime is in seconds
-            this.setCurrentTime(this.currentTime + frameInterval);
-        }
-        this.lastRenderTime = this.currentTime;
-        this.lastRenderRealTime = Date.now();
-        // TODO: wait until color video loads to render first frame
-        const colorCtx = this.canvas.color.getContext('2d');
-        colorCtx.scale(-1, -1);
-        colorCtx.drawImage(this.video.color, 0, 0, -960, -540);
-        colorCtx.scale(-1, -1);
-        const rvlFrame = this.rvl.getFrameFromDeltaTimeSeconds((this.currentTime - 0.2 + this.videoLength) % this.videoLength); // TODO: remove hacky offset
+        this.lastRenderTime = this.video.color.currentTime;
+
+        // const colorCtx = this.canvas.color.getContext('2d');
+        // colorCtx.scale(-1, -1);
+        // this.video.color.drawToContext(colorCtx, -960, -540, 960, 540);
+        // colorCtx.scale(-1, -1);
+
+        const rvlFrame = this.rvl.getFrameFromDeltaTimeSeconds(this.video.color.currentTime);
         this.rvl.drawFrame(rvlFrame, this.canvas.depth.getContext('2d'), this.canvas.depth.imageData);
 
         const rvlPayload = this.decoder.decode(rvlFrame.payload);
@@ -313,39 +353,34 @@ class VideoManager {
         canvas.height = height;
         canvas.style.backgroundColor = '#FFFFFF';
         canvas.style.display = 'none';
-
-        canvas.addEventListener('pointerup', () => {
-            this.play();
-        });
-        document.body.appendChild(canvas);
         return canvas;
     }
 
     /**
      * Creates a video element for use with getting video frames into THREE.js
-     * @param id - The #id of the video element.
-     * @return {HTMLVideoElement} - The created video element.
+     * @return {VideoElementPlayer} - A player for the created video element.
      */
-    createVideoElement(id) {
-        const video = document.createElement('video');
-        video.id = id;
-        video.setAttribute('width', '256');
-        video.setAttribute('muted', 'muted');
-        video.setAttribute('loop', 'true');
-        video.crossOrigin = 'Anonymous';
-        video.style.display = 'none';
-
-        let source = document.createElement('source');
-        video.appendChild(source);
-
-        video.setSrc = src => {
-            source.src = src;
-            source.type = 'video/mp4';
-            video.load();
-        };
-
-        document.body.appendChild(video);
-        return video;
+    createVideoElement() {
+        return new VideoElementPlayer();
+        // const video = document.createElement('video');
+        // video.id = id;
+        // video.width = 256;
+        // video.loop = true;
+        // video.muted = true;
+        // video.playsInline = true;
+        // video.crossOrigin = 'Anonymous';
+        // video.style.display = 'none';
+        //
+        // let source = document.createElement('source');
+        // video.appendChild(source);
+        //
+        // video.setSrc = src => {
+        //     source.src = src;
+        //     source.type = 'video/mp4';
+        //     video.load();
+        // };
+        //
+        // return video;
     }
 
     /**
@@ -354,6 +389,9 @@ class VideoManager {
      */
     onVideoMetadata(evt) {
         this.videoLength = this.videoLength === 0 ? evt.target.duration : Math.min(this.videoLength, evt.target.duration);
+        if (this.rvl) {
+            this.play();
+        }
     }
 
     /**
@@ -365,7 +403,7 @@ class VideoManager {
             const height = 360;
 
             const geometry = new THREE.PlaneGeometry(width, height, width / 5, height / 5);
-            geometry.translate(width / 2, height / 2, 0); // TODO: fix the original version of this in CameraVis.js, add z-value
+            geometry.translate(width / 2, height / 2, 0);
             const material = this.createPointCloudMaterial();
             const mesh = new THREE.Mesh(geometry, material);
             mesh.scale.set(-1, 1, -1);
@@ -386,8 +424,22 @@ class VideoManager {
         const height = 360;
 
         this.textures = {
-            color: new THREE.CanvasTexture(this.canvas.color),
+            color: new THREE.VideoTexture(this.video.color.videoElement),
             depth: new THREE.CanvasTexture(this.canvas.depth)
+        };
+
+        // this.textures.color.center = new THREE.Vector2(0.5, 0.5);
+        // this.textures.color.rotation = Math.PI;
+        // this.textures.color.flipY = false;
+
+        [this.textures.depth].forEach(texture => {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = false;
+        });
+
+        this.textures.depth.isVideoTexture = true;
+        this.textures.depth.update = function() {
         };
 
         this.pointCloudMaterial = new THREE.ShaderMaterial({
@@ -414,7 +466,7 @@ class VideoManager {
      * Updates the material used by the point cloud to use the latest frames' textures.
      */
     updatePointCloudMaterial() {
-        this.textures.color.needsUpdate = true;
+        // this.textures.color.needsUpdate = true;
         this.textures.depth.needsUpdate = true;
         this.pointCloudMaterial.uniforms.time = window.performance.now();
     }
@@ -434,4 +486,4 @@ class VideoManager {
     }
 }
 
-export { VideoManager };
+export { VideoManager, VideoManagerStates };
