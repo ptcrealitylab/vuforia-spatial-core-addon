@@ -1,6 +1,6 @@
-/* global SpatialInterface, ThreejsInterface */
+/* global SpatialInterface, ThreejsFakeProxyInterface */
 
-import { VideoManager } from './scripts/VideoManager.js';
+import { VideoManager, VideoManagerStates } from './scripts/VideoManager.js';
 
 // // eslint-disable-next-line no-unused-vars
 // const touchDecider = defaultTouchDecider;
@@ -17,7 +17,7 @@ if (!spatialInterface) {
     spatialInterface.useWebGlWorker();
 }
 
-const threejsInterface = new ThreejsInterface(spatialInterface, THREE);
+const threejsInterface = new ThreejsFakeProxyInterface(spatialInterface, THREE);
 threejsInterface.addPendingLoad();
 
 const onRender = () => {
@@ -33,7 +33,11 @@ const onRendererInit = () => {
     spatialInterface.addReadPublicDataListener('storage', 'urls', data => {
         const urls = JSON.parse(data);
         console.log(`URLS: ${data}`);
-        videoManager.loadFromURLs(urls);
+        videoManager.setDefaultURLs(urls);
+    });
+    spatialInterface.addReadPublicDataListener('storage', 'seekTime', data => {
+        const time = JSON.parse(data);
+        videoManager.setCurrentTime(time);
     });
     document.addEventListener('pointerdown', e => {
         if (e.button === 0) {
@@ -41,20 +45,19 @@ const onRendererInit = () => {
         }
     });
     videoManager.addCallback('STATE', state => {
-        if (state === 'RECORDING' && !recordingActive) {
+        if (state === VideoManagerStates.RECORDING && !recordingActive) {
             recordingActive = true;
-            // TODO: start recording, pose capture
             spatialInterface.startVirtualizerRecording();
         } else {
             if (recordingActive) {
-                // TODO: stop recording, save video, store URLs, load automatically after saving
                 spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
                     setTimeout(() => {
+                        const baseUrl = baseUrl.replace('https://toolboxedge.net', window.location);
                         const urls = {
                             color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
                             rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
                         };
-                        videoManager.loadFromURLs(urls);
+                        videoManager.loadFromURLs(urls).then(() => {});
                         spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
                     }, 15000); // TODO: don't use timeout
                 });
@@ -122,20 +125,3 @@ function modelViewCallback(modelViewMatrix, _projectionMatrix) {
         setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);  // update model view matrix
     }
 }
-
-// eslint-disable-next-line no-unused-vars
-// let main = ({width, height}) => {
-//     mainData.width = width;
-//     mainData.height = height;
-//     spatialInterface.onSpatialInterfaceLoaded(() => {
-//         spatialInterface.registerTouchDecider(touchDecider);
-//         spatialInterface.initNode('storage', 'storeData');
-//         // TODO: check for existing recording, load recording, block interaction until checked
-//         // TODO: find out why gl object is not ready when initRenderer is called
-//         initRenderer().then(() => {
-//             videoManager = new VideoManager(scene, mainContainerObj, groundPlaneContainerObj, camera);
-//             renderCallbacks.add(onRender);
-//             onRendererInit();
-//         });
-//     });
-// };
