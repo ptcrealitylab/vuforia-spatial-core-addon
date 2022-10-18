@@ -9,7 +9,6 @@ let videoManager;
 let recordingActive = false;
 
 let mainContainerObj;
-let groundPlaneContainerObj;
 let spatialInterface;
 
 if (!spatialInterface) {
@@ -17,7 +16,7 @@ if (!spatialInterface) {
     spatialInterface.useWebGlWorker();
 }
 
-const threejsInterface = new ThreejsFakeProxyInterface(spatialInterface, THREE);
+const threejsInterface = new ThreejsInterface(spatialInterface, THREE);
 threejsInterface.addPendingLoad();
 
 const onRender = () => {
@@ -32,8 +31,11 @@ const onRendererInit = () => {
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'urls', data => {
         const urls = JSON.parse(data);
-        console.log(`URLS: ${data}`);
-        videoManager.setDefaultURLs(urls);
+        if (window.isDesktop()) {
+            videoManager.setDefaultURLs(urls);
+        } else {
+            videoManager.setState(VideoManagerStates.MOBILE_LOADED);
+        }
     });
     spatialInterface.addReadPublicDataListener('storage', 'seekTime', data => {
         const time = JSON.parse(data);
@@ -44,25 +46,37 @@ const onRendererInit = () => {
             videoManager.onPointerDown(e);
         }
     });
+    let virtualizerTimeout = null;
+    const stopRecording = () => {
+        clearTimeout(virtualizerTimeout);
+        virtualizerTimeout = null;
+        if (recordingActive) {
+            spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+                setTimeout(() => {
+                    const urls = {
+                        color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+                        rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+                    };
+                    if (window.isDesktop()) {
+                        videoManager.loadFromURLs(urls);
+                    } else {
+                        videoManager.setState(VideoManagerStates.MOBILE_LOADED);
+                    }
+                    spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
+                }, 15000); // TODO: don't use timeout
+            });
+        }
+        recordingActive = false;
+    };
     videoManager.addCallback('STATE', state => {
         if (state === VideoManagerStates.RECORDING && !recordingActive) {
             recordingActive = true;
             spatialInterface.startVirtualizerRecording();
+            virtualizerTimeout = setTimeout(() => {
+                stopRecording();
+            }, 20000); // Max recording of 20 seconds
         } else {
-            if (recordingActive) {
-                spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
-                    setTimeout(() => {
-                        const baseUrl = baseUrl.replace('https://toolboxedge.net', window.location);
-                        const urls = {
-                            color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                            rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-                        };
-                        videoManager.loadFromURLs(urls).then(() => {});
-                        spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
-                    }, 15000); // TODO: don't use timeout
-                });
-            }
-            recordingActive = false;
+            stopRecording();
         }
     });
 };
@@ -75,11 +89,6 @@ threejsInterface.onSceneCreated(function onSceneCreated(scene) {
     mainContainerObj.matrixAutoUpdate = false;
     mainContainerObj.name = 'mainContainerObj';
     scene.add(mainContainerObj);
-
-    groundPlaneContainerObj = new THREE.Object3D();
-    groundPlaneContainerObj.matrixAutoUpdate = false;
-    groundPlaneContainerObj.name = 'groundPlaneContainerObj';
-    scene.add(groundPlaneContainerObj);
 
     // light the scene with a combination of ambient and directional white light
     const ambLight = new THREE.AmbientLight(0xaaaaaa);
@@ -94,13 +103,12 @@ threejsInterface.onSceneCreated(function onSceneCreated(scene) {
 
         spatialInterface.setVisibilityDistance(100);
 
-        spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
         // whenever we receive new matrices from the editor, update the 3d scene
         spatialInterface.addMatrixListener(modelViewCallback);
 
         spatialInterface.setMoveDelay(300);
 
-        videoManager = new VideoManager(scene, mainContainerObj, groundPlaneContainerObj, threejsInterface.camera);
+        videoManager = new VideoManager(scene, mainContainerObj, threejsInterface.camera, spatialInterface);
         onRendererInit();
         // threejsInterface.removePendingLoad();
         threejsInterface.onRender(onRender);
@@ -113,11 +121,6 @@ function setMatrixFromArray(matrix, array) {
         array[2], array[6], array[10], array[14],
         array[3], array[7], array[11], array[15]
     );
-}
-
-function groundPlaneCallback(modelViewMatrix, _projectionMatrix, floorOffset) {
-    setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
-    videoManager.setFloorOffset(floorOffset);
 }
 
 function modelViewCallback(modelViewMatrix, _projectionMatrix) {
