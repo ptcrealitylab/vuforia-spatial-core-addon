@@ -14,8 +14,11 @@ class VideoManager {
     constructor(scene, mainContainerObj, camera, spatialInterface) {
         this.callbacks = {
             'STATE': [],
-            'RENDER': []
+            'RENDER': [],
+            'LOAD': []
         };
+
+        this.id = Math.random().toString();
 
         this.scene = scene;
         this.mainContainerObj = mainContainerObj;
@@ -63,12 +66,15 @@ class VideoManager {
     }
 
     setState(state) {
+        if (this.state === VideoManagerStates.LOADING && state !== VideoManagerStates.LOADING) {
+            this.callbacks['LOAD'].forEach(callback => callback());
+        }
         this.state = state;
         this.callbacks['STATE'].forEach(callback => callback(state));
         if (this.state === VideoManagerStates.EMPTY) {
             this.buttonSprite.material = this.spriteMaterials.getByName('empty');
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('paused'); // TODO: make clearer
+            this.buttonSprite.material = this.spriteMaterials.getByName('paused'); // TODO: use clearer icon to load
         } else if (this.state === VideoManagerStates.RECORDING) {
             this.buttonSprite.material = this.spriteMaterials.getByName('recording');
         } else if (this.state === VideoManagerStates.SAVING) {
@@ -142,8 +148,18 @@ class VideoManager {
             this.stopRecording();
         } else if (this.state === VideoManagerStates.PAUSED) {
             this.play();
+            this.spatialInterface.writePublicData('storage', 'status', {
+                state: VideoManagerStates.PLAYING,
+                currentTime: this.videoPlayback.currentTime,
+                id: this.id
+            });
         } else if (this.state === VideoManagerStates.PLAYING) {
             this.pause();
+            this.spatialInterface.writePublicData('storage', 'status', {
+                state: VideoManagerStates.PAUSED,
+                currentTime: this.videoPlayback.currentTime,
+                id: this.id
+            });
         } else {
             console.log(`Spatial Video button is not enabled during '${this.state}' state.`);
         }

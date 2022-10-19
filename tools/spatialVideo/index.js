@@ -1,4 +1,4 @@
-/* global SpatialInterface, ThreejsFakeProxyInterface */
+/* global SpatialInterface, ThreejsInterface */
 
 import { VideoManager, VideoManagerStates } from './scripts/VideoManager.js';
 
@@ -7,6 +7,13 @@ import { VideoManager, VideoManagerStates } from './scripts/VideoManager.js';
 
 let videoManager;
 let recordingActive = false;
+
+// The following timeout and interval allow for one instance of the tool to declare itself the leader and be in charge of synchronizing state
+// Heartbeat-style status updates are necessary to allow for new connections to know the current state rather than an outdated one
+let selfNominateTimeout;
+const selfNominateTimeoutDuration = 5000 + Math.random() * 1000; // Seconds before self-nomination
+let leaderBroadcastInterval;
+let leaderBroadcastIntervalDuration = 1000;
 
 let mainContainerObj;
 let spatialInterface;
@@ -23,9 +30,13 @@ const onRender = () => {
     videoManager.render();
 };
 
-// TODO: set playbackStart value on initial load after recording and when pausing (take into account offset)
-// TODO: read current public data value
-// TODO: synchronize timestamps somehow??
+const leaderBroadcast = () => {
+    spatialInterface.writePublicData('storage', 'status', {
+        state: videoManager.state,
+        currentTime: videoManager.videoPlayback.currentTime,
+        id: videoManager.id
+    });
+};
 
 const onRendererInit = () => {
     spatialInterface.initNode('storage', 'storeData');
@@ -37,9 +48,34 @@ const onRendererInit = () => {
             videoManager.setState(VideoManagerStates.MOBILE_LOADED);
         }
     });
-    spatialInterface.addReadPublicDataListener('storage', 'seekTime', data => {
-        const time = JSON.parse(data);
-        videoManager.setCurrentTime(time);
+    spatialInterface.addReadPublicDataListener('storage', 'status', status => {
+        if (videoManager.videoPlayback && (videoManager.state === VideoManagerStates.PAUSED || videoManager.state === VideoManagerStates.PLAYING)) {
+            videoManager.setCurrentTime(status.currentTime);
+            if (videoManager.videoPlayback.state !== status.state) {
+                if (status.state === 'PLAYING') {
+                    videoManager.videoPlayback.play();
+                } else if (status.state === 'PAUSED') {
+                    videoManager.videoPlayback.pause();
+                } else {
+                    console.error(`Received invalid update status state: ${status.state}`);
+                }
+            }
+            if (selfNominateTimeout) {
+                clearTimeout(selfNominateTimeout);
+            }
+            if (leaderBroadcastInterval) {
+                clearInterval(leaderBroadcastInterval);
+            }
+            if (window.isDesktop()) { // No point for phone to be leader since playback is not supported
+                selfNominateTimeout = setTimeout(() => {
+                    selfNominateTimeout = null;
+                    leaderBroadcast();
+                    leaderBroadcastInterval = setInterval(() => {
+                        leaderBroadcast();
+                    }, leaderBroadcastIntervalDuration);
+                }, selfNominateTimeoutDuration);
+            }
+        }
     });
     document.addEventListener('pointerdown', e => {
         if (e.button === 0) {
@@ -77,6 +113,17 @@ const onRendererInit = () => {
             }, 20000); // Max recording of 20 seconds
         } else {
             stopRecording();
+        }
+    });
+    videoManager.addCallback('LOAD', () => {
+        if (window.isDesktop()) { // No point for phone to be leader since playback is not supported
+            selfNominateTimeout = setTimeout(() => {
+                selfNominateTimeout = null;
+                leaderBroadcast();
+                leaderBroadcastInterval = setInterval(() => {
+                    leaderBroadcast();
+                }, leaderBroadcastIntervalDuration);
+            }, selfNominateTimeoutDuration);
         }
     });
 };
