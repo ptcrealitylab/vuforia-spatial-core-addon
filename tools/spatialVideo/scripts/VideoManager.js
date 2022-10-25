@@ -6,7 +6,6 @@ const VideoManagerStates = {
     LOADING: 'LOADING', // Loading the recording
     PAUSED: 'PAUSED', // Video paused
     PLAYING: 'PLAYING', // Playing video
-    MOBILE_LOADED: 'MOBILE_LOADED' // Mobile device cannot playback
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -20,7 +19,7 @@ class VideoManager {
         this.id = Math.random().toString();
         this.spatialInterface = spatialInterface;
 
-        this.icons = ['empty', 'paused', 'recording', 'playing', 'loading', 'saving', 'mobile'].map(iconName => {
+        this.icons = ['empty', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
             const imageElement = document.createElement('img');
             imageElement.src = `sprites/${iconName}.png`;
             imageElement.iconName = iconName;
@@ -79,19 +78,17 @@ class VideoManager {
                 this.setIconByName('empty');
             }
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
-            this.setIconByName('paused'); // TODO: better icon to start loading
+            this.setIconByName('waitingForUser');
         } else if (this.state === VideoManagerStates.RECORDING) {
             this.setIconByName('recording');
         } else if (this.state === VideoManagerStates.SAVING) {
-            this.setIconByName('saving'); // TODO: animate
+            this.setIconByName('saving');
         } else if (this.state === VideoManagerStates.LOADING) {
             this.setIconByName('loading');
         } else if (this.state === VideoManagerStates.PAUSED) {
             this.setIconByName('paused');
         } else if (this.state === VideoManagerStates.PLAYING) {
             this.setIconByName('playing');
-        } else if (this.state === VideoManagerStates.MOBILE_LOADED) {
-            this.setIconByName('mobile');
         }
     }
 

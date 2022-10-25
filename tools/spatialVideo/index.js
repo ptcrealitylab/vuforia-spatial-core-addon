@@ -1,5 +1,3 @@
-/* global SpatialInterface, ThreejsInterface */
-
 import { VideoManager, VideoManagerStates } from './scripts/VideoManager.js';
 
 // // eslint-disable-next-line no-unused-vars
@@ -21,7 +19,7 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
 
-const leaderBroadcast = () => {
+const leaderBroadcast = () => { // TODO: fix sync issues
     spatialInterface.writePublicData('storage', 'status', {
         state: videoManager.state,
         currentTime: videoManager.videoPlayback.currentTime,
