@@ -48,7 +48,7 @@ class VideoManager {
         const elapsedTime = Date.now() - this.spriteAnimationStartTime;
         const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
         this.icons.getByName('saving').src = this.savingSrcs[modulo];
-        this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4})rad`; // One rotation per four seconds
+        this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4}rad)`; // One rotation per four seconds
         window.requestAnimationFrame(() => this.animateIcons());
     }
 
@@ -79,7 +79,7 @@ class VideoManager {
                 this.setIconByName('empty');
             }
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
-            this.setIconByName('paused');
+            this.setIconByName('paused'); // TODO: better icon to start loading
         } else if (this.state === VideoManagerStates.RECORDING) {
             this.setIconByName('recording');
         } else if (this.state === VideoManagerStates.SAVING) {

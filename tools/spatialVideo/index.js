@@ -32,6 +32,7 @@ const leaderBroadcast = () => {
 spatialInterface.onSpatialInterfaceLoaded(function() {
     spatialInterface.setVisibilityDistance(100);
     spatialInterface.setMoveDelay(300);
+    spatialInterface.setAlwaysFaceCamera(true);
     videoManager = new VideoManager(spatialInterface);
 
     spatialInterface.initNode('storage', 'storeData');
