@@ -42,11 +42,7 @@ const onRendererInit = () => {
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'urls', data => {
         const urls = JSON.parse(data);
-        if (window.isDesktop()) {
-            videoManager.setDefaultURLs(urls);
-        } else {
-            videoManager.setState(VideoManagerStates.MOBILE_LOADED);
-        }
+        videoManager.setDefaultURLs(urls);
     });
     spatialInterface.addReadPublicDataListener('storage', 'status', status => {
         if (videoManager.videoPlayback && (videoManager.state === VideoManagerStates.PAUSED || videoManager.state === VideoManagerStates.PLAYING)) {
@@ -66,15 +62,13 @@ const onRendererInit = () => {
             if (leaderBroadcastInterval) {
                 clearInterval(leaderBroadcastInterval);
             }
-            if (window.isDesktop()) { // No point for phone to be leader since playback is not supported
-                selfNominateTimeout = setTimeout(() => {
-                    selfNominateTimeout = null;
+            selfNominateTimeout = setTimeout(() => {
+                selfNominateTimeout = null;
+                leaderBroadcast();
+                leaderBroadcastInterval = setInterval(() => {
                     leaderBroadcast();
-                    leaderBroadcastInterval = setInterval(() => {
-                        leaderBroadcast();
-                    }, leaderBroadcastIntervalDuration);
-                }, selfNominateTimeoutDuration);
-            }
+                }, leaderBroadcastIntervalDuration);
+            }, selfNominateTimeoutDuration);
         }
     });
     document.addEventListener('pointerdown', e => {
@@ -93,11 +87,7 @@ const onRendererInit = () => {
                         color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
                         rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
                     };
-                    if (window.isDesktop()) {
-                        videoManager.loadFromURLs(urls);
-                    } else {
-                        videoManager.setState(VideoManagerStates.MOBILE_LOADED);
-                    }
+                    videoManager.loadFromURLs(urls);
                     spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
                 }, 15000); // TODO: don't use timeout
             });
@@ -116,15 +106,13 @@ const onRendererInit = () => {
         }
     });
     videoManager.addCallback('LOAD', () => {
-        if (window.isDesktop()) { // No point for phone to be leader since playback is not supported
-            selfNominateTimeout = setTimeout(() => {
-                selfNominateTimeout = null;
+        selfNominateTimeout = setTimeout(() => {
+            selfNominateTimeout = null;
+            leaderBroadcast();
+            leaderBroadcastInterval = setInterval(() => {
                 leaderBroadcast();
-                leaderBroadcastInterval = setInterval(() => {
-                    leaderBroadcast();
-                }, leaderBroadcastIntervalDuration);
-            }, selfNominateTimeoutDuration);
-        }
+            }, leaderBroadcastIntervalDuration);
+        }, selfNominateTimeoutDuration);
     });
 };
 
