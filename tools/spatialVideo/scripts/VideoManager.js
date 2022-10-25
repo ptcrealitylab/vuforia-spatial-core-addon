@@ -72,7 +72,11 @@ class VideoManager {
         this.state = state;
         this.callbacks['STATE'].forEach(callback => callback(state));
         if (this.state === VideoManagerStates.EMPTY) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('empty');
+            if (window.isDesktop()) {
+                this.buttonSprite.material = this.spriteMaterials.getByName('empty'); // TODO: use different icon to show non-interactable
+            } else {
+                this.buttonSprite.material = this.spriteMaterials.getByName('empty');
+            }
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
             this.buttonSprite.material = this.spriteMaterials.getByName('paused'); // TODO: use clearer icon to load
         } else if (this.state === VideoManagerStates.RECORDING) {
@@ -141,7 +145,11 @@ class VideoManager {
 
     onButtonPress() {
         if (this.state === VideoManagerStates.EMPTY) {
-            this.startRecording();
+            if (!window.isDesktop()) {
+                this.startRecording();
+            } else {
+                console.log('Spatial Video tool cannot record on desktop.');
+            }
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
             this.loadFromURLs(this.defaultURLs);
         } else if (this.state === VideoManagerStates.RECORDING) {
