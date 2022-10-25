@@ -15,20 +15,11 @@ const selfNominateTimeoutDuration = 5000 + Math.random() * 1000; // Seconds befo
 let leaderBroadcastInterval;
 let leaderBroadcastIntervalDuration = 1000;
 
-let mainContainerObj;
 let spatialInterface;
 
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
-    spatialInterface.useWebGlWorker();
 }
-
-const threejsInterface = new ThreejsInterface(spatialInterface, THREE);
-threejsInterface.addPendingLoad();
-
-const onRender = () => {
-    videoManager.render();
-};
 
 const leaderBroadcast = () => {
     spatialInterface.writePublicData('storage', 'status', {
@@ -38,7 +29,11 @@ const leaderBroadcast = () => {
     });
 };
 
-const onRendererInit = () => {
+spatialInterface.onSpatialInterfaceLoaded(function() {
+    spatialInterface.setVisibilityDistance(100);
+    spatialInterface.setMoveDelay(300);
+    videoManager = new VideoManager(spatialInterface);
+
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'urls', data => {
         const urls = JSON.parse(data);
@@ -69,11 +64,6 @@ const onRendererInit = () => {
                     leaderBroadcast();
                 }, leaderBroadcastIntervalDuration);
             }, selfNominateTimeoutDuration);
-        }
-    });
-    document.addEventListener('pointerdown', e => {
-        if (e.button === 0) {
-            videoManager.onPointerDown(e);
         }
     });
     let virtualizerTimeout = null;
@@ -114,52 +104,4 @@ const onRendererInit = () => {
             }, leaderBroadcastIntervalDuration);
         }, selfNominateTimeoutDuration);
     });
-};
-
-threejsInterface.onSceneCreated(function onSceneCreated(scene) {
-    // create a parent 3D object to contain all the three js objects
-    // we can apply the marker transform to this object and all of its
-    // children objects will be affected
-    mainContainerObj = new THREE.Object3D();
-    mainContainerObj.matrixAutoUpdate = false;
-    mainContainerObj.name = 'mainContainerObj';
-    scene.add(mainContainerObj);
-
-    // light the scene with a combination of ambient and directional white light
-    const ambLight = new THREE.AmbientLight(0xaaaaaa);
-    scene.add(ambLight);
-
-    let loaded = false;
-    spatialInterface.onSpatialInterfaceLoaded(function() {
-        if (loaded) {
-            return;
-        }
-        loaded = true;
-
-        spatialInterface.setVisibilityDistance(100);
-
-        // whenever we receive new matrices from the editor, update the 3d scene
-        spatialInterface.addMatrixListener(modelViewCallback);
-
-        spatialInterface.setMoveDelay(300);
-
-        videoManager = new VideoManager(scene, mainContainerObj, threejsInterface.camera, spatialInterface);
-        onRendererInit();
-        // threejsInterface.removePendingLoad();
-        threejsInterface.onRender(onRender);
-    });
 });
-
-function setMatrixFromArray(matrix, array) {
-    matrix.set(array[0], array[4], array[8], array[12],
-        array[1], array[5], array[9], array[13],
-        array[2], array[6], array[10], array[14],
-        array[3], array[7], array[11], array[15]
-    );
-}
-
-function modelViewCallback(modelViewMatrix, _projectionMatrix) {
-    if (threejsInterface.isProjectionMatrixSet) {
-        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);  // update model view matrix
-    }
-}

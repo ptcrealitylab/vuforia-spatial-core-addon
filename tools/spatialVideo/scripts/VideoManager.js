@@ -11,49 +11,45 @@ const VideoManagerStates = {
 
 // eslint-disable-next-line no-unused-vars
 class VideoManager {
-    constructor(scene, mainContainerObj, camera, spatialInterface) {
+    constructor(spatialInterface) {
         this.callbacks = {
             'STATE': [],
-            'RENDER': [],
             'LOAD': []
         };
 
         this.id = Math.random().toString();
-
-        this.scene = scene;
-        this.mainContainerObj = mainContainerObj;
-        this.camera = camera;
         this.spatialInterface = spatialInterface;
 
-        this.button = new THREE.Mesh(new THREE.SphereGeometry(100, 16, 8), new THREE.MeshBasicMaterial({color: 0x000000, visible: false}));
-        this.mainContainerObj.add(this.button);
-        this.spriteMaterials = ['empty', 'loading', 'paused', 'playing', 'recording', 'waitingForUser', 'mobile']
-            .map(spriteName => {
-                const material = new THREE.SpriteMaterial({map: new THREE.TextureLoader().load(`sprites/${spriteName}.png`)});
-                material.name = spriteName;
-                return material;
+        this.icons = ['empty', 'paused', 'recording', 'playing', 'loading', 'saving', 'mobile'].map(iconName => {
+            const imageElement = document.createElement('img');
+            imageElement.src = `sprites/${iconName}.png`;
+            imageElement.iconName = iconName;
+            document.body.appendChild(imageElement);
+            imageElement.hidden = true;
+            imageElement.addEventListener('pointerdown', e => {
+                if (e.button === 0) {
+                    this.onButtonPress();
+                }
             });
-        this.spriteMaterials.getByName = spriteName => this.spriteMaterials.find(material => material.name.toLowerCase() === spriteName.toLowerCase());
-        const savingMaterial = new THREE.SpriteMaterial();
-        savingMaterial.name = 'saving';
-        this.spriteMaterials.push(savingMaterial);
-        const spriteAnimationStartTime = Date.now();
-        const savingSpriteTextures = [0, 1, 2, 3].map(index => new THREE.TextureLoader().load(`sprites/saving${index}.png`));
-        const loadingMaterial = this.spriteMaterials.getByName('loading');
-        this.addCallback('RENDER', () => {
-            const elapsedTime = Date.now() - spriteAnimationStartTime;
-            const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
-            savingMaterial.map = savingSpriteTextures[modulo];
-            loadingMaterial.rotation = elapsedTime / 1000 * 2 * Math.PI / -4; // One rotation per four seconds
+            return imageElement;
         });
-        this.buttonSprite = new THREE.Sprite(this.spriteMaterials.getByName('empty'));
-        this.button.add(this.buttonSprite);
-        this.buttonSprite.scale.set(200, 200, 1);
+        this.icons.getByName = (name) => {
+            return this.icons.find(icon => icon.iconName.toLowerCase() === name.toLowerCase());
+        };
+
+        this.spriteAnimationStartTime = Date.now();
+        this.savingSrcs = [0, 1, 2, 3].map(index => `sprites/saving${index}.png`);
+        this.animateIcons();
 
         this.state = VideoManagerStates.EMPTY;
+    }
 
-        this.raycaster = new THREE.Raycaster();
-        this.raycastPointer = new THREE.Vector2();
+    animateIcons() {
+        const elapsedTime = Date.now() - this.spriteAnimationStartTime;
+        const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
+        this.icons.getByName('saving').src = this.savingSrcs[modulo];
+        this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4})rad`; // One rotation per four seconds
+        window.requestAnimationFrame(() => this.animateIcons());
     }
 
     addCallback(callbackType, callback) {
@@ -65,6 +61,11 @@ class VideoManager {
         this.callbacks[callbackType].splice(this.callbacks[callbackType].findIndex(callback), 1);
     }
 
+    setIconByName(iconName) {
+        this.icons.forEach(icon => icon.hidden = true);
+        this.icons.getByName(iconName).hidden = false;
+    }
+
     setState(state) {
         if (this.state === VideoManagerStates.LOADING && state !== VideoManagerStates.LOADING) {
             this.callbacks['LOAD'].forEach(callback => callback());
@@ -73,24 +74,24 @@ class VideoManager {
         this.callbacks['STATE'].forEach(callback => callback(state));
         if (this.state === VideoManagerStates.EMPTY) {
             if (window.isDesktop()) {
-                this.buttonSprite.material = this.spriteMaterials.getByName('empty'); // TODO: use different icon to show non-interactable
+                this.setIconByName('empty');
             } else {
-                this.buttonSprite.material = this.spriteMaterials.getByName('empty');
+                this.setIconByName('empty');
             }
         } else if (this.state === VideoManagerStates.WAITING_FOR_USER) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('paused'); // TODO: use clearer icon to load
+            this.setIconByName('paused');
         } else if (this.state === VideoManagerStates.RECORDING) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('recording');
+            this.setIconByName('recording');
         } else if (this.state === VideoManagerStates.SAVING) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('saving');
+            this.setIconByName('saving'); // TODO: animate
         } else if (this.state === VideoManagerStates.LOADING) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('loading');
+            this.setIconByName('loading');
         } else if (this.state === VideoManagerStates.PAUSED) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('paused');
+            this.setIconByName('paused');
         } else if (this.state === VideoManagerStates.PLAYING) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('playing');
+            this.setIconByName('playing');
         } else if (this.state === VideoManagerStates.MOBILE_LOADED) {
-            this.buttonSprite.material = this.spriteMaterials.getByName('mobile');
+            this.setIconByName('mobile');
         }
     }
 
@@ -134,15 +135,6 @@ class VideoManager {
         this.videoPlayback.pause();
     }
 
-    onPointerDown(e) {
-        this.raycastPointer.x = (e.pageX / window.innerWidth) * 2 - 1;
-        this.raycastPointer.y = -(e.pageY / window.innerHeight) * 2 + 1;
-        this.raycaster.setFromCamera(this.raycastPointer, this.camera);
-        if (this.raycaster.intersectObject(this.button).length > 0) {
-            this.onButtonPress();
-        }
-    }
-
     onButtonPress() {
         if (this.state === VideoManagerStates.EMPTY) {
             if (!window.isDesktop()) {
@@ -171,10 +163,6 @@ class VideoManager {
         } else {
             console.log(`Spatial Video button is not enabled during '${this.state}' state.`);
         }
-    }
-
-    render() {
-        this.callbacks['RENDER'].forEach(cb => cb());
     }
 
     /* ---------------- Helper Functions ---------------- */
