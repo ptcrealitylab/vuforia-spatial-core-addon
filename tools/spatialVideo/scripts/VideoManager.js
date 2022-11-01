@@ -29,7 +29,7 @@ class VideoManager {
             imageElement.iconName = iconName;
             document.body.appendChild(imageElement);
             imageElement.hidden = true;
-            imageElement.addEventListener('pointerdown', e => {
+            imageElement.addEventListener('pointerup', e => {
                 if (e.button === 0) {
                     this.onButtonPress();
                 }
