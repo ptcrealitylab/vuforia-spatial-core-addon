@@ -21,21 +21,23 @@ let aspectRatio;
 
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
-    spatialInterface.setMoveDelay(500);
-    spatialInterface.useWebGlWorker();
-
-    setTimeout(() => {
-        spatialInterface.initNode('storage', 'storeData');
-        spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-            if (initializedApp && drawing.time > lastSync) {
-                lastSync = drawing.time;
-                drawingManager.deserializeDrawing(drawing);
-            } else {
-                loadedDrawing = drawing;
-            }
-        });
-    }, 1000);
 }
+
+spatialInterface.setMoveDelay(500);
+spatialInterface.useWebGlWorker();
+spatialInterface.setAlwaysFaceCamera(true);
+
+setTimeout(() => {
+    spatialInterface.initNode('storage', 'storeData');
+    spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
+        if (initializedApp && drawing.time > lastSync) {
+            lastSync = drawing.time;
+            drawingManager.deserializeDrawing(drawing);
+        } else {
+            loadedDrawing = drawing;
+        }
+    });
+}, 1000);
 
 const launchIcon = document.querySelector('#launchButton');
 launchIcon.addEventListener('pointerup', function () {
