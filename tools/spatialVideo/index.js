@@ -12,6 +12,7 @@ let selfNominateTimeout;
 const selfNominateTimeoutDuration = 5000 + Math.random() * 1000; // Seconds before self-nomination
 let leaderBroadcastInterval;
 let leaderBroadcastIntervalDuration = 1000;
+let leaderId = 0;
 
 let spatialInterface;
 
@@ -40,15 +41,15 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
     });
     spatialInterface.addReadPublicDataListener('storage', 'status', status => {
         if (videoManager.videoPlayback && (videoManager.state === VideoManagerStates.PAUSED || videoManager.state === VideoManagerStates.PLAYING)) {
-            videoManager.setCurrentTime(status.currentTime);
-            if (videoManager.videoPlayback.state !== status.state) {
-                if (status.state === 'PLAYING') {
-                    videoManager.videoPlayback.play();
-                } else if (status.state === 'PAUSED') {
-                    videoManager.videoPlayback.pause();
-                } else {
-                    console.error(`Received invalid update status state: ${status.state}`);
-                }
+            if (status.id !== leaderId || videoManager.videoPlayback.state === VideoManagerStates.PAUSED) { // Do not resync with same leader during playback, causes stutters due to lag
+                videoManager.setCurrentTime(status.currentTime);
+            }
+            if (status.state === 'PLAYING') {
+                videoManager.videoPlayback.play();
+            } else if (status.state === 'PAUSED') {
+                videoManager.videoPlayback.pause();
+            } else {
+                console.error(`Received invalid update status state: ${status.state}`);
             }
             if (selfNominateTimeout) {
                 clearTimeout(selfNominateTimeout);
@@ -63,6 +64,7 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
                     leaderBroadcast();
                 }, leaderBroadcastIntervalDuration);
             }, selfNominateTimeoutDuration);
+            leaderId = status.id;
         }
     });
     let virtualizerTimeout = null;
