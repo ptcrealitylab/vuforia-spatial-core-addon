@@ -21,7 +21,11 @@ class VideoManager {
 
         this.icons = ['empty', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
             const imageElement = document.createElement('img');
-            imageElement.src = `sprites/${iconName}.png`;
+            if (iconName === 'saving') {
+                imageElement.src = `sprites/saving0.png`;
+            } else {
+                imageElement.src = `sprites/${iconName}.png`;
+            }
             imageElement.iconName = iconName;
             document.body.appendChild(imageElement);
             imageElement.hidden = true;
@@ -40,7 +44,7 @@ class VideoManager {
         this.savingSrcs = [0, 1, 2, 3].map(index => `sprites/saving${index}.png`);
         this.animateIcons();
 
-        this.state = VideoManagerStates.EMPTY;
+        this.setState(VideoManagerStates.EMPTY);
     }
 
     animateIcons() {
@@ -66,6 +70,13 @@ class VideoManager {
     }
 
     setState(state) {
+        if (state !== VideoManagerStates.EMPTY && state !== VideoManagerStates.WAITING_FOR_USER && !window.isDesktop()) { // Must go fullscreen to prevent loss of UI when looking away from tool
+            this.spatialInterface.setFullScreenOn();
+            document.body.classList.add('fullscreen');
+        } else {
+            this.spatialInterface.setFullScreenOff();
+            document.body.classList.remove('fullscreen');
+        }
         if (this.state === VideoManagerStates.LOADING && state !== VideoManagerStates.LOADING) {
             this.callbacks['LOAD'].forEach(callback => callback());
         }

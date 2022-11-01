@@ -78,7 +78,7 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
                     };
                     videoManager.loadFromURLs(urls);
                     spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
-                }, 15000); // TODO: don't use timeout
+                }, 15000); // TODO: don't use timeout, call stopVirtualizerRecording from userinterface once video is ready on toolboxedge
             });
         }
         recordingActive = false;
