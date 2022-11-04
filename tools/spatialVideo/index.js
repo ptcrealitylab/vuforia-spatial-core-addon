@@ -20,7 +20,7 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
 
-const leaderBroadcast = () => { // TODO: fix sync issues
+const leaderBroadcast = () => {
     spatialInterface.writePublicData('storage', 'status', {
         state: videoManager.state,
         currentTime: videoManager.videoPlayback.currentTime,
@@ -80,7 +80,7 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
                     };
                     videoManager.loadFromURLs(urls);
                     spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
-                }, 15000); // TODO: don't use timeout, call stopVirtualizerRecording from userinterface once video is ready on toolboxedge
+                }, 15000); // TODO (extra feature request): don't use timeout, call stopVirtualizerRecording from userinterface once video is ready on toolboxedge
             });
         }
         recordingActive = false;
