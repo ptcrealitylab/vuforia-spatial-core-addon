@@ -3,33 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Spatial Sensor</title>
-    <style>
-        body {
-            width: 400px;
-            height: 400px;
-        }
-        img {
-            width: 100%;
-            height: 100%;
-        }
-        body.fullscreen {
-            width: 100vw;
-            height: 100vh;
-        }
-        body.fullscreen img {
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 64px;
-            height: 64px;
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
+    <div id="launchButton" style="width: 400px; height: 400px;">
+        <img src="launchIcon.svg">
+    </div>
+    <div id="envelopeContainer">
+        
+    </div>
     <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/envelope.js"></script>
     <script src="objectDefaultFiles/pep.min.js"></script>
-    <script type="module" src="scripts/VideoManager.js"></script>
+    <script type="module" src="scripts/VideoUI.js"></script>
     <script type="module" src="index.js"></script>
 </body>
 </html>

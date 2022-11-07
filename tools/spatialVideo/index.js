@@ -1,10 +1,13 @@
-import { VideoManager, VideoManagerStates } from './scripts/VideoManager.js';
+/* global Envelope, SpatialInterface */
+import { VideoUI, VideoUIStates } from './scripts/VideoUI.js';
 
-// // eslint-disable-next-line no-unused-vars
-// const touchDecider = defaultTouchDecider;
+const MAX_RECORDING_DURATION = 20000;
 
-let videoManager;
+let videoUI;
+let videoPlayback;
 let recordingActive = false;
+let virtualizerRecordingTimeout = null;
+let defaultUrls;
 
 // The following timeout and interval allow for one instance of the tool to declare itself the leader and be in charge of synchronizing state
 // Heartbeat-style status updates are necessary to allow for new connections to know the current state rather than an outdated one
@@ -20,34 +23,147 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
 
+const launchButton = document.querySelector('#launchButton');
+launchButton.addEventListener('pointerup', function () {
+    envelope.open();
+}, false);
+const envelopeContainer = document.querySelector('#envelopeContainer');
+const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, false, false);
+envelope.onClose(() => {
+    if (videoPlayback) {
+        videoPlayback.dispose();
+        videoPlayback = null;
+    }
+    if (videoUI.state === VideoUIStates.RECORDING) {
+        spatialInterface.stopVirtualizerRecording(() => {});
+        recordingActive = false;
+        virtualizerRecordingTimeout = null;
+    }
+    if (selfNominateTimeout) {
+        clearTimeout(selfNominateTimeout);
+    }
+    if (leaderBroadcastInterval) {
+        clearInterval(leaderBroadcastInterval);
+    }
+    if (defaultUrls) {
+        videoUI.setState(VideoUIStates.WAITING_FOR_USER);
+    } else {
+        videoUI.setState(VideoUIStates.EMPTY);
+    }
+});
+
 const leaderBroadcast = () => {
     spatialInterface.writePublicData('storage', 'status', {
-        state: videoManager.state,
-        currentTime: videoManager.videoPlayback.currentTime,
-        id: videoManager.id
+        state: videoUI.state,
+        currentTime: videoPlayback.currentTime,
+        id: videoPlayback.id
     });
+};
+
+const waitForNomination = () => {
+    selfNominateTimeout = setTimeout(() => {
+        selfNominateTimeout = null;
+        leaderBroadcast();
+        leaderBroadcastInterval = setInterval(() => {
+            leaderBroadcast();
+        }, leaderBroadcastIntervalDuration);
+    }, selfNominateTimeoutDuration);
+};
+
+const loadFromURLs = (urls) => {
+    if (!videoPlayback) {
+        videoUI.setState(VideoUIStates.LOADING);
+        videoPlayback = spatialInterface.createVideoPlayback(urls);
+        videoPlayback.onStateChange(state => {
+            if (videoUI.state === VideoUIStates.LOADING && state !== VideoUIStates.LOADING) {
+                waitForNomination();
+            }
+            videoUI.setState(state);
+        });
+    }
+};
+
+const startRecording = () => {
+    if (!recordingActive) {
+        recordingActive = true;
+        spatialInterface.startVirtualizerRecording();
+        virtualizerRecordingTimeout = setTimeout(() => {
+            stopRecording();
+        }, MAX_RECORDING_DURATION); // Max recording of 20 seconds
+    }
+};
+
+const stopRecording = () => {
+    clearTimeout(virtualizerRecordingTimeout);
+    virtualizerRecordingTimeout = null;
+    if (recordingActive) {
+        spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+            setTimeout(() => {
+                const urls = {
+                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+                };
+                loadFromURLs(urls);
+                spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
+            }, 15000); // TODO (extra feature request): don't use timeout, call stopVirtualizerRecording from userinterface once video is ready on toolboxedge
+        });
+    }
+    recordingActive = false;
 };
 
 spatialInterface.onSpatialInterfaceLoaded(function() {
     spatialInterface.setVisibilityDistance(100);
     spatialInterface.setMoveDelay(300);
     spatialInterface.setAlwaysFaceCamera(true);
-    videoManager = new VideoManager(spatialInterface);
+    videoUI = new VideoUI(envelopeContainer, {onButtonPress: () => {
+        if (videoUI.state === VideoUIStates.EMPTY) {
+            if (!window.isDesktop()) {
+                videoUI.setState(VideoUIStates.RECORDING);
+                startRecording();
+            } else {
+                console.log('Spatial Video tool cannot record on desktop.');
+            }
+        } else if (videoUI.state === VideoUIStates.WAITING_FOR_USER) {
+            loadFromURLs(defaultUrls);
+        } else if (videoUI.state === VideoUIStates.RECORDING) {
+            videoUI.setState(VideoUIStates.SAVING);
+            stopRecording();
+        } else if (videoUI.state === VideoUIStates.PAUSED) {
+            videoPlayback.play();
+            spatialInterface.writePublicData('storage', 'status', {
+                state: VideoUIStates.PLAYING,
+                currentTime: videoPlayback.currentTime,
+                id: videoPlayback.id
+            });
+        } else if (videoUI.state === VideoUIStates.PLAYING) {
+            videoPlayback.pause();
+            spatialInterface.writePublicData('storage', 'status', {
+                state: VideoUIStates.PAUSED,
+                currentTime: videoPlayback.currentTime,
+                id: videoPlayback.id
+            });
+        } else {
+            console.log(`Spatial Video button is not enabled during '${videoUI.state}' state.`);
+        }
+    }});
 
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'urls', data => {
-        const urls = JSON.parse(data);
-        videoManager.setDefaultURLs(urls);
+        defaultUrls = JSON.parse(data);
+        if (videoUI.state === VideoUIStates.EMPTY) {
+            videoUI.setState(VideoUIStates.WAITING_FOR_USER);
+        }
     });
     spatialInterface.addReadPublicDataListener('storage', 'status', status => {
-        if (videoManager.videoPlayback && (videoManager.state === VideoManagerStates.PAUSED || videoManager.state === VideoManagerStates.PLAYING)) {
-            if (status.id !== leaderId || videoManager.videoPlayback.state === VideoManagerStates.PAUSED) { // Do not resync with same leader during playback, causes stutters due to lag
-                videoManager.setCurrentTime(status.currentTime);
+        if (videoPlayback && (videoUI.state === VideoUIStates.PAUSED || videoUI.state === VideoUIStates.PLAYING)) {
+            if (status.id !== leaderId || videoPlayback.state === VideoUIStates.PAUSED) { // Do not resync with same leader during playback, causes stutters due to lag
+                videoPlayback.currentTime = status.currentTime;
+                videoUI.setCurrentTime(status.currentTime);
             }
             if (status.state === 'PLAYING') {
-                videoManager.videoPlayback.play();
+                videoPlayback.play();
             } else if (status.state === 'PAUSED') {
-                videoManager.videoPlayback.pause();
+                videoPlayback.pause();
             } else {
                 console.error(`Received invalid update status state: ${status.state}`);
             }
@@ -57,52 +173,8 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
             if (leaderBroadcastInterval) {
                 clearInterval(leaderBroadcastInterval);
             }
-            selfNominateTimeout = setTimeout(() => {
-                selfNominateTimeout = null;
-                leaderBroadcast();
-                leaderBroadcastInterval = setInterval(() => {
-                    leaderBroadcast();
-                }, leaderBroadcastIntervalDuration);
-            }, selfNominateTimeoutDuration);
+            waitForNomination();
             leaderId = status.id;
         }
-    });
-    let virtualizerTimeout = null;
-    const stopRecording = () => {
-        clearTimeout(virtualizerTimeout);
-        virtualizerTimeout = null;
-        if (recordingActive) {
-            spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
-                setTimeout(() => {
-                    const urls = {
-                        color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                        rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-                    };
-                    videoManager.loadFromURLs(urls);
-                    spatialInterface.writePublicData('storage', 'urls', JSON.stringify(urls));
-                }, 15000); // TODO (extra feature request): don't use timeout, call stopVirtualizerRecording from userinterface once video is ready on toolboxedge
-            });
-        }
-        recordingActive = false;
-    };
-    videoManager.addCallback('STATE', state => {
-        if (state === VideoManagerStates.RECORDING && !recordingActive) {
-            recordingActive = true;
-            spatialInterface.startVirtualizerRecording();
-            virtualizerTimeout = setTimeout(() => {
-                stopRecording();
-            }, 20000); // Max recording of 20 seconds
-        } else {
-            stopRecording();
-        }
-    });
-    videoManager.addCallback('LOAD', () => {
-        selfNominateTimeout = setTimeout(() => {
-            selfNominateTimeout = null;
-            leaderBroadcast();
-            leaderBroadcastInterval = setInterval(() => {
-                leaderBroadcast();
-            }, leaderBroadcastIntervalDuration);
-        }, selfNominateTimeoutDuration);
     });
 });
