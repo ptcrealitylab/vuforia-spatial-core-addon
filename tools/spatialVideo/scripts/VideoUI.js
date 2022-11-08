@@ -12,7 +12,7 @@ class VideoUI {
     constructor(parentElement, callbacks) {
         this.parentElement = parentElement;
         this.callbacks = callbacks;
-        this.icons = ['empty', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
+        this.icons = ['empty', 'emptyBlocked', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
             const imageElement = document.createElement('img');
             if (iconName === 'saving') {
                 imageElement.src = 'sprites/saving0.png';
@@ -57,7 +57,7 @@ class VideoUI {
         this.state = state;
         if (this.state === VideoUIStates.EMPTY) {
             if (window.isDesktop()) {
-                this.setIconByName('empty'); // TODO: different icon for desktop
+                this.setIconByName('emptyBlocked'); // Recording disabled on desktop
             } else {
                 this.setIconByName('empty');
             }
@@ -77,7 +77,7 @@ class VideoUI {
     }
 
     setCurrentTime(_currentTime) {
-        // TODO: show current time in UI
+        // TODO: add scrubber and show playback time in UI
     }
 }
 
