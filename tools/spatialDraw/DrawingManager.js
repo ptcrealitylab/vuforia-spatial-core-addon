@@ -809,22 +809,6 @@ DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
         obj.drawingId = drawing.drawingId;
         obj.serialized = drawing;
     }
-
-    /**
-     * Sets the drawing size.
-     * @param {number} size - The size.
-     */
-    setSize(size) {
-        super.setSize(size);
-    }
-
-    /**
-     * Sets the drawing color.
-     * @param {string} color - The color.
-     */
-    setColor(color) {
-        super.setColor(color);
-    }
 };
 
 DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
@@ -844,24 +828,8 @@ DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     updatePosition(scene, camera, pointerEvent) {
-        this.position = super.screenProject(pointerEvent, this.offset, camera, scene);
-        this.normal = super.getScreenRay(pointerEvent, camera).direction.clone().negate();
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return super.getPosition();
-    }
-
-    /**
-     * Gets the current surface normal.
-     * @returns {THREE.Vector3} - The normal of the cursor in the scene.
-     */
-    getNormal() {
-        return super.getNormal();
+        this.position = this.screenProject(pointerEvent, this.offset, camera, scene);
+        this.normal = this.getScreenRay(pointerEvent, camera).direction.clone().negate();
     }
 };
 
@@ -952,14 +920,14 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
             return;
         }
 
-        const screenRay = super.getScreenRay(pointerEvent, camera);
-        const lastOffsetPosition = super.screenProject(pointerEvent, this.lastOffset - this.bumpTowardsCamera, camera, scene);
+        const screenRay = this.getScreenRay(pointerEvent, camera);
+        const lastOffsetPosition = this.screenProject(pointerEvent, this.lastOffset - this.bumpTowardsCamera, camera, scene);
         if (projectedZ) {
-            const meshProjectedPosition = super.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
+            const meshProjectedPosition = this.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (screenRay.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
+                    const planeProjectedPosition = this.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
                         this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                         this.debug('plane projection, jump too big');
@@ -1004,7 +972,7 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (screenRay.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
+                    const planeProjectedPosition = this.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                     this.debug('plane projection, no mesh, default');
                     this.position = planeProjectedPosition;
@@ -1025,21 +993,5 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
                 this.normal = this.lastNormal;
             }
         }
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return super.getPosition();
-    }
-
-    /**
-     * Gets the current surface normal.
-     * @returns {THREE.Vector3} - The normal of the cursor in the scene.
-     */
-    getNormal() {
-        return super.getNormal();
     }
 };

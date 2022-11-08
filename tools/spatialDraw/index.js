@@ -107,6 +107,7 @@ iconCircles.forEach(iconCircle => {
 
 const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
 envelope.onOpen(() => {
+    spatialInterface.setAlwaysFaceCamera(false);
     if (!rendererStarted) {
         initRenderer().then(() => {
             initDrawingApp();
@@ -120,6 +121,7 @@ envelope.onOpen(() => {
     }
 });
 envelope.onClose(() => {
+    spatialInterface.setAlwaysFaceCamera(true);
     drawingManager.disableInteractions();
     appActive = false;
     scene.visible = false;
