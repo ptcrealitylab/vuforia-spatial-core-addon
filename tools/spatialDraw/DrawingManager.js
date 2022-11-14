@@ -7,7 +7,8 @@ class DrawingManager {
      */
     constructor(scene, camera) {
         this.toolMap = {
-            'LINE': new DrawingManager.Tool.Line(this)
+            'LINE': new DrawingManager.Tool.Line(this),
+            'ICON': new DrawingManager.Tool.Icon(this)
         };
         this.cursorMap = {
             'PROJECTION': new DrawingManager.Cursor.SmoothProjection(),
@@ -36,6 +37,8 @@ class DrawingManager {
             'color': [],
             'cursor': [],
             'eraseMode': [],
+            'icon': [],
+            'render': [],
             'size': [],
             'tool': [],
             'update': [],
@@ -113,6 +116,8 @@ class DrawingManager {
         this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
         this.tool = tool;
         this.triggerCallbacks('tool', tool);
+        this.triggerCallbacks('color', tool.color);
+        this.triggerCallbacks('size', tool.size);
     }
 
     /**
@@ -158,6 +163,18 @@ class DrawingManager {
     }
 
     /**
+     * Sets the active icon for the icon tool by name, if it exists. Also sets the current tool to the Icon tool.
+     * @param {string} iconName - The name of the icon to be set as active.
+     */
+    setIcon(iconName) {
+        if (this.toolMap['ICON'].iconNames.includes(iconName)) {
+            this.toolMap['ICON'].setIcon(iconName);
+            this.setTool(this.toolMap['ICON']);
+            this.triggerCallbacks('icon', iconName);
+        }
+    }
+
+    /**
      * Erases lines drawn under the pointer.
      * @param {Object} pointerEvent - The triggering pointer event.
      */
@@ -169,19 +186,38 @@ class DrawingManager {
 
         this.raycaster.setFromCamera(new THREE.Vector2(position.x, position.y), this.camera);
         const serializedDrawings = [];
+        const serializedChildren = [];
         this.drawingGroup.children.forEach(obj => {
             if (obj.serialized) {
                 serializedDrawings.push(obj);
+                obj.traverse(child => {
+                    if (child === obj) {
+                        return;
+                    }
+                    child.serializedParent = obj;
+                    serializedChildren.push(child);
+                });
             }
         });
         const intersects = this.raycaster.intersectObjects(serializedDrawings);
         intersects.forEach(intersect => {
             if (intersect.object.serialized) {
+                intersect.object.parent.remove(intersect.object);
                 const undoEvent = {
                     type: 'draw',
                     data: intersect.object.serialized
                 };
-                intersect.object.parent.remove(intersect.object);
+                this.pushUndoEvent(undoEvent);
+            }
+        });
+        const childIntersects = this.raycaster.intersectObjects(serializedChildren);
+        childIntersects.forEach(intersect => {
+            if (intersect.object.serializedParent) {
+                intersect.object.serializedParent.parent.remove(intersect.object.serializedParent);
+                const undoEvent = {
+                    type: 'draw',
+                    data: intersect.object.serializedParent.serialized
+                };
                 this.pushUndoEvent(undoEvent);
             }
         });
@@ -258,7 +294,7 @@ class DrawingManager {
         if (this.erasing) {
             this.erase(pointerEvent);
         } else {
-            this.tool.startDraw(this.drawingGroup, this.cursor.getPosition());
+            this.tool.startDraw(this.drawingGroup, this.cursor.getPosition(), this.cursor.getNormal());
         }
     }
 
@@ -274,7 +310,7 @@ class DrawingManager {
         if (this.erasing && this.pointerDown) {
             this.erase(pointerEvent);
         } else {
-            this.tool.moveDraw(this.drawingGroup, this.cursor.getPosition());
+            this.tool.moveDraw(this.drawingGroup, this.cursor.getPosition(), this.cursor.getNormal());
         }
     }
 
@@ -291,7 +327,7 @@ class DrawingManager {
         if (this.erasing) {
             this.erase(pointerEvent);
         } else {
-            this.tool.endDraw(this.drawingGroup, this.cursor.getPosition());
+            this.tool.endDraw(this.drawingGroup, this.cursor.getPosition(), this.cursor.getNormal());
         }
         if (this.tempOffsetMode) {
             this.tempOffsetMode = false;
@@ -317,6 +353,7 @@ DrawingManager.Tool = class {
      * Starts drawing with the tool.
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
      */
     startDraw() {
     }
@@ -325,6 +362,7 @@ DrawingManager.Tool = class {
      * Updates drawing with the tool.
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
      */
     moveDraw() {
     }
@@ -333,6 +371,7 @@ DrawingManager.Tool = class {
      * Finishes drawing with the tool. Can be called when tool is not currently drawing.
      * @param {THREE.Object3D} parent - The parent object to draw in.
      * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
      */
     endDraw() {
     }
@@ -369,11 +408,12 @@ DrawingManager.Cursor = class {
      */
     constructor() {
         this.position = new THREE.Vector3(0, 0, 0);
+        this.normal = new THREE.Vector3(0, 1, 0);
         this.raycaster = new THREE.Raycaster();
     }
 
     /**
-     * Updates the cursor position.
+     * Updates the cursor position and normal.
      * @param {THREE.Scene} scene - The scene to calculate the position in.
      * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
      * @param {Object} pointerEvent - The triggering pointer event.
@@ -386,9 +426,23 @@ DrawingManager.Cursor = class {
      * @returns {THREE.Vector3} - The position of the cursor in the scene.
      */
     getPosition() {
+        return this.position;
     }
 
-    //TODO: doc
+    /**
+     * Gets the current surface normal.
+     * @returns {THREE.Vector3} - The normal of the cursor in the scene.
+     */
+    getNormal() {
+        return this.normal;
+    }
+
+    /**
+     * Calculates the camera ray for a given pointer event.
+     * @param {PointerEvent} pointerEvent - The triggering pointer event.
+     * @param {THREE.Camera} camera - The scene's camera.
+     * @return {THREE.Ray} - The ray that emits from the camera into the scene.
+     */
     getScreenRay(pointerEvent, camera) {
         const position = {
             x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
@@ -398,7 +452,14 @@ DrawingManager.Cursor = class {
         return this.raycaster.ray;
     }
 
-    //TODO: doc
+    /**
+     * Projects a ray a specified distance and returns the position of that point in the scene's coordinate system.
+     * @param {PointerEvent} pointerEvent - The triggering pointer event.
+     * @param {number} distance - The distance into the scene to project.
+     * @param {THREE.Camera} camera - The scene's camera.
+     * @param {THREE.Scene} scene - The scene to calculate the final position in.
+     * @return {THREE.Vector3} - The position of the calculated point.
+     */
     screenProject(pointerEvent, distance, camera, scene) {
         const ray = this.getScreenRay(pointerEvent, camera);
         return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
@@ -411,7 +472,7 @@ DrawingManager.Cursor = class {
  * @return {THREE.MeshBasicMaterial} - The generated brush material.
  */
 function generateBrushMaterial(color) {
-    return new THREE.MeshToonMaterial({color});
+    return new THREE.MeshBasicMaterial({color});
 }
 
 /**
@@ -569,66 +630,240 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
     }
 };
 
+DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
+    /**
+     * Creates an Icon Tool.
+     */
+    constructor(drawingManager) {
+        super(drawingManager);
+
+        this.iconNames = ['press', 'pull', 'push', 'rotateCCW', 'rotateCW'];
+        this.icons = {}; // Icons will be loaded into this
+        this.selectedIcon = null; // Icon to place into scene
+        this.currentObj = null; // Object that is moved around scene during drawing
+
+        this.gltfLoader = new THREE.GLTFLoader();
+        const loadingPromises = this.iconNames.map(iconName => {
+            const url = `resources/glb/${iconName}.glb`;
+            return new Promise((resolve, reject) => {
+                this.gltfLoader.load(url, gltf => {
+                    gltf.iconName = iconName;
+                    this.icons[iconName] = gltf;
+                    resolve();
+                }, () => {}, error => {
+                    console.error(error);
+                    reject(error);
+                });
+            });
+        });
+
+        Promise.allSettled(loadingPromises).then(() => {
+            this.selectedIcon = this.icons[this.iconNames[0]];
+        }).catch(error => {
+            console.error('error occurred in icon tool loading');
+            console.error(error);
+        });
+    }
+
+    /**
+     * Sets the active icon.
+     * @param {string} iconName - The icon to be set as active.
+     */
+    setIcon(iconName) {
+        if (this.iconNames.includes(iconName)) {
+            this.selectedIcon = this.icons[iconName];
+        }
+    }
+
+    /**
+     * Starts drawing with the tool.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
+     */
+    startDraw(parent, position, normalVector) {
+        if (this.currentObj) {
+            return;
+        }
+        const currentObj = this.selectedIcon.scene.clone();
+        currentObj.iconName = this.selectedIcon.iconName;
+        currentObj.traverse(obj => {
+            if (obj.material) {
+                obj.material = new THREE.MeshLambertMaterial({color: this.color});
+            }
+        });
+        parent.add(currentObj);
+        currentObj.position.copy(position);
+        currentObj.scale.multiplyScalar(this.size * 10);
+        currentObj.lookAt(currentObj.getWorldPosition().add(normalVector));
+        currentObj.normalVector = normalVector;
+
+        currentObj.animationMixer = new THREE.AnimationMixer(currentObj);
+        currentObj.lastRender = 0;
+        this.drawingManager.addCallback('render', _now => {
+            const deltaSeconds = (_now - currentObj.lastRender) / 1000;
+            currentObj.lastRender = _now;
+            currentObj.animationMixer.update(deltaSeconds);
+        });
+        this.selectedIcon.animations.forEach(animation => {
+            currentObj.animationMixer.clipAction(animation).play();
+        });
+
+        this.currentObj = currentObj;
+    }
+
+    /**
+     * Updates drawing with the tool.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
+     */
+    moveDraw(parent, position, normalVector) {
+        if (!this.currentObj) {
+            return;
+        }
+        this.currentObj.position.copy(position);
+        this.currentObj.lookAt(this.currentObj.getWorldPosition().add(normalVector));
+        this.currentObj.normalVector = normalVector;
+    }
+
+    /**
+     * Finishes drawing with the tool. Can be called when tool is not currently drawing.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     * @param {THREE.Vector3} normalVector - The direction of the normal at raycast hit.
+     */
+    endDraw() {
+        if (!this.currentObj) {
+            return;
+        }
+
+        this.currentObj.drawingId = `${Math.round(Math.random() * 100000000)}`;
+
+        const undoEvent = {
+            type: 'erase',
+            data: {
+                drawingId: this.currentObj.drawingId
+            }
+        };
+
+        this.currentObj.serialized = {
+            tool: 'ICON',
+            color: this.color,
+            size: this.size,
+            iconName: this.currentObj.iconName,
+            position: this.currentObj.position.clone(),
+            normalVector: this.currentObj.normalVector.clone().applyMatrix4(this.drawingManager.scene.matrixWorld.clone().transpose()),
+            drawingId: this.currentObj.drawingId
+        };
+        this.drawingManager.pushUndoEvent(undoEvent);
+
+        this.currentObj = null;
+    }
+
+    /**
+     * Creates a drawing from a serialized version.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {Object} drawing - The serialized object defining the object to be drawn.
+     */
+    drawFromSerialized(parent, drawing) {
+        if (!this.iconNames.includes(drawing.iconName)) {
+            console.error(`Attempted to load icon with name "${drawing.iconName}" that doesn't exist`);
+            return;
+        }
+        if (!this.icons[drawing.iconName]) { // Hasn't loaded gltf yet
+            setTimeout(() => this.drawFromSerialized(parent, drawing), 500);
+            return;
+        }
+        console.log(`Drawing ${drawing.iconName} from serialized.`);
+        console.log(drawing);
+        const selectedIcon = this.icons[drawing.iconName];
+        const obj = selectedIcon.scene.clone();
+        obj.iconName = selectedIcon.iconName;
+        obj.traverse(child => {
+            if (child.material) {
+                child.material = new THREE.MeshLambertMaterial({color: drawing.color});
+            }
+        });
+        parent.add(obj);
+        obj.scale.multiplyScalar(drawing.size * 10);
+        obj.position.copy(drawing.position);
+
+        drawing.normalVector = new THREE.Vector3(drawing.normalVector.x, drawing.normalVector.y, drawing.normalVector.z);
+        // Note: I do not know why (mathematically) the normal needs to be negated here. If not negated, it points the wrong direction.
+        const transformedNormal = drawing.normalVector.clone().negate().applyMatrix4(this.drawingManager.scene.matrixWorld.clone().invert().transpose());
+        obj.lookAt(obj.getWorldPosition().add(transformedNormal));
+        obj.normalVector = transformedNormal;
+
+        obj.animationMixer = new THREE.AnimationMixer(obj);
+        obj.lastRender = 0;
+        this.drawingManager.addCallback('render', _now => {
+            const deltaSeconds = (_now - obj.lastRender) / 1000;
+            obj.lastRender = _now;
+            obj.animationMixer.update(deltaSeconds);
+        });
+        selectedIcon.animations.forEach(animation => {
+            obj.animationMixer.clipAction(animation).play();
+        });
+
+        obj.drawingId = drawing.drawingId;
+        obj.serialized = drawing;
+    }
+};
+
 DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
     /**
      * Creates an Offset Cursor.
      */
     constructor() {
         super();
-        this.offset = 500; // TODO: Add ability for user to set this by tapping in the scene, like focusing camera lens
+        this.offset = 500;
         this.position = new THREE.Vector3(0, 0, 0);
     }
 
     /**
-     * Updates the cursor position.
+     * Updates the cursor position and normal.
      * @param {THREE.Scene} scene - The scene to calculate the position in.
      * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
      * @param {Object} pointerEvent - The triggering pointer event.
      */
     updatePosition(scene, camera, pointerEvent) {
-        this.position = super.screenProject(pointerEvent, this.offset, camera, scene);
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return this.position;
+        this.position = this.screenProject(pointerEvent, this.offset, camera, scene);
+        this.normal = this.getScreenRay(pointerEvent, camera).direction.clone().negate();
     }
 };
 
-DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
-    /**
-     * Creates a Projection Cursor.
-     */
-    constructor() {
-        super();
-        this.position = new THREE.Vector3(0, 0, 0);
-    }
-
-    /**
-     * Updates the cursor position.
-     * @param {THREE.Scene} scene - The scene to calculate the position in.
-     * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
-     * @param {Object} pointerEvent - The triggering pointer event.
-     */
-    updatePosition(scene, camera, pointerEvent) {
-        const offset = pointerEvent.projectedZ;
-        if (!offset) {
-            return;
-        }
-        this.position = super.screenProject(pointerEvent, offset, camera, scene);
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return this.position;
-    }
-};
+// DrawingManager.Cursor.Projection = class extends DrawingManager.Cursor {
+//     /**
+//      * Creates a Projection Cursor.
+//      */
+//     constructor() {
+//         super();
+//         this.position = new THREE.Vector3(0, 0, 0);
+//     }
+//
+//     /**
+//      * Updates the cursor position.
+//      * @param {THREE.Scene} scene - The scene to calculate the position in.
+//      * @param {THREE.Camera} camera - The camera used for calculating the cursor position.
+//      * @param {Object} pointerEvent - The triggering pointer event.
+//      */
+//     updatePosition(scene, camera, pointerEvent) {
+//         const offset = pointerEvent.projectedZ;
+//         if (!offset) {
+//             return;
+//         }
+//         this.position = super.screenProject(pointerEvent, offset, camera, scene);
+//     }
+//
+//     /**
+//      * Gets the current cursor position.
+//      * @returns {THREE.Vector3} - The position of the cursor in the scene.
+//      */
+//     getPosition() {
+//         return this.position;
+//     }
+// };
 
 DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
     /**
@@ -639,6 +874,7 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         this.position = new THREE.Vector3(0, 0, 0);
         this.jumpDistanceLimit = 500; // Distance diff considered to be too big, must be smoothed
         this.lastOffset = 0; // Distance at which to draw when going over holes, updated when hitting surface
+        this.lastNormal = this.normal; // Normal to use when going over holes, updated when hitting surface
         this.bumpTowardsCamera = 15; // Distance by which to shift the cursor towards the camera to prevent z-fighting with surfaces
         this.activeCursor = false; // Successful pointerdown over geometry
         this.planePoints = [];
@@ -684,29 +920,39 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
             return;
         }
 
-        const screenRay = super.getScreenRay(pointerEvent, camera);
-        const lastOffsetPosition = super.screenProject(pointerEvent, this.lastOffset - this.bumpTowardsCamera, camera, scene);
+        const screenRay = this.getScreenRay(pointerEvent, camera);
+        const lastOffsetPosition = this.screenProject(pointerEvent, this.lastOffset - this.bumpTowardsCamera, camera, scene);
         if (projectedZ) {
-            const meshProjectedPosition = super.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
+            const meshProjectedPosition = this.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (screenRay.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
+                    const planeProjectedPosition = this.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
                         this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                         this.debug('plane projection, jump too big');
                         this.position = planeProjectedPosition;
+                        if (screenRay.direction.dot(plane.normal) > 0) {
+                            this.normal = plane.normal.clone().negate();
+                        } else {
+                            this.normal = plane.normal;
+                        }
+                        this.lastNormal = this.normal;
                     } else {
                         this.lastOffset = projectedZ; // Set hole offset with successful draw distance
                         this.debug('mesh projection, default');
                         this.addPlanePoint(meshProjectedPosition, scene);
                         this.position = meshProjectedPosition;
+                        this.normal = new THREE.Vector3(pointerEvent.worldIntersectPoint.normalVector.x, pointerEvent.worldIntersectPoint.normalVector.y, pointerEvent.worldIntersectPoint.normalVector.z);
+                        this.lastNormal = this.normal;
                     }
                 } else {
                     this.lastOffset = projectedZ; // Set hole offset with successful draw distance
                     this.debug('mesh projection, failed to intersect plane');
                     this.addPlanePoint(meshProjectedPosition, scene);
                     this.position = meshProjectedPosition;
+                    this.normal = new THREE.Vector3(pointerEvent.worldIntersectPoint.normalVector.x, pointerEvent.worldIntersectPoint.normalVector.y, pointerEvent.worldIntersectPoint.normalVector.z);
+                    this.lastNormal = this.normal;
                 }
             } else { // If plane has not yet been defined
                 if (pointerEvent.type === 'pointerdown' || Math.abs(this.lastOffset - projectedZ) < this.jumpDistanceLimit) {
@@ -714,35 +960,38 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
                     this.debug('mesh projection, plane undefined');
                     this.addPlanePoint(meshProjectedPosition, scene);
                     this.position = meshProjectedPosition;
+                    this.normal = new THREE.Vector3(pointerEvent.worldIntersectPoint.normalVector.x, pointerEvent.worldIntersectPoint.normalVector.y, pointerEvent.worldIntersectPoint.normalVector.z);
+                    this.lastNormal = this.normal;
                 } else { // If hole into other geometry
                     this.debug('hole projection, jump too big');
                     this.position = lastOffsetPosition;
+                    this.normal = this.lastNormal;
                 }
             }
         } else { // If hole into empty space
             if (this.planePoints.length === 3) { // If plane has been defined
                 const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
                 if (screenRay.distanceToPlane(plane) !== null) {
-                    const planeProjectedPosition = super.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
+                    const planeProjectedPosition = this.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     this.lastOffset = screenRay.distanceToPlane(plane); // Set hole offset with successful draw distance
                     this.debug('plane projection, no mesh, default');
                     this.position = planeProjectedPosition;
+                    if (screenRay.direction.dot(plane.normal) > 0) {
+                        this.normal = plane.normal.clone().negate();
+                    } else {
+                        this.normal = plane.normal;
+                    }
+                    this.lastNormal = this.normal;
                 } else {
                     this.debug('hole projection, no mesh, failed to intersect plane');
                     this.position = lastOffsetPosition;
+                    this.normal = this.lastNormal;
                 }
             } else {
                 this.debug('hole projection, no mesh, plane undefined');
                 this.position = lastOffsetPosition;
+                this.normal = this.lastNormal;
             }
         }
-    }
-
-    /**
-     * Gets the current cursor position.
-     * @returns {THREE.Vector3} - The position of the cursor in the scene.
-     */
-    getPosition() {
-        return this.position;
     }
 };

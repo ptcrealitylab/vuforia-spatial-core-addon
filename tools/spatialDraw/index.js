@@ -12,6 +12,7 @@ let lastSync = 0;
 let realRenderer, renderer;
 let camera, scene;
 let mainContainerObj;
+let groundPlaneContainerObj;
 let spatialInterface;
 
 let rendererWidth;
@@ -20,21 +21,23 @@ let aspectRatio;
 
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
-    spatialInterface.setMoveDelay(500);
-    spatialInterface.useWebGlWorker();
-
-    setTimeout(() => {
-        spatialInterface.initNode('storage', 'storeData');
-        spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-            if (initializedApp && drawing.time > lastSync) {
-                lastSync = drawing.time;
-                drawingManager.deserializeDrawing(drawing);
-            } else {
-                loadedDrawing = drawing;
-            }
-        });
-    }, 1000);
 }
+
+spatialInterface.setMoveDelay(500);
+spatialInterface.useWebGlWorker();
+spatialInterface.setAlwaysFaceCamera(true);
+
+setTimeout(() => {
+    spatialInterface.initNode('storage', 'storeData');
+    spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
+        if (initializedApp && drawing.time > lastSync) {
+            lastSync = drawing.time;
+            drawingManager.deserializeDrawing(drawing);
+        } else {
+            loadedDrawing = drawing;
+        }
+    });
+}, 1000);
 
 const launchIcon = document.querySelector('#launchButton');
 launchIcon.addEventListener('pointerup', function () {
@@ -85,8 +88,26 @@ cursorMenuOptions.forEach(cursorMenuOption => {
     });
 });
 
+const iconMenu = document.querySelector('.iconMenu');
+const iconMenuPopout = document.querySelector('.iconMenuPopout');
+iconMenu.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    iconMenuPopout.classList.toggle('active');
+    if (!iconMenuPopout.classList.contains('active')) {
+        drawingManager.setTool(drawingManager.toolMap['LINE']);
+    }
+});
+const iconCircles = Array.from(document.querySelectorAll('.icon'));
+iconCircles.forEach(iconCircle => {
+    iconCircle.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        drawingManager.setIcon(iconCircle.dataset.icon);
+    });
+});
+
 const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
 envelope.onOpen(() => {
+    spatialInterface.setAlwaysFaceCamera(false);
     if (!rendererStarted) {
         initRenderer().then(() => {
             initDrawingApp();
@@ -100,6 +121,7 @@ envelope.onOpen(() => {
     }
 });
 envelope.onClose(() => {
+    spatialInterface.setAlwaysFaceCamera(true);
     drawingManager.disableInteractions();
     appActive = false;
     scene.visible = false;
@@ -142,7 +164,7 @@ function initDrawingApp() {
 
     drawingManager.addCallback('size', (size) => {
         sizeCircles.forEach(sizeCircle => sizeCircle.classList.remove('active'));
-        const nextCircle = sizeCircles.find(circle => circle.dataset.size === size);
+        const nextCircle = sizeCircles.find(circle => circle.dataset.size === `${size}`);
         nextCircle.classList.add('active'); // Activates
     });
     drawingManager.addCallback('color', (color) => {
@@ -160,6 +182,19 @@ function initDrawingApp() {
     drawingManager.addCallback('cursor', cursor => {
         cursorMenuOptions.forEach(option => option.classList.remove('active'));
         cursorMenuOptions.find(option => cursor === drawingManager.cursorMap[option.dataset.cursor]).classList.add('active');
+    });
+    drawingManager.addCallback('icon', iconName => {
+        iconCircles.forEach(iconCircle => iconCircle.classList.remove('active'));
+        iconCircles.find(iconCircle => iconName === iconCircle.dataset.icon).classList.add('active');
+    });
+    drawingManager.addCallback('tool', tool => {
+        const toolName = Object.keys(drawingManager.toolMap).find(name => drawingManager.toolMap[name] === tool);
+        if (toolName === 'ICON') {
+            iconMenu.classList.add('active');
+        } else {
+            iconCircles.forEach(iconCircle => iconCircle.classList.remove('active'));
+            iconMenu.classList.remove('active');
+        }
     });
 
     initializedApp = true;
@@ -219,23 +254,25 @@ function initRenderer() {
     mainContainerObj.name = 'mainContainerObj';
     scene.add(mainContainerObj);
 
-    // light the scene with a combination of ambient and directional white light
-    let ambLight = new THREE.AmbientLight(0x404040);
+    groundPlaneContainerObj = new THREE.Object3D();
+    groundPlaneContainerObj.matrixAutoUpdate = false;
+    groundPlaneContainerObj.name = 'groundPlaneContainerObj';
+    scene.add(groundPlaneContainerObj);
+
+    // light the scene with ambient light
+    const ambLight = new THREE.AmbientLight(0x404040);
     scene.add(ambLight);
-    let dirLight1 = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight1.position.set(1000, 1000, 1000);
-    scene.add(dirLight1);
-    let dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight2.position.set(-1000, -1000, -1000);
-    scene.add(dirLight2);
-    let spotLight = new THREE.SpotLight(0xffffff);
-    spotLight.position.set(-300, -300, 1500);
-    spotLight.castShadow = true;
-    mainContainerObj.add(spotLight);
+    const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
+    directionalLight.position.set(0, 100000, 0);
+    groundPlaneContainerObj.add(directionalLight);
+    const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
+    directionalLight2.position.set(100000, 0, 100000);
+    groundPlaneContainerObj.add(directionalLight2);
 
     return new Promise((resolve) => {
         spatialInterface.onSpatialInterfaceLoaded(function() {
             spatialInterface.subscribeToMatrix();
+            spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
             spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
             spatialInterface.registerTouchDecider(touchDecider);
             resolve();
@@ -254,6 +291,11 @@ function setMatrixFromArray(matrix, array) {
         array[2], array[6], array[10], array[14],
         array[3], array[7], array[11], array[15]
     );
+}
+
+function groundPlaneCallback(modelViewMatrix) {
+    setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
+    mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
 }
 
 let lastProjectionMatrix = null;
@@ -285,6 +327,7 @@ render = function(_now) {
         mainContainerObj.visible = true;
 
         if (renderer && scene && camera) {
+            drawingManager.triggerCallbacks('render', _now);
             renderer.render(scene, camera);
             if (done && realGl) {
                 for (let proxy of proxies) {
@@ -305,3 +348,11 @@ render = function(_now) {
         }
     }
 };
+
+// Launch automatically on first placement.
+spatialInterface.wasToolJustCreated(justCreated => {
+    if (justCreated) {
+        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
+        setTimeout(() => envelope.open(), 500);
+    }
+});
