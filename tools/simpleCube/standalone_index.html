@@ -15,12 +15,14 @@
 	<script src="/userinterface/src/gui/webgl-debug.js"></script>
     <script src="/userinterface/src/gui/glRenderer.js" type="module"></script>
 	<script>
+        // fake certain functions
 		createNameSpace("realityEditor.device");
 		createNameSpace("realityEditor.network");
 		realityEditor.device.registerCallback = function(str, func) {};
 		realityEditor.network.registerCallback = function(str, func) {};
 		
 		window.onload = () => {
+            // add the tool
 			globalDOMCache["iframe_standalone_tool"] = document.getElementById("iframe_standalone_tool");
 			globalDOMCache["object_standalone_tool"] = document.getElementById("object_standalone_tool");
 			realityEditor.gui.glRenderer.initService();

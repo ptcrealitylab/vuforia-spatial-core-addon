@@ -16,6 +16,9 @@ class SimpleModelInterface {
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
     }
 
+    /**
+     * called when the spatial interface has been loaded, to finish it's configuration
+     */
     onSpatialInterfaceLoaded() {
         this.spatialInterface.setVisibilityDistance(100);
 
@@ -27,7 +30,7 @@ class SimpleModelInterface {
     }
 
     /**
-     * 
+     * called when the ground plane is initialized
      * @param {Float32Array} modelViewMatrix 
      * @param {Float32Array} _projectionMatrix 
      */
@@ -36,7 +39,7 @@ class SimpleModelInterface {
     }
 
     /**
-     * 
+     * called when the position of the tool changes
      * @param {Float32Array} modelViewMatrix 
      * @param {Float32Array} _projectionMatrix 
      */
@@ -45,7 +48,8 @@ class SimpleModelInterface {
     }
 
     /**
-     * 
+     * send all messages from the worker to the server
+     * tool writers can use this to intercept messages
      * @param {MessageEvent} event 
      */
 	onMessageFromWorker(event) {
@@ -53,7 +57,8 @@ class SimpleModelInterface {
 	}
 
     /**
-     * 
+     * send all messages from the server to the ThreejsInterface
+     * tool writers can use this to intercept messages
      * @param {MessageEvent} event 
      */
     onMessageFromServer(event) {
@@ -64,4 +69,5 @@ class SimpleModelInterface {
 
 const simpleModelInterface = new SimpleModelInterface();
 
+// send mesages from the server to the tool class
 self.onmessage = (event) => simpleModelInterface.onMessageFromServer(event);

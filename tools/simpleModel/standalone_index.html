@@ -16,7 +16,7 @@
     <script src="/userinterface/src/gui/glRenderer.js" type="module"></script>
 	<script>
         /**
-         * 
+         * calculates a projection matrix
          * @param {number} fovDeg 
          * @param {number} near 
          * @param {number} far 
@@ -29,17 +29,20 @@
             return new Float32Array([fov / aspect, 0, 0, 0, 0, fov, 0, 0, 0, 0, (near + far) * rangeInv, -1, 0, 0, near * far * rangeInv * 2, 0]);
         }
 
+        // fake certain functionality
 		createNameSpace("realityEditor.device");
 		createNameSpace("realityEditor.network");
 		realityEditor.device.registerCallback = function(str, func) {};
 		realityEditor.network.registerCallback = function(str, func) {};
 		
 		window.onload = () => {
+            // load the tool
 			globalDOMCache["iframe_standalone_tool"] = document.getElementById("iframe_standalone_tool");
 			globalDOMCache["object_standalone_tool"] = document.getElementById("object_standalone_tool");
 			realityEditor.gui.glRenderer.initService();
 			realityEditor.gui.glRenderer.addWebGlProxy("_standalone_tool");
             
+            // setup a projection matrix
             globalDOMCache["iframe_standalone_tool"].contentWindow.postMessage({name: "anchoredModelViewCallback", projectionMatrix: getProjectionMatrix(60, 1, 1000, globalStates.width / globalStates.height)},"*")
 		};
 	</script>

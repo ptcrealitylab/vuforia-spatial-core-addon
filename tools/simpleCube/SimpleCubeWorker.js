@@ -1,7 +1,9 @@
 import {GLCommandBufferContext, CommandBufferFactory, CommandBuffer} from "/objectDefaultFiles/glCommandBuffer.js";
 
+// basic linear algebra
+
 /**
- * 
+ * dot product
  * @param {Float32Array} a float4
  * @param {Float32Array} b float4
  * @return {number} 
@@ -11,7 +13,7 @@ function dotVector(a, b) {
 }
 
 /**
- * 
+ * normalize vectors
  * @param {Float32Array} a float3 
  * @returns {Float32Array} float3
  */
@@ -21,7 +23,7 @@ function normalizeVector(a) {
 }
 
 /**
- * 
+ * setup projection matrix
  * @param {number} fovDeg 
  * @param {number} near 
  * @param {number} far 
@@ -35,7 +37,7 @@ function getProjectionMatrix(fovDeg, near, far, aspect) {
 }
 
 /**
- * 
+ * translation matrix
  * @param {Float32Array} a float4
  * @returns {Float32Array} float4x4
  */
@@ -44,7 +46,7 @@ function getTranslationMatrix(a) {
 }
 
 /**
- * 
+ * scale matrix
  * @param {Float32Array} a float4
  * @returns {Float32Array} float4x4
  */
@@ -52,9 +54,8 @@ function getScaleMatrix(a) {
     return new Float32Array([a[0], 0, 0, 0, 0, a[1], 0, 0, 0, 0, a[2], 0, 0, 0, 0, a[3]])
 }
 
-
 /**
- * 
+ * rotation matrix
  * @param {Float32Array} axis float3
  * @param {number} angleDeg 
  * @returns {Float32Array} float4x4
@@ -67,7 +68,7 @@ function getRotationMatrix(axis, angleDeg) {
 }
 
 /**
- * 
+ * multiply two matrices
  * @param {Float32Array} a float4x4
  * @param {Float32Array} b float4x4
  * @return {Float32Array} float4x4
@@ -79,13 +80,16 @@ function mulMatrix(a, b) {
 }
 
 /**
- * 
+ * transpose a matrix
  * @param {Float32Array} a 
  */
 function transpose(a) {
     return new Float32Array([a[0], a[4], a[8], a[12], a[1], a[5], a[9], a[13], a[2], a[6], a[10], a[14], a[3], a[7], a[10], a[15]]);
 }
 
+/**
+ * renders a cube using raw webgl
+ */
 class SimpleCubeWorker {
     constructor() {
         console.log("worker is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
@@ -94,6 +98,7 @@ class SimpleCubeWorker {
         const near = 0.03;
         const far = 1000;
         const aspect = 1;
+        // all resources we need for intialisation and rendering
         this.objRotation = 40;
         this.modelMatrix = mulMatrix(getScaleMatrix(new Float32Array([200, 200, 200, 1])), getRotationMatrix(new Float32Array([0, 1, 0]), this.objRotation));
         this.projectionMatrix = getProjectionMatrix(fovDeg, near, far, aspect);
@@ -115,7 +120,7 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * create all required resources for rendering the cube
      * @param {number} width 
      * @param {number} height 
      * @param {CommandBufferFactory} commandBufferFactory 
@@ -241,6 +246,9 @@ class SimpleCubeWorker {
         return [commandBuffer];
     }
 
+    /**
+     * updates the model view projection matrix and the normal matrix
+     */
     updateMVP() {
         const modelWorldMatrix = mulMatrix(this.modelMatrix, this.worldMatrix);
         this.mvpMatrix = mulMatrix(modelWorldMatrix, mulMatrix(this.viewMatrix, this.projectionMatrix));
@@ -252,12 +260,13 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * render the cube using the preallocated resources
      * @param {number} time 
      * @param {CommandBuffer} commandBuffer 
-     * @returns 
+     * @returns {CommandBuffer}
      */
     render(time, commandBuffer) {
+        // don;t render if resources aren't loaded
         if (this.shaderProgram === null ||
             this.lightDir === null ||
             this.ldirLoc === null ||
@@ -269,13 +278,16 @@ class SimpleCubeWorker {
             this.posLoc === null ||
             this.normalBuffer === null ||
             this.normLoc === null ||
-            this.indexBuffer === null) {
-                return commandBuffer;
-            }
+            this.indexBuffer === null) 
+        {
+            return commandBuffer; // is empty
+        }
         
+        // update object rotation
         this.objRotation += 0.1;
         this.setModelMatrix(mulMatrix(getScaleMatrix(new Float32Array([200, 200, 200, 1])), getRotationMatrix(new Float32Array([0, 1, 0]), this.objRotation)));
         
+        // render cube
         this.gl.useProgram(this.shaderProgram);
     
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
@@ -298,7 +310,7 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * changes the projection matrix and updates the matrices
      * @param {Float32Array} matrix 
      */
     setProjectionMatrix(matrix) {
@@ -307,7 +319,7 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * changes the view matrix and updates the matrices
      * @param {Float32Array} matrix 
      */
     setViewMatrix(matrix) {
@@ -316,7 +328,7 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * changes the model matrix and updates the matrices
      * @param {Float32Array} matrix 
      */
     setModelMatrix(matrix) {
@@ -325,7 +337,7 @@ class SimpleCubeWorker {
     }
 
     /**
-     * 
+     * changes the world matrix and updates the matrices
      * @param {Float32Array} matrix 
      */
     setWorldMatrix(matrix) {
@@ -335,6 +347,8 @@ class SimpleCubeWorker {
 }
 
 const worker = new SimpleCubeWorker();
+
+// the rest of the code is communication which should not bother the tool developer (ThreejsInterface)
 
 // Unique worker id
 /**
@@ -386,6 +400,7 @@ self.onmessage = (event) => {
             glCommandBufferContext = new GLCommandBufferContext(message);
             commandBufferFactory = new CommandBufferFactory(workerId, glCommandBufferContext, message.synclock);
             
+            // let the tool code finish initialisation
             let bootstrapCommandBuffers = worker.main(width, height, commandBufferFactory);
 
             for (const bootstrapCommandBuffer of bootstrapCommandBuffers) {
@@ -397,6 +412,7 @@ self.onmessage = (event) => {
             return;
         } else if (message.name === "frame") {
             workerId = message.workerId;
+            // safety checks
             if (!bootstrapProcessed) {
                 console.log(`Can't render worker with id: ${workerId}, it has not yet finished initializing`);
                 self.postMessage({
@@ -414,6 +430,7 @@ self.onmessage = (event) => {
                 return;
             }
 
+            // activate the correct commandbuffer
             if (frameCommandBuffer === null) {
                 frameCommandBuffer = commandBufferFactory.createAndActivate(true);
             } else {
@@ -421,6 +438,7 @@ self.onmessage = (event) => {
                 glCommandBufferContext.setActiveCommandBuffer(frameCommandBuffer);
             }
             try {
+                // let the tool render the scene
                 frameCommandBuffer = worker.render(message.time, frameCommandBuffer);
             } catch (err) {
                 console.error('Error in gl-worker render fn', err);

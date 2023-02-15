@@ -2,6 +2,9 @@
  * @typedef {import("./object.js").SpatialInterface} SpatialInterface
  */
 
+/**
+ * mediates betweeen the server, SpatialInterfae and the webworker
+ */
 class SimpleCubeInterface {
     /**
      * 
@@ -25,6 +28,9 @@ class SimpleCubeInterface {
         }
     }
 
+    /**
+     * finishes the initialisation after the spatialinterface is done loading
+     */
     onSpatialInterfaceLoaded() {
         this.spatialInterface.subscribeToMatrix();
         this.spatialInterface.setFullScreenOn();
@@ -56,7 +62,7 @@ class SimpleCubeInterface {
     }
 
     /**
-     * 
+     * send all messages from the server directly to the webworker
      * @param {MessageEvent} event 
      * @returns 
      */
@@ -72,14 +78,21 @@ let spatialInterface;
 
 let isGroundPlaneFound = false;
 
+// initialize SpatialInterface
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
     spatialInterface.useWebGlWorker();
 }
 
+// initialize tool code
 let simpleCubeInterface = new SimpleCubeInterface(spatialInterface);
 simpleCubeInterface.addPendingLoad();
 
+/**
+ * called to setup the projection matrix
+ * @param {Float32Array} modelViewMatrix 
+ * @param {Float32Array} _projectionMatrix 
+ */
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     if (!isGroundPlaneFound) {
         isGroundPlaneFound = true;
@@ -87,6 +100,11 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     }
 }
 
+/**
+ * called when the world origin changes, the location of the tool it self in the scene changes
+ * @param {Float32Array} modelViewMatrix 
+ * @param {Float32Array} _projectionMatrix 
+ */
 function modelViewCallback(modelViewMatrix, _projectionMatrix) {
     if (isGroundPlaneFound) {
         simpleCubeInterface.worker.postMessage({name: "setWorldMatrix", matrix: modelViewMatrix});
@@ -97,6 +115,9 @@ function createWorld() {
     simpleCubeInterface.removePendingLoad();
 }
 
+/**
+ * receives mesages from the server
+ */
 window.addEventListener('message', function(event) {
     const message = event.data;
     if (!message) {
@@ -107,11 +128,13 @@ window.addEventListener('message', function(event) {
         return;
     }
     if (message.hasOwnProperty("name")) {
+        // intercept bootstrap messages to finish intialisation of the client
         if (message.name === "bootstrap") {
             let {width, height} = message;
             spatialInterface.changeFrameSize(width, height);
             this.synclock = message.synclock;
         }
     }
+    // pass all messages to the tool code
     simpleCubeInterface.onMessage(event);
 });

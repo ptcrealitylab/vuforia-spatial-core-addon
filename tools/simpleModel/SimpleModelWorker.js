@@ -1,18 +1,22 @@
 import {ThreejsWorker, setMatrixFromArray} from "/objectDefaultFiles/ThreejsWorker.js";
 import * as THREE from '/objectDefaultFiles/three/three.module.js'; 
 
+/**
+ * tool specific rendering code for threejs
+ */
 class SimpleModelWorker {
     constructor() {
         console.log("worker is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
         this.threejsWorker = new ThreejsWorker();
         this.threejsWorker.onSceneCreated(this.onSceneCreated.bind(this));
+        // the tool doesn't us the onRender callback
         this.mainContainerObj = null;
         this.groundPlaneContainerObj = null;
         this.isGroundPlaneFound = false;
     }
 
     /**
-     * 
+     * called when the webworker receives a message
      * @param {MessageEvent<any>} event 
      */
     onMesageFromInterface(event) {
@@ -39,7 +43,7 @@ class SimpleModelWorker {
     }
 
     /**
-     * 
+     * called when a scene is created and the tool can start populating the three.js scene
      * @param {THREE.Scene} scene 
      */
     onSceneCreated(scene) {
@@ -63,4 +67,5 @@ class SimpleModelWorker {
 
 const simpleModelWorker = new SimpleModelWorker();
 
+// send all messages directly to the tool code
 self.onmessage = (event) => simpleModelWorker.onMesageFromInterface(event);
