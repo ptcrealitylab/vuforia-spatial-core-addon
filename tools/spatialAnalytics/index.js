@@ -40,7 +40,6 @@ function setRecordingState(newState) {
 }
 
 recordingIcon.addEventListener('pointerup', function() {
-    console.log('recordingIcon pointerup', recordingState);
     switch (recordingState) {
     case RecordingState.empty:
         setRecordingState(RecordingState.recording);
