@@ -4,6 +4,7 @@ let spatialInterface;
 
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
+let knownRegionCards = [];
 
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
@@ -70,6 +71,7 @@ envelope.onOpen(() => {
         startTime,
         endTime,
     });
+    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
 });
 envelope.onClose(() => {
     spatialInterface.analyticsRemove();
@@ -94,7 +96,6 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
     spatialInterface.initNode('storage', 'storeData');
 
     spatialInterface.addReadPublicDataListener('storage', 'status', status => {
-        console.log('rpdl status', status);
         if (status && status.hasOwnProperty('startTime')) {
             startTime = status.startTime;
             endTime = status.endTime;
@@ -133,5 +134,9 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
                 launchIcon.parentNode.removeChild(launchIcon);
             }
         }
+    });
+
+    spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
+        knownRegionCards = cards;
     });
 });
