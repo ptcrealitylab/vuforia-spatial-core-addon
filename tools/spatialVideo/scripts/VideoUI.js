@@ -41,10 +41,13 @@ class VideoUI {
     }
 
     animateIcons() {
-        const elapsedTime = Date.now() - this.spriteAnimationStartTime;
-        const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
-        this.icons.getByName('saving').src = this.savingSrcs[modulo];
-        this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4}rad)`; // One rotation per four seconds
+        if (this.state === VideoUIStates.LOADING || this.state === VideoUIStates.SAVING) {
+            console.log('animateIcons', this.state);
+            const elapsedTime = Date.now() - this.spriteAnimationStartTime;
+            const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
+            this.icons.getByName('saving').src = this.savingSrcs[modulo];
+            this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4}rad)`; // One rotation per four seconds
+        }
         window.requestAnimationFrame(() => this.animateIcons());
     }
 
