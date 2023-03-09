@@ -348,6 +348,17 @@ class SimpleCubeWorker {
 
 const worker = new SimpleCubeWorker();
 
+const STATE_CONSTRUCTED = 0;
+const STATE_BOOTSTRAP = 1;
+const STATE_BOOTSTRAP_DONE = 2;
+const STATE_FRAME = 3;
+const STATE_FRAME_DONE = 4;
+const STATE_CONTEXT_LOST = 5;
+const STATE_CONTEXT_RESTORED = 6;
+const STATE_CONTEXT_RESTORED_DONE = 7;
+
+let clientState = STATE_CONSTRUCTED;
+
 // the rest of the code is communication which should not bother the tool developer (ThreejsInterface)
 
 // Unique worker id
@@ -387,71 +398,154 @@ self.onmessage = (event) => {
     }
     if (message.hasOwnProperty("name")) {
         if (message.name === "setProjectionMatrix") {
-            worker.setProjectionMatrix(message.matrix);
-        } else if (message.name === "setWorldMatrix") {
-            worker.setWorldMatrix(message.matrix);
-        } else if (message.name === "setViewMatrix") {
-            worker.setViewMatrix(message.matrix);
-        } else if (message.name === "bootstrap") {
-            workerId = message.workerId;
-            let {width, height} = message;
-            synclock = message.synclock;
-
-            glCommandBufferContext = new GLCommandBufferContext(message);
-            commandBufferFactory = new CommandBufferFactory(workerId, glCommandBufferContext, message.synclock);
-            
-            // let the tool code finish initialisation
-            let bootstrapCommandBuffers = worker.main(width, height, commandBufferFactory);
-
-            for (const bootstrapCommandBuffer of bootstrapCommandBuffers) {
-                bootstrapCommandBuffer.execute();
+            switch (clientState) {
+                case STATE_CONSTRUCTED:
+                case STATE_BOOTSTRAP_DONE:
+                case STATE_FRAME_DONE:
+                case STATE_CONTEXT_RESTORED_DONE:
+                    worker.setProjectionMatrix(message.matrix);
+                    break;
+                default:
+                    console.error("wrong state to set projectionmatrix " + clientState);
+                    break;
             }
-    
-            bootstrapProcessed = true;
-    
+        } else if (message.name === "setWorldMatrix") {
+            switch (clientState) {
+                case STATE_CONSTRUCTED:
+                case STATE_BOOTSTRAP_DONE:
+                case STATE_FRAME_DONE:
+                case STATE_CONTEXT_RESTORED_DONE:
+                    worker.setWorldMatrix(message.matrix);
+                    break;
+                default:
+                    console.error("wrong state to set world matrix " + clientState);
+                    break;
+            }
+        } else if (message.name === "setViewMatrix") {
+            switch (clientState) {
+                case STATE_CONSTRUCTED:
+                case STATE_BOOTSTRAP_DONE:
+                case STATE_FRAME_DONE:
+                case STATE_CONTEXT_RESTORED_DONE:
+                    worker.setViewMatrix(message.matrix);
+                    break;
+                default:
+                    console.error("wrong state to set view matrix " + clientState);
+                    break;
+            }
+        } else if (message.name === "bootstrap") {
+            if (clientState === STATE_CONSTRUCTED) {
+                clientState = STATE_BOOTSTRAP;
+                workerId = message.workerId;
+                let {width, height} = message;
+                synclock = message.synclock;
+
+                glCommandBufferContext = new GLCommandBufferContext(message);
+                commandBufferFactory = new CommandBufferFactory(workerId, glCommandBufferContext, message.synclock);
+                
+                // let the tool code finish initialisation
+                let bootstrapCommandBuffers = worker.main(width, height, commandBufferFactory);
+
+                for (const bootstrapCommandBuffer of bootstrapCommandBuffers) {
+                    bootstrapCommandBuffer.execute();
+                }
+        
+                bootstrapProcessed = true;
+
+                self.postMessage({
+                    workerId,
+                    isFrameEnd: true,
+                });
+
+                clientState = STATE_BOOTSTRAP_DONE;
+            } else {
+                console.error("wrong state for bootstrap " + clientState);
+            }
             return;
         } else if (message.name === "frame") {
-            workerId = message.workerId;
-            // safety checks
-            if (!bootstrapProcessed) {
-                console.log(`Can't render worker with id: ${workerId}, it has not yet finished initializing`);
-                self.postMessage({
-                    workerId,
-                    isFrameEnd: true,
-                });
-                return;
-            }
-            if (Date.now() - message.time > 300) {
-                console.log('time drift detected');
-                self.postMessage({
-                    workerId,
-                    isFrameEnd: true,
-                });
-                return;
-            }
+            switch (clientState) {
+                case STATE_BOOTSTRAP_DONE:
+                case STATE_FRAME_DONE:
+                case STATE_CONTEXT_RESTORED_DONE:
+                    workerId = message.workerId;
+                    // safety checks
+                    if (!bootstrapProcessed) {
+                        console.log(`Can't render worker with id: ${workerId}, it has not yet finished initializing`);
+                        self.postMessage({
+                            workerId,
+                            isFrameEnd: true,
+                        });
+                        return;
+                    }
+                    if (Date.now() - message.time > 300) {
+                        console.log('time drift detected');
+                        self.postMessage({
+                            workerId,
+                            isFrameEnd: true,
+                        });
+                        return;
+                    }
 
-            // activate the correct commandbuffer
-            if (frameCommandBuffer === null) {
-                frameCommandBuffer = commandBufferFactory.createAndActivate(true);
+                    clientState = STATE_FRAME;
+
+                    // activate the correct commandbuffer
+                    if (frameCommandBuffer === null) {
+                        frameCommandBuffer = commandBufferFactory.createAndActivate(true);
+                    } else {
+                        frameCommandBuffer.clear();
+                        glCommandBufferContext.setActiveCommandBuffer(frameCommandBuffer);
+                    }
+                    try {
+                        // let the tool render the scene
+                        frameCommandBuffer = worker.render(message.time, frameCommandBuffer);
+                    } catch (err) {
+                        console.error('Error in gl-worker render fn', err);
+                    }
+
+                    frameCommandBuffer.execute();
+
+                    // always post an endmessage frame, even when there is nothing to do for this frame (empty commandlist)
+                    self.postMessage({
+                        workerId,
+                        isFrameEnd: true,
+                    });
+                    clientState = STATE_FRAME_DONE;
+                    break;
+                default:
+                    console.error("wrong state to ask for frame data " + clientState);
+                    break;
+            }   
+        } else if (message.name === "context_lost") {
+            switch (clientState) {
+                case STATE_CONSTRUCTED:
+                case STATE_BOOTSTRAP_DONE:
+                case STATE_FRAME_DONE:
+                case STATE_CONTEXT_RESTORED_DONE:
+                    clientState = STATE_CONTEXT_LOST;
+                    glCommandBufferContext.onContextLost();
+                    break;
+                default:
+                    console.error("wrong state for context lost " + clientState);
+                    break;
+            }
+        } else if (message.name == "context_restored") {
+            if (clientState === STATE_CONTEXT_LOST) {
+                clientState = STATE_CONTEXT_RESTORED;
+                glCommandBufferContext.onContextRestored();
+                let bootstrapCommandBuffers = worker.main(message.width, message.height, commandBufferFactory);
+
+                for (const bootstrapCommandBuffer of bootstrapCommandBuffers) {
+                    bootstrapCommandBuffer.execute();
+                }
+
+                self.postMessage({
+                    workerId,
+                    isFrameEnd: true,
+                });
+                clientState = STATE_CONTEXT_RESTORED_DONE;
             } else {
-                frameCommandBuffer.clear();
-                glCommandBufferContext.setActiveCommandBuffer(frameCommandBuffer);
+                console.error("wrong state for restoring context " + clientState);
             }
-            try {
-                // let the tool render the scene
-                frameCommandBuffer = worker.render(message.time, frameCommandBuffer);
-            } catch (err) {
-                console.error('Error in gl-worker render fn', err);
-            }
-
-            frameCommandBuffer.execute();
-
-            // always post an endmessage frame, even when there is nothing to do for this frame (empty commandlist)
-            self.postMessage({
-                workerId,
-                isFrameEnd: true,
-            });
-            
         }
     }
 }

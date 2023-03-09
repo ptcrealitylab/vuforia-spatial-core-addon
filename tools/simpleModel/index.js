@@ -4,6 +4,9 @@ import {ThreejsInterface} from "/objectDefaultFiles/ThreejsInterface.js"
  * @typedef {import("../../../../libraries/objectDefaultFiles/object.js").SpatialInterface} SpatialInterface
  */
 
+/**
+ * code that mediates between the ThreejsInterface, SpatialiInterface and the webworker
+ */
 class SimpleModelInterface {
     constructor() {
         console.log("tool is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
