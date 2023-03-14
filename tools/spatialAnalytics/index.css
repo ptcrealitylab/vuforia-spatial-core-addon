@@ -6,11 +6,83 @@ img {
     width: 100vw;
     height: 100vh;
 }
-#envelopeContainer img {
+
+#summaryContainer {
+    transform: translate(-50%, -50%) scale(10, 10);
     position: absolute;
-    left: 0;
     top: 50%;
-    transform: translateY(-50%);
-    width: 64px;
-    height: 64px;
+    left: 50%;
+    color: white;
+}
+
+.analytics-region-card {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    font-size: 14px;
+    font-family: "Futura", Helvetica Neue, Helvetica, Arial, sans-serif;
+    line-height: 22px;
+
+    border-radius: 22px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 14px;
+
+    position: relative;
+    margin: 10px 0;
+    width: fit-content;
+}
+
+.analytics-region-card.minimized > *:not(.analytics-region-card-title) {
+    display: none;
+}
+
+.analytics-region-card.minimized {
+    padding: 14px;
+    height: 14px;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.analytics-region-card-title {
+    grid-column-start: span 3;
+}
+
+.analytics-region-card-subtitle {
+    grid-column-start: span 3;
+    border-bottom: 1px solid #999;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+.analytics-region-card-graph-section-title {
+    grid-column: 1;
+}
+
+.analytics-region-card-graph-section-sparkline {
+    grid-column-start: span 2;
+    stroke: white;
+    fill: none;
+}
+
+.analytics-region-card-graph-section-value {
+}
+
+.analytics-region-card-pin, .analytics-region-card-enter {
+    grid-column: 1;
+    text-decoration: none;
+    color: white;
+}
+
+.analytics-region-card-pin:visited, .analytics-region-card-enter:visited {
+    color: white;
+}
+
+.recordingIcon {
+    position: absolute;
+    transform: translateX(-50%);
+    bottom: 230px;
+    left: 50%;
+
+    width: 80px;
+    height: 80px;
 }
