@@ -1,3 +1,5 @@
+import "/objectDefaultFiles/object.js"
+
 /**
  * @typedef {import("./object.js").SpatialInterface} SpatialInterface
  */

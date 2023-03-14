@@ -1,4 +1,5 @@
 import {ThreejsInterface} from "/objectDefaultFiles/ThreejsInterface.js"
+import "/objectDefaultFiles/object.js"
 
 /**
  * @typedef {import("../../../../libraries/objectDefaultFiles/object.js").SpatialInterface} SpatialInterface
