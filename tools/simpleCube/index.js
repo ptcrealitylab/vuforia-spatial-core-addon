@@ -1,7 +1,7 @@
-import "/objectDefaultFiles/object.js"
+import '/objectDefaultFiles/object.js'
 
 /**
- * @typedef {import("./object.js").SpatialInterface} SpatialInterface
+ * @typedef {import('./object.js').SpatialInterface} SpatialInterface
  */
 
 /**
@@ -13,7 +13,7 @@ class SimpleCubeInterface {
      * @param {SpatialInterface} spatialInterface 
      */
     constructor(spatialInterface) {
-        console.log("tool is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
+        console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
         this.spatialInterface = spatialInterface;
         this.prefersAttachingToWorld = true;
         this.pendingLoads = 0;
@@ -24,9 +24,9 @@ class SimpleCubeInterface {
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded);
 
-        this.worker = new Worker("SimpleCubeWorker.js", {type: "module"});
+        this.worker = new Worker('SimpleCubeWorker.js', {type: 'module'});
         this.worker.onmessage = (event) => {
-            window.parent.postMessage(event.data, "*");
+            window.parent.postMessage(event.data, '*');
         }
     }
 
@@ -98,7 +98,7 @@ simpleCubeInterface.addPendingLoad();
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     if (!isGroundPlaneFound) {
         isGroundPlaneFound = true;
-        simpleCubeInterface.worker.postMessage({name: "setProjectionMatrix", matrix: _projectionMatrix});
+        simpleCubeInterface.worker.postMessage({name: 'setProjectionMatrix', matrix: _projectionMatrix});
     }
 }
 
@@ -109,7 +109,7 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
  */
 function modelViewCallback(modelViewMatrix, _projectionMatrix) {
     if (isGroundPlaneFound) {
-        simpleCubeInterface.worker.postMessage({name: "setWorldMatrix", matrix: modelViewMatrix});
+        simpleCubeInterface.worker.postMessage({name: 'setWorldMatrix', matrix: modelViewMatrix});
     }
 }
 
@@ -129,9 +129,9 @@ window.addEventListener('message', function(event) {
     if (typeof message !== 'object') {
         return;
     }
-    if (message.hasOwnProperty("name")) {
+    if (message.hasOwnProperty('name')) {
         // intercept bootstrap messages to finish intialisation of the client
-        if (message.name === "bootstrap") {
+        if (message.name === 'bootstrap') {
             let {width, height} = message;
             spatialInterface.changeFrameSize(width, height);
             this.synclock = message.synclock;

@@ -1,8 +1,8 @@
-import {ThreejsInterface} from "/objectDefaultFiles/ThreejsInterface.js"
-import "/objectDefaultFiles/object.js"
+import {ThreejsInterface} from '/objectDefaultFiles/ThreejsInterface.js'
+import '/objectDefaultFiles/object.js'
 
 /**
- * @typedef {import("../../../../libraries/objectDefaultFiles/object.js").SpatialInterface} SpatialInterface
+ * @typedef {import('../../../../libraries/objectDefaultFiles/object.js').SpatialInterface} SpatialInterface
  */
 
 /**
@@ -10,8 +10,8 @@ import "/objectDefaultFiles/object.js"
  */
 class SimpleModelInterface {
     constructor() {
-        console.log("tool is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
-        this.worker = new Worker("SimpleModelWorker.js", {type: "module"});
+        console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
+        this.worker = new Worker('SimpleModelWorker.js', {type: 'module'});
         this.synclock = null;
 		this.worker.onmessage = (event) => this.onMessageFromWorker(event);
         this.spatialInterface = new SpatialInterface();
@@ -39,7 +39,7 @@ class SimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: "groundPlaneCallback", modelViewMatrix: modelViewMatrix});
+        this.worker.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
     }
 
     /**
@@ -48,7 +48,7 @@ class SimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     modelViewCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: "modelViewCallback", modelViewMatrix: modelViewMatrix})
+        this.worker.postMessage({ name: 'modelViewCallback', modelViewMatrix: modelViewMatrix})
     }
 
     /**

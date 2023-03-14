@@ -1,4 +1,4 @@
-import {ThreejsWorker, setMatrixFromArray} from "/objectDefaultFiles/ThreejsWorker.js";
+import {ThreejsWorker, setMatrixFromArray} from '/objectDefaultFiles/ThreejsWorker.js';
 import * as THREE from '/objectDefaultFiles/three/three.module.js'; 
 
 /**
@@ -6,7 +6,7 @@ import * as THREE from '/objectDefaultFiles/three/three.module.js';
  */
 class SimpleModelWorker {
     constructor() {
-        console.log("worker is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
+        console.log('worker is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
         this.threejsWorker = new ThreejsWorker();
         this.threejsWorker.onSceneCreated(this.onSceneCreated.bind(this));
         // the tool doesn't us the onRender callback
@@ -28,13 +28,13 @@ class SimpleModelWorker {
         if (typeof message !== 'object') {
             return;
         }
-        if (message.hasOwnProperty("name")) {
-            if ((message.name === "groundPlaneCallback") && (this.groundPlaneContainerObj !== null)) {
+        if (message.hasOwnProperty('name')) {
+            if ((message.name === 'groundPlaneCallback') && (this.groundPlaneContainerObj !== null)) {
                 setMatrixFromArray(this.groundPlaneContainerObj.matrix, message.modelViewMatrix);
                 if (!this.isGroundPlaneFound) {
                     this.isGroundPlaneFound = true;
                 }
-            } else if ((message.name === "modelViewCallback") ) {
+            } else if ((message.name === 'modelViewCallback') ) {
                 if (this.threejsWorker.isProjectionMatrixSet && this.isGroundPlaneFound) {
                     setMatrixFromArray(this.mainContainerObj.matrix, message.modelViewMatrix);  // update model view matrix
                 }

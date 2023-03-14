@@ -1,4 +1,4 @@
-import {GLCommandBufferContext, CommandBufferFactory, CommandBuffer} from "/objectDefaultFiles/glCommandBuffer.js";
+import {GLCommandBufferContext, CommandBufferFactory, CommandBuffer} from '/objectDefaultFiles/glCommandBuffer.js';
 
 // basic linear algebra
 
@@ -92,7 +92,7 @@ function transpose(a) {
  */
 class SimpleCubeWorker {
     constructor() {
-        console.log("worker is in a secure context: " + isSecureContext + " and isolated: " + crossOriginIsolated);
+        console.log('worker is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
         this.gl = null;
         const fovDeg = 60;
         const near = 0.03;
@@ -189,8 +189,8 @@ class SimpleCubeWorker {
     
         this.lightDir = normalizeVector(new Float32Array([10, -1, 5]));
     
-        const vertSrc = "attribute vec3 pos; attribute vec3 norm; varying highp vec3 N; uniform mat4 mvp; uniform mat3 normalMatrix; void main() { gl_Position = mvp * vec4(pos, 1); N = norm;} //normalMatrix * norm;}";
-        const fragSrc = "varying highp vec3 N; uniform highp vec3 ldir; void main() {gl_FragColor = vec4(N/*max(dot(N, -ldir), 0.0) * vec3(0, 1, 0)*/, 1);}";
+        const vertSrc = 'attribute vec3 pos; attribute vec3 norm; varying highp vec3 N; uniform mat4 mvp; uniform mat3 normalMatrix; void main() { gl_Position = mvp * vec4(pos, 1); N = norm;} //normalMatrix * norm;}';
+        const fragSrc = 'varying highp vec3 N; uniform highp vec3 ldir; void main() {gl_FragColor = vec4(N/*max(dot(N, -ldir), 0.0) * vec3(0, 1, 0)*/, 1);}';
 
         const commandBuffer = commandBufferFactory.createAndActivate(false);
 
@@ -230,13 +230,13 @@ class SimpleCubeWorker {
 
         // testing wait
         //const count = this.gl.getProgramParameter(this.shaderProgram, this.gl.ACTIVE_UNIFORMS);
-        //console.log("testing shader paramcount: " + count);
+        //console.log('testing shader paramcount: ' + count);
         
-        this.posLoc = this.gl.getAttribLocation(this.shaderProgram, "pos");
-        this.normLoc = this.gl.getAttribLocation(this.shaderProgram, "norm");
-        this.mvpLoc = this.gl.getUniformLocation(this.shaderProgram, "mvp");
-        this.normalMatrixLoc = this.gl.getUniformLocation(this.shaderProgram, "normalMatrix");
-        this.ldirLoc = this.gl.getUniformLocation(this.shaderProgram, "ldir");
+        this.posLoc = this.gl.getAttribLocation(this.shaderProgram, 'pos');
+        this.normLoc = this.gl.getAttribLocation(this.shaderProgram, 'norm');
+        this.mvpLoc = this.gl.getUniformLocation(this.shaderProgram, 'mvp');
+        this.normalMatrixLoc = this.gl.getUniformLocation(this.shaderProgram, 'normalMatrix');
+        this.ldirLoc = this.gl.getUniformLocation(this.shaderProgram, 'ldir');
 
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
@@ -396,8 +396,8 @@ self.onmessage = (event) => {
     if (typeof message !== 'object') {
         return;
     }
-    if (message.hasOwnProperty("name")) {
-        if (message.name === "setProjectionMatrix") {
+    if (message.hasOwnProperty('name')) {
+        if (message.name === 'setProjectionMatrix') {
             switch (clientState) {
                 case STATE_CONSTRUCTED:
                 case STATE_BOOTSTRAP_DONE:
@@ -406,10 +406,10 @@ self.onmessage = (event) => {
                     worker.setProjectionMatrix(message.matrix);
                     break;
                 default:
-                    console.error("wrong state to set projectionmatrix " + clientState);
+                    console.error('wrong state to set projectionmatrix ' + clientState);
                     break;
             }
-        } else if (message.name === "setWorldMatrix") {
+        } else if (message.name === 'setWorldMatrix') {
             switch (clientState) {
                 case STATE_CONSTRUCTED:
                 case STATE_BOOTSTRAP_DONE:
@@ -418,10 +418,10 @@ self.onmessage = (event) => {
                     worker.setWorldMatrix(message.matrix);
                     break;
                 default:
-                    console.error("wrong state to set world matrix " + clientState);
+                    console.error('wrong state to set world matrix ' + clientState);
                     break;
             }
-        } else if (message.name === "setViewMatrix") {
+        } else if (message.name === 'setViewMatrix') {
             switch (clientState) {
                 case STATE_CONSTRUCTED:
                 case STATE_BOOTSTRAP_DONE:
@@ -430,10 +430,10 @@ self.onmessage = (event) => {
                     worker.setViewMatrix(message.matrix);
                     break;
                 default:
-                    console.error("wrong state to set view matrix " + clientState);
+                    console.error('wrong state to set view matrix ' + clientState);
                     break;
             }
-        } else if (message.name === "bootstrap") {
+        } else if (message.name === 'bootstrap') {
             if (clientState === STATE_CONSTRUCTED) {
                 clientState = STATE_BOOTSTRAP;
                 workerId = message.workerId;
@@ -459,10 +459,10 @@ self.onmessage = (event) => {
 
                 clientState = STATE_BOOTSTRAP_DONE;
             } else {
-                console.error("wrong state for bootstrap " + clientState);
+                console.error('wrong state for bootstrap ' + clientState);
             }
             return;
-        } else if (message.name === "frame") {
+        } else if (message.name === 'frame') {
             switch (clientState) {
                 case STATE_BOOTSTRAP_DONE:
                 case STATE_FRAME_DONE:
@@ -512,10 +512,10 @@ self.onmessage = (event) => {
                     clientState = STATE_FRAME_DONE;
                     break;
                 default:
-                    console.error("wrong state to ask for frame data " + clientState);
+                    console.error('wrong state to ask for frame data ' + clientState);
                     break;
             }   
-        } else if (message.name === "context_lost") {
+        } else if (message.name === 'context_lost') {
             switch (clientState) {
                 case STATE_CONSTRUCTED:
                 case STATE_BOOTSTRAP_DONE:
@@ -525,10 +525,10 @@ self.onmessage = (event) => {
                     glCommandBufferContext.onContextLost();
                     break;
                 default:
-                    console.error("wrong state for context lost " + clientState);
+                    console.error('wrong state for context lost ' + clientState);
                     break;
             }
-        } else if (message.name == "context_restored") {
+        } else if (message.name == 'context_restored') {
             if (clientState === STATE_CONTEXT_LOST) {
                 clientState = STATE_CONTEXT_RESTORED;
                 glCommandBufferContext.onContextRestored();
@@ -544,7 +544,7 @@ self.onmessage = (event) => {
                 });
                 clientState = STATE_CONTEXT_RESTORED_DONE;
             } else {
-                console.error("wrong state for restoring context " + clientState);
+                console.error('wrong state for restoring context ' + clientState);
             }
         }
     }
