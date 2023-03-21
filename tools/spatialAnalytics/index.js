@@ -1,4 +1,4 @@
-/* global Envelope, SpatialInterface */
+/* global Envelope, SpatialInterface, isDesktop */
 
 let spatialInterface;
 
@@ -37,6 +37,13 @@ function setRecordingState(newState) {
     case RecordingState.done:
         recordingIcon.style.display = 'none';
         break;
+    }
+
+    if (recordingState === RecordingState.done && !isDesktop()) {
+        const message = document.createElement('p');
+        message.textContent = 'Recording Done';
+        message.classList.add('recordingDone');
+        envelopeContainer.appendChild(message);
     }
 }
 
