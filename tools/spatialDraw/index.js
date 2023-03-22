@@ -226,6 +226,18 @@ function initRenderer() {
     aspectRatio = rendererWidth / rendererHeight;
 
     spatialInterface.changeFrameSize(mainData.width, mainData.height);
+    spatialInterface.onWindowResized(({width, height}) => {
+        console.log('onWindowResized');
+        mainData.width = width;
+        mainData.height = height;
+        rendererWidth = width;
+        rendererHeight = height;
+        aspectRatio = rendererWidth / rendererHeight;
+        renderer.setSize(rendererWidth, rendererHeight);
+        realRenderer.setSize(rendererWidth, rendererHeight);
+        isProjectionMatrixSet = false;
+        spatialInterface.subscribeToMatrix(); // this should trigger a new retrieval of the projectionMatrix
+    });
 
     realRenderer = new THREE.WebGLRenderer( { alpha: true } );
     realRenderer.debug.checkShaderErrors = false;
