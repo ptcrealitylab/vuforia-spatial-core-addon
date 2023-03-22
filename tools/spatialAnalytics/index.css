@@ -94,3 +94,12 @@ img {
     width: 80px;
     height: 80px;
 }
+
+.markStepIcon {
+    position: absolute;
+    transform: translateX(-50%);
+    bottom: 230px;
+    left: calc(50% + 96px);
+    width: 80px;
+    height: 80px;
+}

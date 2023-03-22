@@ -5,6 +5,7 @@ let spatialInterface;
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
 let knownRegionCards = [];
+let regionCardStartTime = -1;
 
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
@@ -17,6 +18,7 @@ launchButton.addEventListener('pointerup', function () {
 const envelopeContainer = document.querySelector('#envelopeContainer');
 const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, false, false);
 const recordingIcon = document.querySelector('.recordingIcon');
+const markStepIcon = document.querySelector('.markStepIcon');
 
 const RecordingState = {
     empty: 'empty',
@@ -30,12 +32,15 @@ function setRecordingState(newState) {
     switch (recordingState) {
     case RecordingState.empty:
         recordingIcon.src = 'sprites/empty.png';
+        markStepIcon.style.display = 'none';
         break;
     case RecordingState.recording:
         recordingIcon.src = 'sprites/recording.png';
+        markStepIcon.style.display = 'inline';
         break;
     case RecordingState.done:
         recordingIcon.style.display = 'none';
+        markStepIcon.style.display = 'none';
         break;
     }
 
@@ -52,6 +57,7 @@ recordingIcon.addEventListener('pointerup', function() {
     case RecordingState.empty:
         setRecordingState(RecordingState.recording);
         startTime = Date.now();
+        regionCardStartTime = startTime;
         spatialInterface.analyticsSetDisplayRegion({
             startTime,
             endTime,
@@ -66,10 +72,29 @@ recordingIcon.addEventListener('pointerup', function() {
             endTime,
         });
         writePublicData();
+        // user pressed the mark split button during this recording
+        if (regionCardStartTime !== startTime) {
+            appendRegionCard({
+                startTime: regionCardStartTime,
+                endTime,
+            });
+        }
         break;
     case RecordingState.done:
         break;
     }
+});
+
+markStepIcon.addEventListener('pointerup', function() {
+    if (recordingState !== RecordingState.recording) {
+        return;
+    }
+    let regionCardEndTime = Date.now();
+    appendRegionCard({
+        startTime: regionCardStartTime,
+        endTime: regionCardEndTime,
+    });
+    regionCardStartTime = regionCardEndTime;
 });
 
 envelope.onOpen(() => {
@@ -94,6 +119,12 @@ const writePublicData = () => {
         endTime,
     });
 };
+
+function appendRegionCard(regionCard) {
+    knownRegionCards.push(regionCard);
+    spatialInterface.writePublicData('storage', 'cards', knownRegionCards);
+    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+}
 
 spatialInterface.onSpatialInterfaceLoaded(function() {
     spatialInterface.setVisibilityDistance(100);
