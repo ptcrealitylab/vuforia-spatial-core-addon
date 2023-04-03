@@ -45,6 +45,13 @@ spatialInterface.setMoveDelay(500);
 spatialInterface.useWebGlWorker();
 spatialInterface.setAlwaysFaceCamera(true);
 
+spatialInterface.wasToolJustCreated(justCreated => {
+    if (justCreated) {
+        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
+        // envelope will open automatically, so no need to call envelope.open() here
+    }
+});
+
 // setTimeout(() => {
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
