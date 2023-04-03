@@ -19,6 +19,24 @@ let rendererWidth;
 let rendererHeight;
 let aspectRatio;
 
+let lastProjectionMatrix = null;
+let lastModelViewMatrix = null;
+let isProjectionMatrixSet = false;
+let done = false; // used by gl renderer
+
+let mainData = {
+    width: 0,
+    height: 0
+};
+
+let rendererStarted = false;
+
+// eslint-disable-next-line no-undef
+main = ({width, height}) => {
+    mainData.width = width;
+    mainData.height = height;
+};
+
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
@@ -27,7 +45,7 @@ spatialInterface.setMoveDelay(500);
 spatialInterface.useWebGlWorker();
 spatialInterface.setAlwaysFaceCamera(true);
 
-setTimeout(() => {
+// setTimeout(() => {
     spatialInterface.initNode('storage', 'storeData');
     spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
         if (initializedApp && drawing.time > lastSync) {
@@ -37,7 +55,7 @@ setTimeout(() => {
             loadedDrawing = drawing;
         }
     });
-}, 1000);
+// }, 1000);
 
 const launchIcon = document.querySelector('#launchButton');
 launchIcon.addEventListener('pointerup', function () {
@@ -105,8 +123,13 @@ iconCircles.forEach(iconCircle => {
     });
 });
 
-const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
+const isStackable = false;
+const areFramesOrdered = false;
+const isFullscreenFull2D = false;
+const opensWhenAdded = true;
+const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, isStackable, areFramesOrdered, isFullscreenFull2D, opensWhenAdded);
 envelope.onOpen(() => {
+    launchButton.hidden = false;
     spatialInterface.setAlwaysFaceCamera(false);
     if (!rendererStarted) {
         initRenderer().then(() => {
@@ -121,11 +144,13 @@ envelope.onOpen(() => {
     }
 });
 envelope.onClose(() => {
+    // we don't need to location.reload() here if we properly reset the state
+    launchButton.hidden = false;
+    spatialInterface.unregisterTouchDecider();
     spatialInterface.setAlwaysFaceCamera(true);
     drawingManager.disableInteractions();
     appActive = false;
     scene.visible = false;
-    location.reload();
 });
 
 function resetScroll() {
@@ -200,27 +225,19 @@ function initDrawingApp() {
     initializedApp = true;
 }
 
-let mainData = {
-    width: 0,
-    height: 0
-};
-
-// eslint-disable-next-line no-undef
-main = ({width, height}) => {
-    mainData.width = width;
-    mainData.height = height;
-};
-
-let rendererStarted = false;
+function glIsReady() {
+    return (gl instanceof WebGLRenderingContext);
+}
 
 function initRenderer() {
     if (rendererStarted) {
         return;
     }
+    return new Promise((resolve, reject) => {
+        if (glIsReady()) {
     rendererStarted = true;
     document.body.width = mainData.width + 'px';
     document.body.height = mainData.height + 'px';
-    document.querySelector('svg').remove();
     rendererWidth = mainData.width;
     rendererHeight = mainData.height;
     aspectRatio = rendererWidth / rendererHeight;
@@ -281,7 +298,6 @@ function initRenderer() {
     directionalLight2.position.set(100000, 0, 100000);
     groundPlaneContainerObj.add(directionalLight2);
 
-    return new Promise((resolve) => {
         spatialInterface.onSpatialInterfaceLoaded(function() {
             spatialInterface.subscribeToMatrix();
             spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
@@ -289,6 +305,11 @@ function initRenderer() {
             spatialInterface.registerTouchDecider(touchDecider);
             resolve();
         });
+        } else {
+            setTimeout(() => {
+                initRenderer().then(resolve).catch(reject);
+            }, 500);
+        }
     });
 }
 
@@ -310,16 +331,11 @@ function groundPlaneCallback(modelViewMatrix) {
     mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
 }
 
-let lastProjectionMatrix = null;
-let lastModelViewMatrix = null;
 
 function updateMatrices(modelViewMatrix, projectionMatrix) {
     lastProjectionMatrix = projectionMatrix;
     lastModelViewMatrix = modelViewMatrix;
 }
-
-let isProjectionMatrixSet = false;
-let done = false;
 
 // Draw the scene repeatedly
 // eslint-disable-next-line no-undef
@@ -360,11 +376,3 @@ render = function(_now) {
         }
     }
 };
-
-// Launch automatically on first placement.
-spatialInterface.wasToolJustCreated(justCreated => {
-    if (justCreated) {
-        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
-        setTimeout(() => envelope.open(), 500);
-    }
-});
