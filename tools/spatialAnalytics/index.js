@@ -15,6 +15,11 @@ const launchButton = document.getElementById('launchButton');
 launchButton.addEventListener('pointerup', function () {
     envelope.open();
 }, false);
+
+// add random init gradient for the tool icon
+const randomDelay = -Math.floor(Math.random() * 100);
+launchButton.style.animationDelay = `${randomDelay}s`;
+
 const envelopeContainer = document.querySelector('#envelopeContainer');
 const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, false, false);
 const recordingIcon = document.querySelector('.recordingIcon');
