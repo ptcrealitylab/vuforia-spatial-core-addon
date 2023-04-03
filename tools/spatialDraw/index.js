@@ -67,6 +67,10 @@ launchIcon.addEventListener('pointerup', function () {
     envelope.open();
 }, false);
 
+// add random init gradient for the tool icon
+const randomDelay = -Math.floor(Math.random() * 100);
+launchIcon.style.animationDelay = `${randomDelay}s`;
+
 const launchButton = document.querySelector('#launchButton');
 const uiParent = document.querySelector('#uiParent');
 const ui = document.querySelector('#ui');
