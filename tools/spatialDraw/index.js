@@ -52,17 +52,15 @@ spatialInterface.wasToolJustCreated(justCreated => {
     }
 });
 
-// setTimeout(() => {
-    spatialInterface.initNode('storage', 'storeData');
-    spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-        if (initializedApp && drawing.time > lastSync) {
-            lastSync = drawing.time;
-            drawingManager.deserializeDrawing(drawing);
-        } else {
-            loadedDrawing = drawing;
-        }
-    });
-// }, 1000);
+spatialInterface.initNode('storage', 'storeData');
+spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
+    if (initializedApp && drawing.time > lastSync) {
+        lastSync = drawing.time;
+        drawingManager.deserializeDrawing(drawing);
+    } else {
+        loadedDrawing = drawing;
+    }
+});
 
 const launchIcon = document.querySelector('#launchButton');
 launchIcon.addEventListener('pointerup', function () {
@@ -242,76 +240,76 @@ function initRenderer() {
     }
     return new Promise((resolve, reject) => {
         if (glIsReady()) {
-    rendererStarted = true;
-    document.body.width = mainData.width + 'px';
-    document.body.height = mainData.height + 'px';
-    rendererWidth = mainData.width;
-    rendererHeight = mainData.height;
-    aspectRatio = rendererWidth / rendererHeight;
+            rendererStarted = true;
+            document.body.width = mainData.width + 'px';
+            document.body.height = mainData.height + 'px';
+            rendererWidth = mainData.width;
+            rendererHeight = mainData.height;
+            aspectRatio = rendererWidth / rendererHeight;
 
-    spatialInterface.changeFrameSize(mainData.width, mainData.height);
-    spatialInterface.onWindowResized(({width, height}) => {
-        console.log('onWindowResized');
-        mainData.width = width;
-        mainData.height = height;
-        rendererWidth = width;
-        rendererHeight = height;
-        aspectRatio = rendererWidth / rendererHeight;
-        renderer.setSize(rendererWidth, rendererHeight);
-        realRenderer.setSize(rendererWidth, rendererHeight);
-        isProjectionMatrixSet = false;
-        spatialInterface.subscribeToMatrix(); // this should trigger a new retrieval of the projectionMatrix
-    });
+            spatialInterface.changeFrameSize(mainData.width, mainData.height);
+            spatialInterface.onWindowResized(({width, height}) => {
+                console.log('onWindowResized');
+                mainData.width = width;
+                mainData.height = height;
+                rendererWidth = width;
+                rendererHeight = height;
+                aspectRatio = rendererWidth / rendererHeight;
+                renderer.setSize(rendererWidth, rendererHeight);
+                realRenderer.setSize(rendererWidth, rendererHeight);
+                isProjectionMatrixSet = false;
+                spatialInterface.subscribeToMatrix(); // this should trigger a new retrieval of the projectionMatrix
+            });
 
-    realRenderer = new THREE.WebGLRenderer( { alpha: true } );
-    realRenderer.debug.checkShaderErrors = false;
-    realRenderer.setPixelRatio(window.devicePixelRatio);
-    realRenderer.setSize(rendererWidth, rendererHeight);
-    // eslint-disable-next-line no-global-assign
-    realGl = realRenderer.getContext();
+            realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+            realRenderer.debug.checkShaderErrors = false;
+            realRenderer.setPixelRatio(window.devicePixelRatio);
+            realRenderer.setSize(rendererWidth, rendererHeight);
+            // eslint-disable-next-line no-global-assign
+            realGl = realRenderer.getContext();
 
-    // create a fullscreen webgl renderer for the threejs content and add to the dom
-    renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
-    renderer.debug.checkShaderErrors = false;
-    //renderer.setPixelRatio( window.devicePixelRatio );
-    renderer.setSize( rendererWidth, rendererHeight );
-    //document.body.appendChild( renderer.domElement );
+            // create a fullscreen webgl renderer for the threejs content and add to the dom
+            renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
+            renderer.debug.checkShaderErrors = false;
+            //renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.setSize( rendererWidth, rendererHeight );
+            //document.body.appendChild( renderer.domElement );
 
-    // create a threejs camera and scene
-    camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
-    scene = new THREE.Scene();
-    scene.add(camera);
+            // create a threejs camera and scene
+            camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
+            scene = new THREE.Scene();
+            scene.add(camera);
 
-    // create a parent 3D object to contain all the three js objects
-    // we can apply the marker transform to this object and all of its
-    // children objects will be affected
-    mainContainerObj = new THREE.Object3D();
-    mainContainerObj.matrixAutoUpdate = false;
-    mainContainerObj.name = 'mainContainerObj';
-    scene.add(mainContainerObj);
+            // create a parent 3D object to contain all the three js objects
+            // we can apply the marker transform to this object and all of its
+            // children objects will be affected
+            mainContainerObj = new THREE.Object3D();
+            mainContainerObj.matrixAutoUpdate = false;
+            mainContainerObj.name = 'mainContainerObj';
+            scene.add(mainContainerObj);
 
-    groundPlaneContainerObj = new THREE.Object3D();
-    groundPlaneContainerObj.matrixAutoUpdate = false;
-    groundPlaneContainerObj.name = 'groundPlaneContainerObj';
-    scene.add(groundPlaneContainerObj);
+            groundPlaneContainerObj = new THREE.Object3D();
+            groundPlaneContainerObj.matrixAutoUpdate = false;
+            groundPlaneContainerObj.name = 'groundPlaneContainerObj';
+            scene.add(groundPlaneContainerObj);
 
-    // light the scene with ambient light
-    const ambLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambLight);
-    const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
-    directionalLight.position.set(0, 100000, 0);
-    groundPlaneContainerObj.add(directionalLight);
-    const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
-    directionalLight2.position.set(100000, 0, 100000);
-    groundPlaneContainerObj.add(directionalLight2);
+            // light the scene with ambient light
+            const ambLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambLight);
+            const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
+            directionalLight.position.set(0, 100000, 0);
+            groundPlaneContainerObj.add(directionalLight);
+            const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
+            directionalLight2.position.set(100000, 0, 100000);
+            groundPlaneContainerObj.add(directionalLight2);
 
-        spatialInterface.onSpatialInterfaceLoaded(function() {
-            spatialInterface.subscribeToMatrix();
-            spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
-            spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
-            spatialInterface.registerTouchDecider(touchDecider);
-            resolve();
-        });
+            spatialInterface.onSpatialInterfaceLoaded(function() {
+                spatialInterface.subscribeToMatrix();
+                spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+                spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
+                spatialInterface.registerTouchDecider(touchDecider);
+                resolve();
+            });
         } else {
             setTimeout(() => {
                 initRenderer().then(resolve).catch(reject);
