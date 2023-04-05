@@ -19,6 +19,24 @@ let rendererWidth;
 let rendererHeight;
 let aspectRatio;
 
+let lastProjectionMatrix = null;
+let lastModelViewMatrix = null;
+let isProjectionMatrixSet = false;
+let done = false; // used by gl renderer
+
+let mainData = {
+    width: 0,
+    height: 0
+};
+
+let rendererStarted = false;
+
+// eslint-disable-next-line no-undef
+main = ({width, height}) => {
+    mainData.width = width;
+    mainData.height = height;
+};
+
 if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
@@ -27,22 +45,31 @@ spatialInterface.setMoveDelay(500);
 spatialInterface.useWebGlWorker();
 spatialInterface.setAlwaysFaceCamera(true);
 
-setTimeout(() => {
-    spatialInterface.initNode('storage', 'storeData');
-    spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
-        if (initializedApp && drawing.time > lastSync) {
-            lastSync = drawing.time;
-            drawingManager.deserializeDrawing(drawing);
-        } else {
-            loadedDrawing = drawing;
-        }
-    });
-}, 1000);
+spatialInterface.wasToolJustCreated(justCreated => {
+    if (justCreated) {
+        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
+        // envelope will open automatically, so no need to call envelope.open() here
+    }
+});
+
+spatialInterface.initNode('storage', 'storeData');
+spatialInterface.addReadPublicDataListener('storage', 'drawing', function (drawing) {
+    if (initializedApp && drawing.time > lastSync) {
+        lastSync = drawing.time;
+        drawingManager.deserializeDrawing(drawing);
+    } else {
+        loadedDrawing = drawing;
+    }
+});
 
 const launchIcon = document.querySelector('#launchButton');
 launchIcon.addEventListener('pointerup', function () {
     envelope.open();
 }, false);
+
+// add random init gradient for the tool icon
+const randomDelay = -Math.floor(Math.random() * 100);
+launchIcon.style.animationDelay = `${randomDelay}s`;
 
 const launchButton = document.querySelector('#launchButton');
 const uiParent = document.querySelector('#uiParent');
@@ -105,8 +132,13 @@ iconCircles.forEach(iconCircle => {
     });
 });
 
-const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, false, false);
+const isStackable = false;
+const areFramesOrdered = false;
+const isFullscreenFull2D = false;
+const opensWhenAdded = true;
+const envelope = new Envelope(spatialInterface, [], uiParent, launchButton, isStackable, areFramesOrdered, isFullscreenFull2D, opensWhenAdded);
 envelope.onOpen(() => {
+    launchButton.hidden = false;
     spatialInterface.setAlwaysFaceCamera(false);
     if (!rendererStarted) {
         initRenderer().then(() => {
@@ -121,11 +153,13 @@ envelope.onOpen(() => {
     }
 });
 envelope.onClose(() => {
+    // we don't need to location.reload() here if we properly reset the state
+    launchButton.hidden = false;
+    spatialInterface.unregisterTouchDecider();
     spatialInterface.setAlwaysFaceCamera(true);
     drawingManager.disableInteractions();
     appActive = false;
     scene.visible = false;
-    location.reload();
 });
 
 function resetScroll() {
@@ -200,83 +234,91 @@ function initDrawingApp() {
     initializedApp = true;
 }
 
-let mainData = {
-    width: 0,
-    height: 0
-};
-
-// eslint-disable-next-line no-undef
-main = ({width, height}) => {
-    mainData.width = width;
-    mainData.height = height;
-};
-
-let rendererStarted = false;
+function glIsReady() {
+    return (gl instanceof WebGLRenderingContext);
+}
 
 function initRenderer() {
     if (rendererStarted) {
         return;
     }
-    rendererStarted = true;
-    document.body.width = mainData.width + 'px';
-    document.body.height = mainData.height + 'px';
-    document.querySelector('svg').remove();
-    rendererWidth = mainData.width;
-    rendererHeight = mainData.height;
-    aspectRatio = rendererWidth / rendererHeight;
+    return new Promise((resolve, reject) => {
+        if (glIsReady()) {
+            rendererStarted = true;
+            document.body.width = mainData.width + 'px';
+            document.body.height = mainData.height + 'px';
+            rendererWidth = mainData.width;
+            rendererHeight = mainData.height;
+            aspectRatio = rendererWidth / rendererHeight;
 
-    spatialInterface.changeFrameSize(mainData.width, mainData.height);
+            spatialInterface.changeFrameSize(mainData.width, mainData.height);
+            spatialInterface.onWindowResized(({width, height}) => {
+                console.log('onWindowResized');
+                mainData.width = width;
+                mainData.height = height;
+                rendererWidth = width;
+                rendererHeight = height;
+                aspectRatio = rendererWidth / rendererHeight;
+                renderer.setSize(rendererWidth, rendererHeight);
+                realRenderer.setSize(rendererWidth, rendererHeight);
+                isProjectionMatrixSet = false;
+                spatialInterface.subscribeToMatrix(); // this should trigger a new retrieval of the projectionMatrix
+            });
 
-    realRenderer = new THREE.WebGLRenderer( { alpha: true } );
-    realRenderer.debug.checkShaderErrors = false;
-    realRenderer.setPixelRatio(window.devicePixelRatio);
-    realRenderer.setSize(rendererWidth, rendererHeight);
-    // eslint-disable-next-line no-global-assign
-    realGl = realRenderer.getContext();
+            realRenderer = new THREE.WebGLRenderer( { alpha: true } );
+            realRenderer.debug.checkShaderErrors = false;
+            realRenderer.setPixelRatio(window.devicePixelRatio);
+            realRenderer.setSize(rendererWidth, rendererHeight);
+            // eslint-disable-next-line no-global-assign
+            realGl = realRenderer.getContext();
 
-    // create a fullscreen webgl renderer for the threejs content and add to the dom
-    renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
-    renderer.debug.checkShaderErrors = false;
-    //renderer.setPixelRatio( window.devicePixelRatio );
-    renderer.setSize( rendererWidth, rendererHeight );
-    //document.body.appendChild( renderer.domElement );
+            // create a fullscreen webgl renderer for the threejs content and add to the dom
+            renderer = new THREE.WebGLRenderer( { context: gl, alpha: true } );
+            renderer.debug.checkShaderErrors = false;
+            //renderer.setPixelRatio( window.devicePixelRatio );
+            renderer.setSize( rendererWidth, rendererHeight );
+            //document.body.appendChild( renderer.domElement );
 
-    // create a threejs camera and scene
-    camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
-    scene = new THREE.Scene();
-    scene.add(camera);
+            // create a threejs camera and scene
+            camera = new THREE.PerspectiveCamera( 70, aspectRatio, 1, 1000 );
+            scene = new THREE.Scene();
+            scene.add(camera);
 
-    // create a parent 3D object to contain all the three js objects
-    // we can apply the marker transform to this object and all of its
-    // children objects will be affected
-    mainContainerObj = new THREE.Object3D();
-    mainContainerObj.matrixAutoUpdate = false;
-    mainContainerObj.name = 'mainContainerObj';
-    scene.add(mainContainerObj);
+            // create a parent 3D object to contain all the three js objects
+            // we can apply the marker transform to this object and all of its
+            // children objects will be affected
+            mainContainerObj = new THREE.Object3D();
+            mainContainerObj.matrixAutoUpdate = false;
+            mainContainerObj.name = 'mainContainerObj';
+            scene.add(mainContainerObj);
 
-    groundPlaneContainerObj = new THREE.Object3D();
-    groundPlaneContainerObj.matrixAutoUpdate = false;
-    groundPlaneContainerObj.name = 'groundPlaneContainerObj';
-    scene.add(groundPlaneContainerObj);
+            groundPlaneContainerObj = new THREE.Object3D();
+            groundPlaneContainerObj.matrixAutoUpdate = false;
+            groundPlaneContainerObj.name = 'groundPlaneContainerObj';
+            scene.add(groundPlaneContainerObj);
 
-    // light the scene with ambient light
-    const ambLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambLight);
-    const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
-    directionalLight.position.set(0, 100000, 0);
-    groundPlaneContainerObj.add(directionalLight);
-    const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
-    directionalLight2.position.set(100000, 0, 100000);
-    groundPlaneContainerObj.add(directionalLight2);
+            // light the scene with ambient light
+            const ambLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambLight);
+            const directionalLight = new THREE.DirectionalLight(0xFFFFFF);
+            directionalLight.position.set(0, 100000, 0);
+            groundPlaneContainerObj.add(directionalLight);
+            const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF);
+            directionalLight2.position.set(100000, 0, 100000);
+            groundPlaneContainerObj.add(directionalLight2);
 
-    return new Promise((resolve) => {
-        spatialInterface.onSpatialInterfaceLoaded(function() {
-            spatialInterface.subscribeToMatrix();
-            spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
-            spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
-            spatialInterface.registerTouchDecider(touchDecider);
-            resolve();
-        });
+            spatialInterface.onSpatialInterfaceLoaded(function() {
+                spatialInterface.subscribeToMatrix();
+                spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+                spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
+                spatialInterface.registerTouchDecider(touchDecider);
+                resolve();
+            });
+        } else {
+            setTimeout(() => {
+                initRenderer().then(resolve).catch(reject);
+            }, 500);
+        }
     });
 }
 
@@ -298,16 +340,11 @@ function groundPlaneCallback(modelViewMatrix) {
     mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
 }
 
-let lastProjectionMatrix = null;
-let lastModelViewMatrix = null;
 
 function updateMatrices(modelViewMatrix, projectionMatrix) {
     lastProjectionMatrix = projectionMatrix;
     lastModelViewMatrix = modelViewMatrix;
 }
-
-let isProjectionMatrixSet = false;
-let done = false;
 
 // Draw the scene repeatedly
 // eslint-disable-next-line no-undef
@@ -348,11 +385,3 @@ render = function(_now) {
         }
     }
 };
-
-// Launch automatically on first placement.
-spatialInterface.wasToolJustCreated(justCreated => {
-    if (justCreated) {
-        launchButton.hidden = true; // Hide the launch button when automatically launching to avoid confusing the user.
-        setTimeout(() => envelope.open(), 500);
-    }
-});

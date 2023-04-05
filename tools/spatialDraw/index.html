@@ -46,11 +46,18 @@
             cursor: pointer;
         }
         #launchIcon {
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(0,0,0,0);
             width: 400px;
             height: 400px;
             border-radius: 50px;
         }
+        
+        #uiParent {
+            display: flex;
+            justify-content: start;
+            align-items: center;
+        }
+        
         #ui {
             background-color: rgba(0,0,0,0.9);
             border-radius: 0 20px 20px 0;
@@ -60,14 +67,10 @@
             flex-direction: column;
             justify-content: space-evenly;
             align-items: center;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            position: absolute;
         }
         
         .circle {
-            border-radius: 20px;
+            border-radius: 100%;
             margin-top: 10px;
         }
         
@@ -81,19 +84,19 @@
         }
         
         .color {
-            width: 28px;
-            height: 28px;
+            width: 44px;
+            height: 44px;
         }
         
         .color.active {
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid white;
         }
         
         .erase {
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid slategray;
         }
         
@@ -102,8 +105,8 @@
         }
         
         .size {
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid white;
             display: none;
         }
@@ -113,8 +116,8 @@
         }
         
         .undo {
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid slategray;
         }
         
@@ -124,10 +127,10 @@
 
         .icon {
             display: inline-block;
-            border-radius: 20px;
+            border-radius: 100%;
             margin-left: 5px;
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid slategray;
         }
 
@@ -145,8 +148,8 @@
         }
 
         .iconMenu {
-            width: 20px;
-            height: 20px;
+            width: 36px;
+            height: 36px;
             border: 4px solid slategray;
             transform: translateY(0); /* needed to prevent fixed child from positioning relative to #ui*/
         }
@@ -175,8 +178,8 @@
         }
         
         .cursor {
-            width: 28px;
-            height: 28px;
+            width: 52px;
+            height: 52px;
             background-color: darkslategray;
         }
         
@@ -185,21 +188,35 @@
         }
         
         .projectionCursor {
-            border-radius: 5px 5px 0 0;
+            border-radius: 10px 10px 0 0;
         }
 
         .offsetCursor {
-            border-radius: 0 0 5px 5px;
+            border-radius: 0 0 10px 10px;
         }
         
         .cursor svg {
             width: 100%;
             height: 100%;
         }
+
+        .tool-color-gradient {
+            /*animation: tool-color-gradient-anim 0.3s infinite alternate;*/
+            background: linear-gradient(90deg, #000000,#000000, #00ffff, #ee7752, #e73c7e, #23a6d5, #23d5ab,#000000, #000000);
+            background-size: 2000% 200%;
+            animation: gradient 10s infinite;
+            border-radius: 50px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
     </style>
 </head>
 <body>
-    <div id="launchButton" style="width: 400px; height: 400px;">
+    <div id="launchButton" class="tool-color-gradient" style="width: 400px; height: 400px;">
         <svg id="launchIcon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 84 84" style="enable-background:new 0 0 84 84;" xml:space="preserve">
             <style type="text/css">
                 .st0{fill:none;stroke:#FFFFFF;stroke-width:3;stroke-miterlimit:10;}
@@ -222,7 +239,7 @@
                 <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" fill="#FF009F">
                     <g stroke="none" stroke-width="1" fill-rule="evenodd">
                         <g transform="translate(88.000000, 88.000000)">
-                            <circle cx="40.5" cy="40.5" r="40.5"></circle>
+                            <circle cx="40" cy="40" r="40"></circle>
                         </g>
                     </g>
                 </svg>
