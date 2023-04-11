@@ -346,7 +346,7 @@ DrawingManager.Tool = class {
         this.drawingManager = drawingManager;
         this.size = 20;
         this.color = '#FF009F';
-        this.brushMaterial = generateBrushMaterial(this.color);
+        this.meshLineMaterial = generateMeshLineMaterial(this.size, this.color);
     }
 
     /**
@@ -467,28 +467,16 @@ DrawingManager.Cursor = class {
 };
 
 /**
- * Generates a material for drawing given a color.
+ * Generates a material for MeshLine drawing given a size and a color.
+ * @param {number} size - The size of the MeshLine being drawn.
  * @param {string} color - The color of the material.
- * @return {THREE.MeshBasicMaterial} - The generated brush material.
+ * @return {MeshLineMaterial} - The generated brush material.
  */
-function generateBrushMaterial(color) {
-    return new THREE.MeshBasicMaterial({color});
-}
-
-/**
- * Generates a brush shape for extrusion when drawing.
- * @param {number} radius - The radius of the brush shape.
- * @returns {THREE.Shape} - The generated brush shape.
- */
-function generateBrushShape(radius) {
-    const circlePoints = [];
-    const circleResolution = 8; // 8 points
-
-    for (let i = 0; i < circleResolution; i++) {
-        circlePoints.push(new THREE.Vector2(radius * Math.sin(2 * Math.PI * i / circleResolution), radius * Math.cos(2 * Math.PI * i / circleResolution)));
-    }
-
-    return new THREE.Shape(circlePoints);
+function generateMeshLineMaterial(size, color) {
+    return new MeshLineMaterial({
+        lineWidth: size,
+        color: color
+    });
 }
 
 DrawingManager.Tool.Line = class extends DrawingManager.Tool {
@@ -499,7 +487,6 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         super(drawingManager);
 
         this.currentLine = null;
-        this.brushShape = generateBrushShape(this.size);
 
         this.lastPointTime = 0;
         this.minimumUpdate = {
@@ -516,7 +503,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
     startDraw(parent, position) {
         this.currentLine = {
             points: [position.clone()],
-            curve: new THREE.CurvePath(),
+            meshLine: new MeshLine(),
             obj: null,
         };
 
@@ -541,19 +528,17 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         this.lastPointTime = Date.now();
 
         this.currentLine.points.push(newPosition);
-        this.currentLine.curve = new THREE.CatmullRomCurve3(this.currentLine.points);
+        const curve = new THREE.CatmullRomCurve3(this.currentLine.points);
+        this.currentLine.meshLine.setPoints(curve.getPoints(1000));
         if (this.currentLine.obj) {
             this.currentLine.obj.geometry.dispose();
             this.currentLine.obj.material.dispose();
             this.currentLine.obj.parent.remove(this.currentLine.obj);
             this.currentLine.obj = null;
         }
-        const extrudeSettings = {
-            extrudePath: this.currentLine.curve,
-            steps: this.currentLine.points.length - 1
-        };
-        const geometry = new THREE.ExtrudeGeometry(this.brushShape, extrudeSettings);
-        this.currentLine.obj = new THREE.Mesh(geometry, this.brushMaterial);
+        const mesh = new THREE.Mesh(this.currentLine.meshLine, this.meshLineMaterial);
+        mesh.raycast = MeshLineRaycast;
+        this.currentLine.obj = mesh;
         parent.add(this.currentLine.obj);
     }
 
@@ -595,17 +580,14 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
      * @param {Object} drawing - The serialized object defining the object to be drawn.
      */
     drawFromSerialized(parent, drawing) {
-        const brushShape = generateBrushShape(drawing.size);
-        const brushMaterial = generateBrushMaterial(drawing.color);
+        const meshLineMaterial = generateMeshLineMaterial(drawing.size, drawing.color);
 
         const threePoints = drawing.points.map(point => new THREE.Vector3(point.x, point.y, point.z));
         const curve = new THREE.CatmullRomCurve3(threePoints);
-        const extrudeSettings = {
-            extrudePath: curve,
-            steps: threePoints.length - 1
-        };
-        const geometry = new THREE.ExtrudeGeometry(brushShape, extrudeSettings);
-        const mesh = new THREE.Mesh(geometry, brushMaterial);
+        const meshLine = new MeshLine();
+        meshLine.setPoints(curve.getPoints(1000));
+        const mesh = new THREE.Mesh(meshLine, meshLineMaterial);
+        mesh.raycast = MeshLineRaycast;
         mesh.drawingId = drawing.drawingId;
         mesh.serialized = drawing;
         parent.add(mesh);
@@ -617,7 +599,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
      */
     setSize(size) {
         super.setSize(size);
-        this.brushShape = generateBrushShape(size);
+        this.meshLineMaterial = generateMeshLineMaterial(size, this.color);
     }
 
     /**
@@ -626,7 +608,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
      */
     setColor(color) {
         super.setColor(color);
-        this.brushMaterial = generateBrushMaterial(color);
+        this.meshLineMaterial = generateMeshLineMaterial(this.size, color);
     }
 };
 
@@ -775,8 +757,6 @@ DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
             setTimeout(() => this.drawFromSerialized(parent, drawing), 500);
             return;
         }
-        console.log(`Drawing ${drawing.iconName} from serialized.`);
-        console.log(drawing);
         const selectedIcon = this.icons[drawing.iconName];
         const obj = selectedIcon.scene.clone();
         obj.iconName = selectedIcon.iconName;
