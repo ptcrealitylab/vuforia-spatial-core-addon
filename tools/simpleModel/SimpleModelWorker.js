@@ -1,5 +1,5 @@
 import {ThreejsWorker, setMatrixFromArray} from '/objectDefaultFiles/ThreejsWorker.js';
-import {MessageInterface, SelfMessageInterface} from '/objectDefaultFiles/WorkerFactory.js';
+import {MessageInterface, SelfMessageInterface, FactoryMessageInterface} from '/objectDefaultFiles/WorkerFactory.js';
 import * as THREE from '/objectDefaultFiles/three/three.module.js'; 
 
 /**
@@ -8,10 +8,14 @@ import * as THREE from '/objectDefaultFiles/three/three.module.js';
 class SimpleModelWorker {
     constructor() {
         console.log('worker is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-        /**
-         * @type {MessageInterface}
-         */
-        this.messageInterface = new SelfMessageInterface();
+        if (typeof dynamicScriptFactoryName === "undefined") {
+            /**
+             * @type {MessageInterface}
+             */
+            this.messageInterface = new SelfMessageInterface();
+        } else {
+            this.messageInterface = new FactoryMessageInterface();
+        }
         this.messageInterface.setOnMessage(this.onMessageFromInterface.bind(this));
         this.threejsWorker = new ThreejsWorker(this.messageInterface);
         this.threejsWorker.onSceneCreated(this.onSceneCreated.bind(this));
