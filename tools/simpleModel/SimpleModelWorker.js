@@ -1,4 +1,5 @@
 import {ThreejsWorker, setMatrixFromArray} from '/objectDefaultFiles/ThreejsWorker.js';
+import {MessageInterface, SelfMessageInterface} from '/objectDefaultFiles/WorkerFactory.js';
 import * as THREE from '/objectDefaultFiles/three/three.module.js'; 
 
 /**
@@ -7,7 +8,12 @@ import * as THREE from '/objectDefaultFiles/three/three.module.js';
 class SimpleModelWorker {
     constructor() {
         console.log('worker is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-        this.threejsWorker = new ThreejsWorker();
+        /**
+         * @type {MessageInterface}
+         */
+        this.messageInterface = new SelfMessageInterface();
+        this.messageInterface.setOnMessage(this.onMessageFromInterface.bind(this));
+        this.threejsWorker = new ThreejsWorker(this.messageInterface);
         this.threejsWorker.onSceneCreated(this.onSceneCreated.bind(this));
         // the tool doesn't us the onRender callback
         this.mainContainerObj = null;
@@ -19,7 +25,7 @@ class SimpleModelWorker {
      * called when the webworker receives a message
      * @param {MessageEvent<any>} event 
      */
-    onMesageFromInterface(event) {
+    onMessageFromInterface(event) {
         this.threejsWorker.onMessageFromInterface(event);
         const message = event.data;
         if (!message) {
@@ -67,5 +73,4 @@ class SimpleModelWorker {
 
 const simpleModelWorker = new SimpleModelWorker();
 
-// send all messages directly to the tool code
-self.onmessage = (event) => simpleModelWorker.onMesageFromInterface(event);
+

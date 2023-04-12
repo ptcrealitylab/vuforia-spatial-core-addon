@@ -11,11 +11,12 @@ import '/objectDefaultFiles/object.js'
 class SimpleModelInterface {
     constructor() {
         console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-        this.worker = new Worker('SimpleModelWorker.js', {type: 'module'});
-        this.synclock = null;
-		this.worker.onmessage = (event) => this.onMessageFromWorker(event);
+
+        //this.worker = new Worker('SimpleModelWorker.js', {type: 'module'});
+		//this.worker.onmessage = (event) => this.onMessageFromWorker(event);
         this.spatialInterface = new SpatialInterface();
-        this.threejsInterface = new ThreejsInterface(this.spatialInterface, this.worker);
+        this.threejsInterface = new ThreejsInterface(this.spatialInterface, 'SimpleModelWorker.js');
+        this.worker = this.threejsInterface.getMessageInterface();
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
     }
