@@ -12,11 +12,9 @@ class SimpleModelInterface {
     constructor() {
         console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
 
-        //this.worker = new Worker('SimpleModelWorker.js', {type: 'module'});
-		//this.worker.onmessage = (event) => this.onMessageFromWorker(event);
         this.spatialInterface = new SpatialInterface();
         this.threejsInterface = new ThreejsInterface(this.spatialInterface, 'SimpleModelWorker.js');
-        this.worker = this.threejsInterface.getMessageInterface();
+        this.workerMessageInterface = this.threejsInterface.getWorkerMessageInterface();
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
     }
@@ -40,7 +38,7 @@ class SimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
+        this.workerMessageInterface.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
     }
 
     /**
@@ -49,7 +47,7 @@ class SimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     modelViewCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: 'modelViewCallback', modelViewMatrix: modelViewMatrix})
+        this.workerMessageInterface.postMessage({ name: 'modelViewCallback', modelViewMatrix: modelViewMatrix})
     }
 
     /**
