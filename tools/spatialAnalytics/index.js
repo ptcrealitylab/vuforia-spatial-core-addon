@@ -103,15 +103,30 @@ markStepIcon.addEventListener('pointerup', function() {
 });
 
 envelope.onOpen(() => {
-    spatialInterface.analyticsAdd();
+    spatialInterface.analyticsOpen();
     spatialInterface.analyticsSetDisplayRegion({
         startTime,
         endTime,
     });
     spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
 });
+
+let focused = false;
+envelope.onFocus(() => {
+    focused = true;
+    spatialInterface.analyticsFocus();
+});
+
+envelope.onBlur(() => {
+    focused = false;
+    spatialInterface.analyticsBlur();
+});
+
 envelope.onClose(() => {
-    spatialInterface.analyticsRemove();
+    if (!focused) {
+        return;
+    }
+    spatialInterface.analyticsClose();
     if (recordingState === RecordingState.recording) {
         endTime = Date.now();
         writePublicData();
