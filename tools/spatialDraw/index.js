@@ -132,7 +132,7 @@ iconCircles.forEach(iconCircle => {
     });
 });
 
-const isStackable = false;
+const isStackable = true;
 const areFramesOrdered = false;
 const isFullscreenFull2D = false;
 const opensWhenAdded = true;
@@ -160,6 +160,18 @@ envelope.onClose(() => {
     drawingManager.disableInteractions();
     appActive = false;
     scene.visible = false;
+});
+envelope.onBlur(() => {
+    console.log('spatialDraw envelope.onBlur');
+
+    // hide the 2D UI
+    ui.style.display = 'none';
+});
+envelope.onFocus(() => {
+    console.log('spatialDraw envelope.onFocus');
+    
+    // show the UI
+    ui.style.display = '';
 });
 
 function resetScroll() {
