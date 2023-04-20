@@ -21,7 +21,7 @@ const randomDelay = -Math.floor(Math.random() * 100);
 launchButton.style.animationDelay = `${randomDelay}s`;
 
 const envelopeContainer = document.querySelector('#envelopeContainer');
-const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, false, false);
+const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, true, false);
 const recordingIcon = document.querySelector('.recordingIcon');
 const markStepIcon = document.querySelector('.markStepIcon');
 
