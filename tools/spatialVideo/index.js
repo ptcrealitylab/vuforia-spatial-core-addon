@@ -56,6 +56,12 @@ envelope.onClose(() => {
         videoUI.setState(VideoUIStates.EMPTY);
     }
 });
+envelope.onBlur(() => {
+    envelopeContainer.style.display = 'none'; // hide the 2D UI
+});
+envelope.onFocus(() => {
+    envelopeContainer.style.display = ''; // show the UI
+});
 
 const leaderBroadcast = () => {
     spatialInterface.writePublicData('storage', 'status', {
