@@ -117,6 +117,11 @@ envelope.onFocus(() => {
     focused = true;
     iconContainer.style.display = 'block';
     spatialInterface.analyticsFocus();
+    spatialInterface.analyticsSetDisplayRegion({
+        startTime,
+        endTime,
+    });
+    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
 });
 
 envelope.onBlur(() => {
