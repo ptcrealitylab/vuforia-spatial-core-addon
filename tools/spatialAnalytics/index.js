@@ -22,6 +22,7 @@ launchButton.style.animationDelay = `${randomDelay}s`;
 
 const envelopeContainer = document.querySelector('#envelopeContainer');
 const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, true, false);
+const iconContainer = document.getElementById('iconContainer');
 const recordingIcon = document.querySelector('.recordingIcon');
 const markStepIcon = document.querySelector('.markStepIcon');
 
@@ -114,11 +115,13 @@ envelope.onOpen(() => {
 let focused = false;
 envelope.onFocus(() => {
     focused = true;
+    iconContainer.style.display = 'block';
     spatialInterface.analyticsFocus();
 });
 
 envelope.onBlur(() => {
     focused = false;
+    iconContainer.style.display = 'none';
     spatialInterface.analyticsBlur();
 });
 
