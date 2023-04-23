@@ -1,4 +1,6 @@
 import '/objectDefaultFiles/object.js'
+import {MessageInterface} from '/objectDefaultFiles/WorkerFactory.js'
+import {WebGLStrategy} from '/objectDefaultFiles/glCommandBuffer.js'
 
 /**
  * @typedef {import('./object.js').SpatialInterface} SpatialInterface
@@ -15,6 +17,13 @@ class SimpleCubeInterface {
     constructor(spatialInterface) {
         console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
         this.spatialInterface = spatialInterface;
+        /**
+         * @type {MessageInterface}
+         */
+        this.workerMessageInterface = WebGLStrategy.getInstance().workerFactory.createWorker('SimpleCubeWorker.js', true);
+        this.workerMessageInterface.setOnMessage((event) => {
+            window.parent.postMessage(event.data, '*');
+        });
         this.prefersAttachingToWorld = true;
         this.pendingLoads = 0;
         this.done = false;
@@ -22,12 +31,7 @@ class SimpleCubeInterface {
         this.onSpatialInterfaceLoaded = this.onSpatialInterfaceLoaded.bind(this);
         this.anchoredModelViewCallback = this.anchoredModelViewCallback.bind(this);
 
-        this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded);
-
-        this.worker = new Worker('SimpleCubeWorker.js', {type: 'module'});
-        this.worker.onmessage = (event) => {
-            window.parent.postMessage(event.data, '*');
-        }
+        this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded);        
     }
 
     /**
@@ -69,7 +73,7 @@ class SimpleCubeInterface {
      * @returns 
      */
     onMessage(event) {
-        this.worker.postMessage(event.data);
+        this.workerMessageInterface.postMessage(event.data);
     }
 }
 
@@ -98,7 +102,7 @@ simpleCubeInterface.addPendingLoad();
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     if (!isGroundPlaneFound) {
         isGroundPlaneFound = true;
-        simpleCubeInterface.worker.postMessage({name: 'setProjectionMatrix', matrix: _projectionMatrix});
+        simpleCubeInterface.workerMessageInterface.postMessage({name: 'setProjectionMatrix', matrix: _projectionMatrix});
     }
 }
 
@@ -109,7 +113,7 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
  */
 function modelViewCallback(modelViewMatrix, _projectionMatrix) {
     if (isGroundPlaneFound) {
-        simpleCubeInterface.worker.postMessage({name: 'setWorldMatrix', matrix: modelViewMatrix});
+        simpleCubeInterface.workerMessageInterface.postMessage({name: 'setWorldMatrix', matrix: modelViewMatrix});
     }
 }
 
@@ -134,7 +138,6 @@ window.addEventListener('message', function(event) {
         if (message.name === 'bootstrap') {
             let {width, height} = message;
             spatialInterface.changeFrameSize(width, height);
-            this.synclock = message.synclock;
         }
     }
     // pass all messages to the tool code

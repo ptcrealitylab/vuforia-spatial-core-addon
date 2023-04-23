@@ -1,4 +1,4 @@
-import {GLCommandBufferContext, CommandBufferFactory, CommandBuffer} from '/objectDefaultFiles/glCommandBuffer.js';
+import {GLCommandBufferContext, CommandBufferFactory, CommandBuffer, WebGLStrategy} from '/objectDefaultFiles/glCommandBuffer.js';
 
 // basic linear algebra
 
@@ -346,6 +346,9 @@ class SimpleCubeWorker {
     }
 }
 
+const messageInterface = WebGLStrategy.getScriptSideInterface();
+messageInterface.setOnMessage(onMessage);
+
 const worker = new SimpleCubeWorker();
 
 const STATE_CONSTRUCTED = 0;
@@ -387,7 +390,10 @@ let bootstrapProcessed = false;
  */
 let synclock = null;
 
-self.onmessage = (event) => {
+/**
+ * @param {MessageEvent} event 
+ */
+function onMessage(event) {
     const message = event.data;
     if (!message) {
         console.warn('Event missing data', message);
@@ -440,8 +446,8 @@ self.onmessage = (event) => {
                 let {width, height} = message;
                 synclock = message.synclock;
 
-                glCommandBufferContext = new GLCommandBufferContext(message);
-                commandBufferFactory = new CommandBufferFactory(workerId, glCommandBufferContext, message.synclock);
+                glCommandBufferContext = new GLCommandBufferContext(message, WebGLStrategy.getInstance().syncStrategy);
+                commandBufferFactory = new CommandBufferFactory(workerId, glCommandBufferContext, message.synclock, messageInterface);
                 
                 // let the tool code finish initialisation
                 let bootstrapCommandBuffers = worker.main(width, height, commandBufferFactory);
@@ -452,7 +458,7 @@ self.onmessage = (event) => {
         
                 bootstrapProcessed = true;
 
-                self.postMessage({
+                messageInterface.postMessage({
                     workerId,
                     isFrameEnd: true,
                 });
@@ -471,7 +477,7 @@ self.onmessage = (event) => {
                     // safety checks
                     if (!bootstrapProcessed) {
                         console.log(`Can't render worker with id: ${workerId}, it has not yet finished initializing`);
-                        self.postMessage({
+                        messageInterface.postMessage({
                             workerId,
                             isFrameEnd: true,
                         });
@@ -479,7 +485,7 @@ self.onmessage = (event) => {
                     }
                     if (Date.now() - message.time > 300) {
                         console.log('time drift detected');
-                        self.postMessage({
+                        messageInterface.postMessage({
                             workerId,
                             isFrameEnd: true,
                         });
@@ -505,7 +511,7 @@ self.onmessage = (event) => {
                     frameCommandBuffer.execute();
 
                     // always post an endmessage frame, even when there is nothing to do for this frame (empty commandlist)
-                    self.postMessage({
+                    messageInterface.postMessage({
                         workerId,
                         isFrameEnd: true,
                     });
@@ -538,7 +544,7 @@ self.onmessage = (event) => {
                     bootstrapCommandBuffer.execute();
                 }
 
-                self.postMessage({
+                messageInterface.postMessage({
                     workerId,
                     isFrameEnd: true,
                 });

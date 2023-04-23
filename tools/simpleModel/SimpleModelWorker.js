@@ -9,9 +9,9 @@ import * as THREE from '/objectDefaultFiles/three/three.module.js';
 class SimpleModelWorker {
     constructor() {
         console.log('worker is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-         /**
-             * @type {MessageInterface}
-             */
+        /**
+         * @type {MessageInterface}
+         */
         this.messageInterface = WebGLStrategy.getScriptSideInterface();
         this.messageInterface.setOnMessage(this.onMessageFromInterface.bind(this));
         this.threejsWorker = new ThreejsWorker(this.messageInterface);
