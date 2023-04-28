@@ -204,5 +204,6 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
 
     spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
         knownRegionCards = cards;
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
     });
 });
