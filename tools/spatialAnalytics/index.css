@@ -104,6 +104,10 @@ img {
     height: 80px;
 }
 
+.markStepIcon.pressed {
+    filter: brightness(0.5);
+}
+
 .tool-color-gradient {
     /*animation: tool-color-gradient-anim 0.3s infinite alternate;*/
     background: linear-gradient(90deg, #000000,#000000, #00ffff, #ee7752, #e73c7e, #23a6d5, #23d5ab,#000000, #000000);
