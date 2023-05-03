@@ -15,6 +15,7 @@ class SimpleModelInterface {
         this.spatialInterface = new SpatialInterface();
         this.threejsInterface = new ThreejsInterface(this.spatialInterface, 'SimpleModelWorker.js');
         this.workerMessageInterface = this.threejsInterface.getWorkerMessageInterface();
+        this.workerMessageInterface.setOnMessage(this.onMessageFromWorker.bind(this));
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
     }

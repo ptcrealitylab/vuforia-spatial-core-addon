@@ -11,12 +11,11 @@ import '/objectDefaultFiles/object.js'
 class BabylonjsSimpleModelInterface {
     constructor() {
         console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-        this.worker = new Worker('BabylonjsSimpleModelWorker.js', {type: 'module'});
         this.synclock = null;
-		this.worker.onmessage = (event) => this.onMessageFromWorker(event);
-		this.worker.error = (event) => console.error("error");
         this.spatialInterface = new SpatialInterface();
-        this.babylonjsInterface = new BabylonjsInterface(this.spatialInterface, this.worker);
+        this.babylonjsInterface = new BabylonjsInterface(this.spatialInterface, 'BabylonjsSimpleModelWorker.js');
+        this.workerMessageInterface = this.babylonjsInterface.getWorkerMessageInterface();
+        this.workerMessageInterface.setOnMessage(this.onMessageFromWorker.bind(this));
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
     }
@@ -40,7 +39,7 @@ class BabylonjsSimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
+        this.workerMessageInterface.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
     }
 
     /**
@@ -49,7 +48,7 @@ class BabylonjsSimpleModelInterface {
      * @param {Float32Array} _projectionMatrix 
      */
     modelViewCallback(modelViewMatrix, _projectionMatrix) {
-        this.worker.postMessage({ name: 'modelViewCallback', modelViewMatrix: modelViewMatrix})
+        this.workerMessageInterface.postMessage({ name: 'modelViewCallback', modelViewMatrix: modelViewMatrix})
     }
 
     /**
