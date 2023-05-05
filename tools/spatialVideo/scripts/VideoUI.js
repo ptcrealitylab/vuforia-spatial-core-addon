@@ -12,18 +12,20 @@ class VideoUI {
     constructor(parentElement, callbacks) {
         this.parentElement = parentElement;
         this.callbacks = callbacks;
+        this.button = document.getElementById('imageContainer')
         this.icons = ['empty', 'emptyBlocked', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
-            /* <---- all icons get added to dom here ---->  */
             const imageElement = document.createElement('img');
-            if (iconName === 'saving') {
-                imageElement.src = 'sprites/saving0.png';
+            if (iconName === 'saving' || iconName === 'waitingForUser' || iconName === 'loading') {
+                imageElement.src = `sprites/${iconName}.svg`;
+                imageElement.style.width = '48px';
+                imageElement.style.height = '48px';
+                imageElement.style.left = '18px'
             } else {
                 imageElement.src = `sprites/${iconName}.png`;
             }
             imageElement.iconName = iconName;
             this.parentElement.appendChild(imageElement);
             imageElement.hidden = true;
-            /* <---- ------------------------------ ---->  */
             imageElement.addEventListener('pointerup', e => {
                 if (e.button === 0) {
                     this.callbacks.onButtonPress(this);
@@ -35,25 +37,21 @@ class VideoUI {
             return this.icons.find(icon => icon.iconName.toLowerCase() === name.toLowerCase());
         };
 
-        this.spriteAnimationStartTime = Date.now();
-        this.savingSrcs = [0, 1, 2, 3].map(index => `sprites/saving${index}.png`);
-        //icons are animated together here
-        this.animateIcons();
-
         this.setState(VideoUIStates.EMPTY);
     }
     
-    animateIcons() {
-        const elapsedTime = Date.now() - this.spriteAnimationStartTime;
-        const modulo = Math.floor((elapsedTime / 1000 * 2) % 4); // Change saving animation frame twice per second
-        //wait to mount before beginning
-        this.icons.getByName('saving').src = this.savingSrcs[modulo];
-        //wait to mount before beginning
-        this.icons.getByName('loading').style.transform = `rotate(${elapsedTime / 1000 * 2 * Math.PI / 4}rad)`; // One rotation per four seconds
-        window.requestAnimationFrame(() => this.animateIcons());
+    checkBorder() {
+        if (!this.button.classList.contains('addBorder')) {
+            this.button.classList.add('addBorder')
+        }
     }
 
-    //this should mount and unmount the icons
+    removeBorder() {
+        if (this.button.classList.contains('addBorder')) {
+            this.button.classList.remove('addBorder')
+        }
+    }
+    
     setIconByName(iconName) {
         this.icons.forEach(icon => icon.hidden = true);
         this.icons.getByName(iconName).hidden = false;
@@ -68,17 +66,22 @@ class VideoUI {
                 this.setIconByName('empty');
             }
         } else if (this.state === VideoUIStates.WAITING_FOR_USER) {
+            this.removeBorder()
             this.setIconByName('waitingForUser');
         } else if (this.state === VideoUIStates.RECORDING) {
             this.setIconByName('recording');
+            this.button.classList.add('recording')
         } else if (this.state === VideoUIStates.SAVING) {
+            this.removeBorder()
             this.setIconByName('saving');
+            this.button.classList.remove('recording')
         } else if (this.state === VideoUIStates.LOADING) {
             this.setIconByName('loading');
         } else if (this.state === VideoUIStates.PAUSED) {
-            this.setIconByName('paused');
-        } else if (this.state === VideoUIStates.PLAYING) {
+            this.checkBorder()
             this.setIconByName('playing');
+        } else if (this.state === VideoUIStates.PLAYING) {
+            this.setIconByName('paused');
         }
     }
 
