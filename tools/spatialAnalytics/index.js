@@ -91,7 +91,16 @@ recordingIcon.addEventListener('pointerup', function() {
     }
 });
 
+markStepIcon.addEventListener('pointerdown', function() {
+    markStepIcon.classList.add('pressed');
+});
+
+markStepIcon.addEventListener('pointerleave', function() {
+    markStepIcon.classList.remove('pressed');
+});
+
 markStepIcon.addEventListener('pointerup', function() {
+    markStepIcon.classList.remove('pressed');
     if (recordingState !== RecordingState.recording) {
         return;
     }
@@ -204,5 +213,6 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
 
     spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
         knownRegionCards = cards;
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
     });
 });
