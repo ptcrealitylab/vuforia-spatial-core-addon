@@ -12,7 +12,7 @@ class VideoUI {
     constructor(parentElement, callbacks) {
         this.parentElement = parentElement;
         this.callbacks = callbacks;
-        this.button = document.getElementById('imageContainer')
+        this.button = document.getElementById('imageContainer');
         this.icons = ['empty', 'emptyBlocked', 'paused', 'recording', 'playing', 'loading', 'saving', 'waitingForUser'].map(iconName => {
             const imageElement = document.createElement('img');
             if (iconName === 'saving' || iconName === 'waitingForUser' || iconName === 'loading') {
@@ -39,24 +39,20 @@ class VideoUI {
 
         this.setState(VideoUIStates.EMPTY);
     }
-    
     checkBorder() {
         if (!this.button.classList.contains('addBorder')) {
-            this.button.classList.add('addBorder')
+            this.button.classList.add('addBorder');
         }
     }
-
     removeBorder() {
         if (this.button.classList.contains('addBorder')) {
-            this.button.classList.remove('addBorder')
+            this.button.classList.remove('addBorder');
         }
     }
-    
     setIconByName(iconName) {
         this.icons.forEach(icon => icon.hidden = true);
         this.icons.getByName(iconName).hidden = false;
     }
-
     setState(state) {
         this.state = state;
         if (this.state === VideoUIStates.EMPTY) {
@@ -74,17 +70,16 @@ class VideoUI {
         } else if (this.state === VideoUIStates.SAVING) {
             this.removeBorder()
             this.setIconByName('saving');
-            this.button.classList.remove('recording')
+            this.button.classList.remove('recording');
         } else if (this.state === VideoUIStates.LOADING) {
             this.setIconByName('loading');
         } else if (this.state === VideoUIStates.PAUSED) {
-            this.checkBorder()
+            this.checkBorder();
             this.setIconByName('playing');
         } else if (this.state === VideoUIStates.PLAYING) {
             this.setIconByName('paused');
         }
     }
-
     setCurrentTime(_currentTime) {
         // TODO: add scrubber and show playback time in UI
     }
