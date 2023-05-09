@@ -17,12 +17,15 @@ class VideoUI {
             const imageElement = document.createElement('img');
             if (iconName === 'saving' || iconName === 'waitingForUser' || iconName === 'loading') {
                 imageElement.src = `sprites/${iconName}.svg`;
-                imageElement.style.width = '48px';
-                imageElement.style.height = '48px';
-                imageElement.style.left = '18px'
-            } else {
+            } else  {
                 imageElement.src = `sprites/${iconName}.png`;
-            }
+                if (iconName === 'playing') {
+                    imageElement.style.padding = '18px 13px 18px 19px'
+                } else if (iconName === 'recording' || iconName === 'paused') {
+                    imageElement.style.padding = '18px'
+                }
+            } 
+            
             imageElement.iconName = iconName;
             this.parentElement.appendChild(imageElement);
             imageElement.hidden = true;
@@ -39,16 +42,16 @@ class VideoUI {
 
         this.setState(VideoUIStates.EMPTY);
     }
-    checkBorder() {
-        if (!this.button.classList.contains('addBorder')) {
-            this.button.classList.add('addBorder');
-        }
-    }
-    removeBorder() {
-        if (this.button.classList.contains('addBorder')) {
-            this.button.classList.remove('addBorder');
-        }
-    }
+    // checkBorder() {
+    //     if (!this.button.classList.contains('addBorder')) {
+    //         this.button.classList.add('addBorder');
+    //     }
+    // }
+    // removeBorder() {
+    //     if (this.button.classList.contains('addBorder')) {
+    //         this.button.classList.remove('addBorder');
+    //     }
+    // }
     setIconByName(iconName) {
         this.icons.forEach(icon => icon.hidden = true);
         this.icons.getByName(iconName).hidden = false;
@@ -62,19 +65,19 @@ class VideoUI {
                 this.setIconByName('empty');
             }
         } else if (this.state === VideoUIStates.WAITING_FOR_USER) {
-            this.removeBorder()
+            // this.removeBorder()
             this.setIconByName('waitingForUser');
         } else if (this.state === VideoUIStates.RECORDING) {
             this.setIconByName('recording');
             this.button.classList.add('recording')
         } else if (this.state === VideoUIStates.SAVING) {
-            this.removeBorder()
+            // this.removeBorder()
             this.setIconByName('saving');
             this.button.classList.remove('recording');
         } else if (this.state === VideoUIStates.LOADING) {
             this.setIconByName('loading');
         } else if (this.state === VideoUIStates.PAUSED) {
-            this.checkBorder();
+            // this.checkBorder();
             this.setIconByName('playing');
         } else if (this.state === VideoUIStates.PLAYING) {
             this.setIconByName('paused');

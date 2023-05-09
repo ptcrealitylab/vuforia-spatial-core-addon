@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg id="e" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
     <style type="text/css">
-        .p1 { fill: #FFFFFF; animation: fadeFill 4s infinite reverse;}
+        .p1 { fill: #FFFFFF; animation: fadeFill 3s infinite reverse;}
         @keyframes fadeFill {
             0% { fill: #FFFFFF; }
             50% { fill: #A8A8A8; }
