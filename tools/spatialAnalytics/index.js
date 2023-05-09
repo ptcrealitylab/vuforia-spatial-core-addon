@@ -25,6 +25,8 @@ const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchBut
 const iconContainer = document.getElementById('iconContainer');
 const recordingIcon = document.querySelector('.recordingIcon');
 const markStepIcon = document.querySelector('.markStepIcon');
+const recIconBackground = document.querySelector('#analyticsRecordingIcon');
+const msIconBackground = document.querySelector('#analyticsMarkStepIcon');
 
 const RecordingState = {
     empty: 'empty',
@@ -43,10 +45,14 @@ function setRecordingState(newState) {
     case RecordingState.recording:
         recordingIcon.src = 'sprites/recording.png';
         markStepIcon.style.display = 'inline';
+        recIconBackground.classList.add('recording')
         break;
     case RecordingState.done:
         recordingIcon.style.display = 'none';
         markStepIcon.style.display = 'none';
+        msIconBackground.style.display = 'none';
+        recIconBackground.style.display = 'none';
+        iconContainer.style.display = 'none';
         break;
     }
 
