@@ -20,12 +20,11 @@ class VideoUI {
             } else  {
                 imageElement.src = `sprites/${iconName}.png`;
                 if (iconName === 'playing') {
-                    imageElement.style.padding = '18px 13px 18px 19px'
+                    imageElement.style.padding = '18px 13px 18px 19px';
                 } else if (iconName === 'recording' || iconName === 'paused') {
-                    imageElement.style.padding = '18px'
+                    imageElement.style.padding = '18px';
                 }
-            } 
-            
+            };
             imageElement.iconName = iconName;
             this.parentElement.appendChild(imageElement);
             imageElement.hidden = true;
