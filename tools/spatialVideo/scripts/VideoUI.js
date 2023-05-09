@@ -42,16 +42,6 @@ class VideoUI {
 
         this.setState(VideoUIStates.EMPTY);
     }
-    // checkBorder() {
-    //     if (!this.button.classList.contains('addBorder')) {
-    //         this.button.classList.add('addBorder');
-    //     }
-    // }
-    // removeBorder() {
-    //     if (this.button.classList.contains('addBorder')) {
-    //         this.button.classList.remove('addBorder');
-    //     }
-    // }
     setIconByName(iconName) {
         this.icons.forEach(icon => icon.hidden = true);
         this.icons.getByName(iconName).hidden = false;
@@ -65,19 +55,16 @@ class VideoUI {
                 this.setIconByName('empty');
             }
         } else if (this.state === VideoUIStates.WAITING_FOR_USER) {
-            // this.removeBorder()
             this.setIconByName('waitingForUser');
         } else if (this.state === VideoUIStates.RECORDING) {
             this.setIconByName('recording');
             this.button.classList.add('recording')
         } else if (this.state === VideoUIStates.SAVING) {
-            // this.removeBorder()
             this.setIconByName('saving');
             this.button.classList.remove('recording');
         } else if (this.state === VideoUIStates.LOADING) {
             this.setIconByName('loading');
         } else if (this.state === VideoUIStates.PAUSED) {
-            // this.checkBorder();
             this.setIconByName('playing');
         } else if (this.state === VideoUIStates.PLAYING) {
             this.setIconByName('paused');
