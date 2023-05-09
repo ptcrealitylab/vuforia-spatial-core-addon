@@ -45,7 +45,7 @@ function setRecordingState(newState) {
     case RecordingState.recording:
         recordingIcon.src = 'sprites/recording.png';
         markStepIcon.style.display = 'inline';
-        recIconBackground.classList.add('recording')
+        recIconBackground.classList.add('recording');
         break;
     case RecordingState.done:
         recordingIcon.style.display = 'none';
