@@ -118,13 +118,22 @@ markStepIcon.addEventListener('pointerup', function() {
     regionCardStartTime = regionCardEndTime;
 });
 
+let lastSetDisplayRegion = {};
+
 envelope.onOpen(() => {
     spatialInterface.analyticsOpen();
-    spatialInterface.analyticsSetDisplayRegion({
-        startTime,
-        endTime,
-    });
-    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (lastSetDisplayRegion.startTime !== startTime ||
+        lastSetDisplayRegion.endTime !== endTime) {
+        spatialInterface.analyticsSetDisplayRegion({
+            startTime,
+            endTime,
+        });
+        lastSetDisplayRegion.startTime = startTime;
+        lastSetDisplayRegion.endTime = endTime;
+    }
+    if (knownRegionCards.length > 0) {
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    }
 });
 
 let focused = false;
@@ -132,11 +141,18 @@ envelope.onFocus(() => {
     focused = true;
     iconContainer.style.display = 'block';
     spatialInterface.analyticsFocus();
-    spatialInterface.analyticsSetDisplayRegion({
-        startTime,
-        endTime,
-    });
-    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (lastSetDisplayRegion.startTime !== startTime ||
+        lastSetDisplayRegion.endTime !== endTime) {
+        spatialInterface.analyticsSetDisplayRegion({
+            startTime,
+            endTime,
+        });
+        lastSetDisplayRegion.startTime = startTime;
+        lastSetDisplayRegion.endTime = endTime;
+    }
+    if (knownRegionCards.length > 0) {
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    }
 });
 
 envelope.onBlur(() => {
@@ -219,6 +235,8 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
 
     spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
         knownRegionCards = cards;
-        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+        if (knownRegionCards.length > 0) {
+            spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+        }
     });
 });
