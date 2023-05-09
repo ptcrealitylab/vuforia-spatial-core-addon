@@ -16,6 +16,7 @@ img {
     background-color: #00000080;
     border-radius: 50%;
     box-sizing: border-box;
+    border: solid #ffffff 3px;
 }
 .imageContainer.recording {
     background-color: #9D0000;
@@ -23,14 +24,13 @@ img {
 }
 #envelopeContainer img {
     position: absolute;
-    left: 30px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-}
-.addBorder {
-    border: solid #ffffff 6px;
+    width: 64px;
+    height: 64px;
+    padding: 12px;
+    box-sizing: border-box;
 }
 
 @keyframes record {
