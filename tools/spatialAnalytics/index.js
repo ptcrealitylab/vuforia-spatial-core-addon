@@ -21,9 +21,12 @@ const randomDelay = -Math.floor(Math.random() * 100);
 launchButton.style.animationDelay = `${randomDelay}s`;
 
 const envelopeContainer = document.querySelector('#envelopeContainer');
-const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, false, false);
+const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, true, false);
+const iconContainer = document.getElementById('iconContainer');
 const recordingIcon = document.querySelector('.recordingIcon');
 const markStepIcon = document.querySelector('.markStepIcon');
+const recIconBackground = document.querySelector('#analyticsRecordingIcon');
+const msIconBackground = document.querySelector('#analyticsMarkStepIcon');
 
 const RecordingState = {
     empty: 'empty',
@@ -42,10 +45,14 @@ function setRecordingState(newState) {
     case RecordingState.recording:
         recordingIcon.src = 'sprites/recording.png';
         markStepIcon.style.display = 'inline';
+        recIconBackground.classList.add('recording');
         break;
     case RecordingState.done:
         recordingIcon.style.display = 'none';
         markStepIcon.style.display = 'none';
+        msIconBackground.style.display = 'none';
+        recIconBackground.style.display = 'none';
+        iconContainer.style.display = 'none';
         break;
     }
 
@@ -90,7 +97,16 @@ recordingIcon.addEventListener('pointerup', function() {
     }
 });
 
+markStepIcon.addEventListener('pointerdown', function() {
+    markStepIcon.classList.add('pressed');
+});
+
+markStepIcon.addEventListener('pointerleave', function() {
+    markStepIcon.classList.remove('pressed');
+});
+
 markStepIcon.addEventListener('pointerup', function() {
+    markStepIcon.classList.remove('pressed');
     if (recordingState !== RecordingState.recording) {
         return;
     }
@@ -102,23 +118,46 @@ markStepIcon.addEventListener('pointerup', function() {
     regionCardStartTime = regionCardEndTime;
 });
 
+let lastSetDisplayRegion = {};
+
 envelope.onOpen(() => {
     spatialInterface.analyticsOpen();
-    spatialInterface.analyticsSetDisplayRegion({
-        startTime,
-        endTime,
-    });
-    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (lastSetDisplayRegion.startTime !== startTime ||
+        lastSetDisplayRegion.endTime !== endTime) {
+        spatialInterface.analyticsSetDisplayRegion({
+            startTime,
+            endTime,
+        });
+        lastSetDisplayRegion.startTime = startTime;
+        lastSetDisplayRegion.endTime = endTime;
+    }
+    if (knownRegionCards.length > 0) {
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    }
 });
 
 let focused = false;
 envelope.onFocus(() => {
     focused = true;
+    iconContainer.style.display = 'block';
     spatialInterface.analyticsFocus();
+    if (lastSetDisplayRegion.startTime !== startTime ||
+        lastSetDisplayRegion.endTime !== endTime) {
+        spatialInterface.analyticsSetDisplayRegion({
+            startTime,
+            endTime,
+        });
+        lastSetDisplayRegion.startTime = startTime;
+        lastSetDisplayRegion.endTime = endTime;
+    }
+    if (knownRegionCards.length > 0) {
+        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    }
 });
 
 envelope.onBlur(() => {
     focused = false;
+    iconContainer.style.display = 'none';
     spatialInterface.analyticsBlur();
 });
 
@@ -196,5 +235,8 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
 
     spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
         knownRegionCards = cards;
+        if (knownRegionCards.length > 0) {
+            spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+        }
     });
 });
