@@ -142,6 +142,7 @@ class SpatialDrawInterface {
             circle.style.backgroundColor = circle.dataset.color;
             circle.addEventListener('pointerdown', e => {
                 e.stopPropagation();
+                if (!circle.dataset.color) throw Error("circle dataset has no color property");
                 this.drawingManager.setColor(circle.dataset.color);
             });
         });
@@ -160,7 +161,7 @@ class SpatialDrawInterface {
         this.cursorMenuOptions.forEach(cursorMenuOption => {
             cursorMenuOption.addEventListener('pointerdown', e => {
                 e.stopPropagation();
-                this.drawingManager.setCursor(this.drawingManager.cursorMap[this.cursorMenuOption.dataset.cursor]);
+                this.drawingManager.setCursor(this.cursorMenuOption.dataset.cursor);
             });
         });
        
@@ -168,7 +169,7 @@ class SpatialDrawInterface {
             e.stopPropagation();
             this.iconMenuPopout.classList.toggle('active');
             if (!this.iconMenuPopout.classList.contains('active')) {
-                this.drawingManager.setTool(this.drawingManager.toolMap['LINE']);
+                this.drawingManager.setTool('LINE');
             }
         });
         this.iconCircles.forEach(iconCircle => {
@@ -218,11 +219,28 @@ class SpatialDrawInterface {
 
         this.spatialInterface.onSpatialInterfaceLoaded(() => {
             this.spatialInterface.subscribeToMatrix();
-            this.spatialInterface.addGroundPlaneMatrixListener(this.groundPlaneCallback);
-            this.spatialInterface.addMatrixListener(this.updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
-            this.spatialInterface.registerTouchDecider(this.touchDecider);
-            this.resolve();
+            this.spatialInterface.addGroundPlaneMatrixListener(this.groundPlaneCallback.bind(this));
+            this.spatialInterface.addMatrixListener(this.updateMatrices.bind(this)); // whenever we receive new matrices from the editor, update the 3d scene
+            //this.spatialInterface.registerTouchDecider(this.touchDecider);
         });
+    }
+
+    /**
+     * called when the ground plane is initialized
+     * @param {Float32Array} modelViewMatrix 
+     * @param {Float32Array} _projectionMatrix 
+     */
+    groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
+        this.workerMessageInterface.postMessage({ name: 'groundPlaneCallback', modelViewMatrix: modelViewMatrix});
+    }
+
+    /**
+     * called when the position of the tool changes
+     * @param {Float32Array} modelViewMatrix 
+     * @param {Float32Array} projectionMatrix 
+     */
+    updateMatrices(modelViewMatrix, projectionMatrix) {
+        this.workerMessageInterface.postMessage({ name: 'updateMatrices', modelViewMatrix: modelViewMatrix, projectionMatrix: projectionMatrix})
     }
 
     /**

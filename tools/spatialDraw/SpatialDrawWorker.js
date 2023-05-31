@@ -2,6 +2,7 @@ import {ThreejsWorker, setMatrixFromArray} from '/objectDefaultFiles/ThreejsWork
 import {MessageInterface} from '/objectDefaultFiles/WorkerFactory.js';
 import {WebGLStrategy} from '/objectDefaultFiles/glCommandBuffer.js';
 import * as THREE from '/objectDefaultFiles/three/three.module.js'; 
+import 'DrawingManager.js';
 
 class SpatialDrawRenderer {
     /**
@@ -45,6 +46,16 @@ class SpatialDrawRenderer {
     setVisible(visible) {
         this.scene.visible = visible;
     }
+
+    groundPlaneCallback(modelViewMatrix) {
+        setMatrixFromArray(this.groundPlaneContainerObj.matrix, modelViewMatrix);
+        this.mainContainerObj.groundPlaneContainerObj = this.groundPlaneContainerObj;
+    }
+    
+    updateMatrices(modelViewMatrix, projectionMatrix) {
+        this.lastProjectionMatrix = projectionMatrix;
+        this.lastModelViewMatrix = modelViewMatrix;
+    }
 }
 
 class SpatialDrawWorker {
@@ -61,6 +72,11 @@ class SpatialDrawWorker {
          * @type {SpatialDrawRenderer|null}
          */
         this.renderer = null;
+
+        /**
+         * @type {DrawingManager|null}
+         */
+        this.drawingManager = null;
     }
 
     /**
@@ -77,13 +93,43 @@ class SpatialDrawWorker {
             return;
         }
 
-        if (message.hasOwnProperty("drawingManager")) {
+        if (message.hasOwnProperty('name')) {
+            if (message.name === "groundPlaneCallback") {
+                if (this.renderer !== null) {
+                    this.renderer.groundPlaneCallback(message.modelViewMatrix);
+                }
+            } else if (message.name === "updateMatrices") {
+                if (this.renderer !== null) {
+                    this.renderer.updateMatrices(message.modelViewMatrix, message.projectionMatrix);
+                }
+            }
+        } else if (message.hasOwnProperty("drawingManager")) {
             const drawingMessage = message.drawingManager;
             if (drawingMessage.hasOwnProperty("name")) {
                 if (drawingMessage.name === "setVisible") {
                     if (this.renderer !== null) {
                         this.renderer.setVisible(drawingMessage.visible);
                     }
+                } else if (drawingMessage.name === "deserializeDrawing") {
+                    
+                } else if (drawingMessage.name === "setSize") {
+
+                } else if (drawingMessage.name === "setColor") {
+
+                } else if (drawingMessage.name === "setEraseMode") {
+
+                } else if (drawingMessage.name === "popUndoEvent") {
+
+                } else if (drawingMessage.name === "setCursor") {
+
+                } else if (drawingMessage.name === "setTool") {
+
+                } else if (drawingMessage.name === "setIcon") {
+
+                } else if (drawingMessage.name === "enableInteractions") {
+
+                } else if (drawingMessage.name === "disableInteractions") {
+
                 }
             }
         }
@@ -96,6 +142,8 @@ class SpatialDrawWorker {
      */
      onSceneCreated(scene) {
         this.renderer = new SpatialDrawRenderer(scene);
+        
+        this.drawingManager = new DrawingManager(scene, this.threejsWorker.camera); 
      }
 
 }
