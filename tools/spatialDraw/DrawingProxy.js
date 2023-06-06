@@ -90,6 +90,17 @@ class DrawingProxy {
         this.postMessage({name: "disableInteractions"});
     }
 
+    onPointerDown(e) {
+        this.postMessage({name: "onPointerDown", e : e});
+    }
+
+    onPointerMove(e) {
+        this.postMessage({name: "onPointerMove", e : e});
+    }
+
+    onPointerUp(e) {
+        this.postMessage({name: "onPointerUp", e : e});
+    }
 
 }
 

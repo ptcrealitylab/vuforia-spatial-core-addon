@@ -1,3 +1,7 @@
+import * as THREE from '/objectDefaultFiles/three/three.module.js';
+import { MeshLine, MeshLineMaterial, MeshLineRaycast } from '/objectDefaultFiles/three/THREE.MeshLine.js'; 
+import { GLTFLoader } from "/objectDefaultFiles/three/addons/loaders/GLTFLoader.js"
+
 /** Class that draws to a 3D scene. */
 class DrawingManager {
     /**
@@ -180,8 +184,8 @@ class DrawingManager {
      */
     erase(pointerEvent) {
         const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+            x: (pointerEvent.pageX / pointerEvent.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / pointerEvent.innerHeight) * 2 + 1,
         };
 
         this.raycaster.setFromCamera(new THREE.Vector2(position.x, position.y), this.camera);
@@ -445,8 +449,8 @@ DrawingManager.Cursor = class {
      */
     getScreenRay(pointerEvent, camera) {
         const position = {
-            x: (pointerEvent.pageX / window.innerWidth) * 2 - 1,
-            y: - (pointerEvent.pageY / window.innerHeight) * 2 + 1,
+            x: (pointerEvent.pageX / pointerEvent.innerWidth) * 2 - 1,
+            y: - (pointerEvent.pageY / pointerEvent.innerHeight) * 2 + 1,
         };
         this.raycaster.setFromCamera(position, camera);
         return this.raycaster.ray;
@@ -624,7 +628,7 @@ DrawingManager.Tool.Icon = class extends DrawingManager.Tool {
         this.selectedIcon = null; // Icon to place into scene
         this.currentObj = null; // Object that is moved around scene during drawing
 
-        this.gltfLoader = new THREE.GLTFLoader();
+        this.gltfLoader = new GLTFLoader();
         const loadingPromises = this.iconNames.map(iconName => {
             const url = `resources/glb/${iconName}.glb`;
             return new Promise((resolve, reject) => {
@@ -975,3 +979,5 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         }
     }
 };
+
+export {DrawingManager};
