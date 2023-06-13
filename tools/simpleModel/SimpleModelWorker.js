@@ -41,7 +41,7 @@ class SimpleModelWorker {
                 if (!this.isGroundPlaneFound) {
                     this.isGroundPlaneFound = true;
                 }
-            } else if ((message.name === 'modelViewCallback') ) {
+            } else if (message.name === 'modelViewCallback') {
                 if (this.threejsWorker.isProjectionMatrixSet && this.isGroundPlaneFound) {
                     setMatrixFromArray(this.mainContainerObj.matrix, message.modelViewMatrix);  // update model view matrix
                 }
