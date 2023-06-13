@@ -1,4 +1,4 @@
-import {ThreejsInterface} from '/objectDefaultFiles/ThreejsInterface.js'
+import {BabylonjsInterface} from '/objectDefaultFiles/BabylonjsInterface.js'
 import '/objectDefaultFiles/object.js'
 
 /**
@@ -6,15 +6,15 @@ import '/objectDefaultFiles/object.js'
  */
 
 /**
- * code that mediates between the ThreejsInterface, SpatialiInterface and the webworker
+ * code that mediates between the BabylonjsInterface, SpatialInterface and the webworker
  */
-class SimpleModelInterface {
+class BabylonjsSimpleModelInterface {
     constructor() {
         console.log('tool is in a secure context: ' + isSecureContext + ' and isolated: ' + crossOriginIsolated);
-
+        this.synclock = null;
         this.spatialInterface = new SpatialInterface();
-        this.threejsInterface = new ThreejsInterface(this.spatialInterface, 'SimpleModelWorker.js');
-        this.workerMessageInterface = this.threejsInterface.getWorkerMessageInterface();
+        this.babylonjsInterface = new BabylonjsInterface(this.spatialInterface, 'BabylonjsSimpleModelWorker.js');
+        this.workerMessageInterface = this.babylonjsInterface.getWorkerMessageInterface();
         this.workerMessageInterface.setOnMessage(this.onMessageFromWorker.bind(this));
 
         this.spatialInterface.onSpatialInterfaceLoaded(this.onSpatialInterfaceLoaded.bind(this));
@@ -57,7 +57,7 @@ class SimpleModelInterface {
      * @param {MessageEvent} event 
      */
 	onMessageFromWorker(event) {
-		this.threejsInterface.onMessageFromWorker(event);
+		this.babylonjsInterface.onMessageFromWorker(event);
 	}
 
     /**
@@ -66,12 +66,12 @@ class SimpleModelInterface {
      * @param {MessageEvent} event 
      */
     onMessageFromServer(event) {
-        this.threejsInterface.onMessageFromServer(event);
+        this.babylonjsInterface.onMessageFromServer(event);
 
     }
 }
 
-const simpleModelInterface = new SimpleModelInterface();
+const babylonjsSimpleModelInterface = new BabylonjsSimpleModelInterface();
 
 // send mesages from the server to the tool class
-self.onmessage = (event) => simpleModelInterface.onMessageFromServer(event);
+self.onmessage = (event) => babylonjsSimpleModelInterface.onMessageFromServer(event);

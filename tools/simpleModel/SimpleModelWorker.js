@@ -68,7 +68,12 @@ class SimpleModelWorker {
         scene.add(this.groundPlaneContainerObj);
 
         this.groundPlaneContainerObj.add(new THREE.Mesh(new THREE.BoxGeometry(200, 200, 200),
-        new THREE.MeshBasicMaterial({color: 0xaaaaaa})));
+        new THREE.MeshLambertMaterial({color: 0xaaaaaa})));
+
+        this.groundPlaneContainerObj.position.z = -300;
+        this.groundPlaneContainerObj.updateMatrix();
+
+        scene.add(new THREE.AmbientLight(0xFFFFFF));
     }
 }
 
