@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spatial Measure</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="objectDefaultFiles/object.js"></script>
+    <script src="objectDefaultFiles/envelope.js"></script>
+    <script src="objectDefaultFiles/pep.min.js"></script>
+    <script src="objectDefaultFiles/gl-worker.js"></script>
+
+    <script src="resources/js/three.js"></script>
+    <script src="resources/js/THREE.MeshLine.js"></script>
+    <script src="resources/js/CSS3DRenderer.js"></script>
+    <script src="resources/js/ConvexHull.js"></script>
+    <script src="resources/js/ConvexGeometry.js"></script>
+    <script src="resources/js/shaders.js"></script>
+    <script src="TranslateControls.js"></script>
+    <script src="LineMeasurer.js"></script>
+    <script src="AreaMeasurerAngledConvex.js"></script>
+</head>
+<body>
+    <div id="button-container">
+        <button id="edit-mode-button">Edit Mode</button>
+        <button id="add-vertex-button">Add Vertex</button>
+        <button id="measure-length-button">Measure Length</button>
+        <button id="measure-area-button">Measure Area</button>
+        <button id="measure-volume-button">Measure Volume</button>
+    </div>
+    
+    <div id="detailed-button-container">
+        <button id="discrete-area-button">Discrete Area</button>
+        <button id="continuous-area-button">Continuous Area</button>
+    </div>
+    
+    <div id="container"></div>
+    <script src="index.js"></script>
+</body>
+</html>
