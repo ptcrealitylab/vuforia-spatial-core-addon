@@ -21,6 +21,7 @@ let aspectRatio;
 
 let lastProjectionMatrix = null;
 let lastModelViewMatrix = null;
+let lastCameraMatrix = null;
 let isProjectionMatrixSet = false;
 let done = false; // used by gl renderer
 
@@ -319,6 +320,11 @@ function initRenderer() {
             directionalLight2.position.set(100000, 0, 100000);
             groundPlaneContainerObj.add(directionalLight2);
 
+            const geometry = new THREE.BoxGeometry(1000, 1000, 1000);
+            const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+            const cube = new THREE.Mesh(geometry, material);
+            groundPlaneContainerObj.add(cube);
+
             spatialInterface.onSpatialInterfaceLoaded(function() {
                 spatialInterface.subscribeToMatrix();
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
@@ -353,9 +359,10 @@ function groundPlaneCallback(modelViewMatrix) {
 }
 
 
-function updateMatrices(modelViewMatrix, projectionMatrix) {
+function updateMatrices(modelViewMatrix, projectionMatrix, cameraMatrix) {
     lastProjectionMatrix = projectionMatrix;
     lastModelViewMatrix = modelViewMatrix;
+    lastCameraMatrix = cameraMatrix;
 }
 
 // Draw the scene repeatedly
@@ -371,6 +378,10 @@ render = function(_now) {
     if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16) {
         // update model view matrix
         setMatrixFromArray(mainContainerObj.matrix, lastModelViewMatrix);
+
+        const cameraMat = new THREE.Matrix4();
+        setMatrixFromArray(cameraMat, lastCameraMatrix);
+        cameraMat.decompose(camera.position, camera.rotation, camera.scale);
 
         // render the scene
         mainContainerObj.visible = true;

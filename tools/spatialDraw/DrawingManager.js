@@ -462,7 +462,7 @@ DrawingManager.Cursor = class {
      */
     screenProject(pointerEvent, distance, camera, scene) {
         const ray = this.getScreenRay(pointerEvent, camera);
-        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance)).applyMatrix4(camera.matrixWorld).applyMatrix4(scene.matrixWorld.clone().invert());
+        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance)).applyMatrix4(scene.matrixWorld.clone().invert());
     }
 };
 
@@ -797,7 +797,7 @@ DrawingManager.Cursor.Offset = class extends DrawingManager.Cursor {
      */
     constructor() {
         super();
-        this.offset = 500;
+        this.offset = 500 * 2.0; // doubled offset to take into account the new camera Matrix
         this.position = new THREE.Vector3(0, 0, 0);
     }
 
@@ -905,7 +905,7 @@ DrawingManager.Cursor.SmoothProjection = class extends DrawingManager.Cursor {
         if (projectedZ) {
             const meshProjectedPosition = this.screenProject(pointerEvent, projectedZ - this.bumpTowardsCamera, camera, scene);
             if (this.planePoints.length === 3) { // If plane has been defined
-                const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld).applyMatrix4(camera.matrixWorldInverse)));
+                const plane = new THREE.Plane().setFromCoplanarPoints(...this.planePoints.map(p => p.position.clone().applyMatrix4(scene.matrixWorld)));
                 if (screenRay.distanceToPlane(plane) !== null) {
                     const planeProjectedPosition = this.screenProject(pointerEvent, screenRay.distanceToPlane(plane) - this.bumpTowardsCamera, camera, scene);
                     if (Math.abs(projectedZ - this.lastOffset) > this.jumpDistanceLimit) {
