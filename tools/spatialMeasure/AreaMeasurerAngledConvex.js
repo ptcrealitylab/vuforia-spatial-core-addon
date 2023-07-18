@@ -96,6 +96,12 @@ class AreaMeasurer {
                 console.log('backspace pressed');
             }
         }.bind(this));
+        
+        setInterval(() => {
+            if (this.line !== null) {
+                console.log(this.line.points.length);
+            }
+        }, 10);
     }
 
     updateVolume(e) {
@@ -112,14 +118,50 @@ class AreaMeasurer {
             this.volumeMesh.parent.remove(this.volumeMesh);
         }
         
-        let volumePointArray = [...this.vertexPositionArray];
-        let length = volumePointArray.length;
-        for (let i = 0; i < length; i++) {
-            volumePointArray.push(volumePointArray[i].clone().add(this.plane.normal.clone().multiplyScalar(this.volumeHeight)));
+        let volumePointArrayBase = [...this.vertexPositionArray];
+        let volumePointArrayTop = [];
+        let length = volumePointArrayBase.length;
+        let v4 = this.vertexArray[0].position.clone().applyMatrix4(camera.matrixWorldInverse);
+        let v5 = this.vertexArray[1].position.clone().applyMatrix4(camera.matrixWorldInverse);
+        let v6 = this.vertexArray[2].position.clone().applyMatrix4(camera.matrixWorldInverse);
+        let plane2 = new THREE.Plane().setFromCoplanarPoints(v4, v5, v6);
+        // todo Steve: after passing userInterface three js scene camera into the data flow, add a function to check where is the camera compared to the plane
+        //  If the plane normal direction is on the opposite side of the camera, flip the normal direction to aligns with the camera's side.
+        //  b/c based on different ways of clicking points to form the plane, the plane's normal can have opposite directions
+        let heightVector = plane2.normal.clone().multiplyScalar(this.volumeHeight);
+        for (let i = 0; i < length; i += 3) {
+            volumePointArrayTop.push(volumePointArrayBase[i] + heightVector.x);
+            volumePointArrayTop.push(volumePointArrayBase[i + 1] + heightVector.y);
+            volumePointArrayTop.push(volumePointArrayBase[i + 2] + heightVector.z);
         }
-        console.log(volumePointArray);
+        // console.log(volumePointArrayBase, volumePointArrayTop)
+
+        let geometry = new THREE.BufferGeometry();
+        let positionAttribute = new THREE.BufferAttribute(new Float32Array([...volumePointArrayBase, ...volumePointArrayTop]), 3);
+        geometry.setAttribute('position', positionAttribute);
+        let triangles = Earcut.triangulate([...volumePointArrayBase, ...volumePointArrayTop], [], 3);
+        // let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
+        // geometry.setIndex(indexAttribute);
+        // todo Steve: calculate the index numbers for all the faces
+        console.log(volumePointArrayBase.length / 3);
+        let trianglesBase = Earcut.triangulate(volumePointArrayBase, [], 3);
+        let trianglesTop = [...trianglesBase];
+        trianglesTop = trianglesTop.map(index => index + length / 3);
+        console.log(trianglesBase, trianglesTop);
+        let trianglesMiddle = [];
+        for (let i = 0; i < trianglesBase.length; i++) {
+            if (i === trianglesBase.length - 1) {
+                trianglesMiddle.push(trianglesBase[i], trianglesBase[0], trianglesTop[0]);
+                trianglesMiddle.push(trianglesTop[0], trianglesTop[i], trianglesBase[i]);
+                continue;
+            }
+            trianglesMiddle.push(trianglesBase[i], trianglesBase[i + 1], trianglesTop[i + 1]);
+            trianglesMiddle.push(trianglesTop[i + 1], trianglesTop[i], trianglesBase[i]);
+        }
+        console.log(trianglesMiddle);
+        let indices = [...trianglesBase, ...trianglesTop, ...trianglesMiddle];
+        geometry.setIndex(indices);
         
-        let geometry = new THREE.ConvexGeometry(volumePointArray);
         this.volumeMesh = new THREE.Mesh(geometry, this.matGreenTransparent);
         this.mainContainerObj.add(this.volumeMesh);
 
@@ -141,6 +183,7 @@ class AreaMeasurer {
             this.volumeHeight = 0;
             this.volumeMesh = null;
             this.volumeWireframeMesh = null;
+            this.vertexArray = [];
             this.vertexPositionArray = [];
             
             return;
@@ -164,8 +207,8 @@ class AreaMeasurer {
                 // set this.lastPos object with corresponding vertexSphere
                 // increase vertex count
                 let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+                this.vertexArray = [];
                 this.vertexArray.push(sphere);
-                this.vertexPositionArray.push(intersectedPosition.clone());
                 // todo Steve: add to global vertexSphereArray support
                 this.lastPos = {
                     position: new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z),
@@ -178,7 +221,8 @@ class AreaMeasurer {
                 }
                 
                 this.line = {
-                    points: [new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z)],
+                    // points: [new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z)],
+                    points: [],
                     meshLine: new MeshLine(),
                     obj: null
                 }
@@ -190,24 +234,9 @@ class AreaMeasurer {
                 // set this.lastPos object with corresponding vertexSphere
                 // increase vertex count
                 
-                if (this.vertexCount >= MIN_VERTEX_COUNT) {
-                    let v1 = this.vertexArray[0].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-                    let v2 = this.vertexArray[1].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-                    let v3 = this.vertexArray[2].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-                    // let v1 = this.vertexArray[0].position.clone().applyMatrix4(camera.matrixWorldInverse);
-                    // let v2 = this.vertexArray[1].position.clone().applyMatrix4(camera.matrixWorldInverse);
-                    // let v3 = this.vertexArray[2].position.clone().applyMatrix4(camera.matrixWorldInverse);
-                    let plane = new THREE.Plane().setFromCoplanarPoints(v1, v2, v3);
-                    this.plane = plane;
-                    let intersectedPlanePosition = intersectWithAngledPlane(e, plane);
-                    if (intersectedPlanePosition !== null) {
-                        intersectedPosition = intersectedPlanePosition;
-                    }
-                }
                 
                 let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
                 this.vertexArray.push(sphere);
-                this.vertexPositionArray.push(intersectedPosition.clone());
 
                 this.lastPos = {
                     position: new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z),
@@ -233,19 +262,25 @@ class AreaMeasurer {
                 // set this.lastPos, this.line, this.vertexCount, this.vertexArray, and this.y back to null / 0
                 
                 // this.updateLine(intersectedObjectPosition.x, this.y, intersectedObjectPosition.z);
-                this.updateLine(intersectedObjectPosition.x, intersectedObjectPosition.y, intersectedObjectPosition.z);
+                // todo Steve: don't run below function to prevent dead loop calling drawPoint() and updateLine() back and forth
+                // this.updateLine(intersectedObjectPosition.x, intersectedObjectPosition.y, intersectedObjectPosition.z);
                 
-                // make up for the limitation of convex geometry: cannot initialize with 3 points. Add a 4th dummy middle point for it to work
-                if (this.vertexPositionArray.length === 3) {
-                    let a = this.vertexPositionArray[0].clone();
-                    let b = this.vertexPositionArray[1].clone();
-                    let c = this.vertexPositionArray[2].clone();
-                    let d = a.add(b).add(c).divideScalar(3);
-                    this.vertexPositionArray.push(d);
+                let geometry = new THREE.BufferGeometry();
+                this.vertexPositionArray = [];
+                // this.line.points.splice(1, 1);
+                // todo Steve: somehow there's one extra point added to the points array... Get rid of it!
+                console.log(`%c ${this.line.points.length}`, 'color: red');
+                for (let i = 0; i < this.line.points.length; i++) {
+                    this.vertexPositionArray.push(this.line.points[i].x);
+                    this.vertexPositionArray.push(this.line.points[i].y);
+                    this.vertexPositionArray.push(this.line.points[i].z);
                 }
+                let positionAttribute = new THREE.BufferAttribute(new Float32Array(this.vertexPositionArray), 3);
+                geometry.setAttribute('position', positionAttribute);
+                let triangles = Earcut.triangulate(this.vertexPositionArray, [], 3);
+                let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
+                geometry.setIndex(indexAttribute);
                 
-                // start building the shape, and add prepare vertex array for area & centroid calculation
-                let geometry = new THREE.ConvexGeometry(this.vertexPositionArray);
                 let mesh = new THREE.Mesh(geometry, this.matGreenTransparent);
                 this.mainContainerObj.add(mesh);
 
@@ -264,7 +299,7 @@ class AreaMeasurer {
                 this.lastPointTime = null;
                 this.line = null;
                 this.vertexCount = 0;
-                this.vertexArray = [];
+                // this.vertexArray = [];
                 this.y = null;
                 this.intersectedObject = null;
 
@@ -291,7 +326,7 @@ class AreaMeasurer {
             return;
         }
         
-        let intersectedPosition = intersectWithScenePosition(e); // todo Steve: prolly why this area does not completely match meshlines, is that intersectWithScenePosition() calculates the approximate positions, instead of real scene positions like in intersectWithSceneObjects. Maybe switch to that when not free-form drawing
+        let intersectedPosition = intersectWithScenePosition(e);
         
         // if (this.intersectedObject !== null) {
         //     let offset = this.intersectedObject.position.clone().sub(intersectedPosition);
@@ -305,12 +340,9 @@ class AreaMeasurer {
         if (this.lastPos === null) return;
 
         if (this.vertexCount >= MIN_VERTEX_COUNT) {
-            // let v1 = this.vertexArray[0].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-            // let v2 = this.vertexArray[1].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-            // let v3 = this.vertexArray[2].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-            let v1 = this.vertexArray[0].position.clone().applyMatrix4(camera.matrixWorldInverse);
-            let v2 = this.vertexArray[1].position.clone().applyMatrix4(camera.matrixWorldInverse);
-            let v3 = this.vertexArray[2].position.clone().applyMatrix4(camera.matrixWorldInverse);
+            let v1 = this.vertexArray[0].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+            let v2 = this.vertexArray[1].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+            let v3 = this.vertexArray[2].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
             let plane = new THREE.Plane().setFromCoplanarPoints(v1, v2, v3);
             this.plane = plane;
             let intersectedPlanePosition = intersectWithAngledPlane(e, plane);
@@ -320,28 +352,28 @@ class AreaMeasurer {
             }
         }
         this.updateLine(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z);
-        // todo Steve: 1 bugs:
-        //  1. due to limitations of THREE.Shape() in only accepting points at the same height, and the current setup doesn't allow drawing on arbituary height without intersecting the AreaTarget mesh,
-        //  we have to refer to DrawingManager offset drawing mode, to support drawing in arbitrary height w/o intersecting with AreaTarget mesh
     }
     
     updateLine(x, y, z) { // called after the first point has been established. Updates lastPointTime, update all the info about the line, delete & re-add the line in the scene
         this.lastPointTime = Date.now();
         let intersectedPosition = new THREE.Vector3(x, y, z);
+        // todo Steve: the logic below has a bug: it accidentally creates an extra this.line.point after initially creating a point in the space, and as soon as mouse cursor leaves the point, it creates this extra point
+        //  need to adjust it to prevent this extra point from being added
         if (this.mode.discrete) {
             if (this.justClicked) {
                 this.justClicked = false;
             } else {
                 this.line.points.pop();
             }
-            this.line.points.push(intersectedPosition.clone());
+            // if (this.line.points.length === 1) return;
+            this.line.points.push(intersectedPosition.clone()); // todo Steve: when drawing on a curved surface, after securing a plane, NEED to re-position (projection mapping) all the meshline points drawn before securing this plane ON THIS PLANE !!!
             this.line.meshLine.setPoints(this.line.points);
         } else {
             if (intersectedPosition.clone().sub(this.lastPos.position).length < this.minimumUpdate.distance && Date.now() - this.lastPointTime < this.minimumUpdate.time) {
                 return;
             }
             
-            // todo Steve: after the curve head has been travelled for a distance, automatically draw a point
+            // after the curve head has been travelled for a distance, automatically draw a point
             if (intersectedPosition.clone().sub(this.lastPos.position).length() > this.maximumUpdate.distance) {
                 this.drawPoint(new THREE.Vector3(x, y, z));
             }

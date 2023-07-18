@@ -1,7 +1,13 @@
 /* global THREE, SpatialInterface, ThreejsInterface, document, EnvelopeContents */
 
+const MINIMIZED_TOOL_WIDTH = 400;
+const MINIMIZED_TOOL_HEIGHT = 400;
+let appActive = false;
+let firstTimeLoad = true;
+
 let mainContainerObj, groundPlaneContainerObj;
 let spatialInterface;
+let threejsInterface;
 let scene;
 let translateControls;
 
@@ -10,54 +16,123 @@ if (!spatialInterface) {
     spatialInterface.useWebGlWorker();
 }
 
-let threejsInterface = new ThreejsInterface(spatialInterface);
-
-threejsInterface.addPendingLoad();
-
-threejsInterface.onSceneCreated(function onSceneCreated(threejsInterfaceScene) {
-    scene = threejsInterfaceScene;
+spatialInterface.onSpatialInterfaceLoaded(() => {
+    spatialInterface.setMoveDelay(500);
+    spatialInterface.setAlwaysFaceCamera(true);
     
-    mainContainerObj = new THREE.Object3D();
-    mainContainerObj.matrixAutoUpdate = false;
-    mainContainerObj.name = 'mainContainerObj';
-    threejsInterfaceScene.add(mainContainerObj);
+})
 
-    groundPlaneContainerObj = new THREE.Object3D();
-    groundPlaneContainerObj.matrixAutoUpdate = false;
-    groundPlaneContainerObj.name = 'groundPlaneContainer';
-    threejsInterfaceScene.add(groundPlaneContainerObj);
+let delayedMain = null;
+let rendererSize = {
+    width: 100,
+    height: 100
+}
 
-    let ambLight = new THREE.AmbientLight(0xaaaaaa);
-    threejsInterfaceScene.add(ambLight);
-    
-    initScene();
-    
-    // todo Steve: userInterface functions not accessible. either come up with a solution with that or discuss to enable access
-    // todo Steve: for now, the main thing is just to use the camera position to write the vertex sphere mesh shader
-    // userInterfaceCamera = realityEditor.gui.threejsScene.getInternals().camera;
-    // console.log(userInterfaceCamera);
-    
-    spatialInterface.onSpatialInterfaceLoaded(function() {
+main = ({width, height}) => {
+    delayedMain = true;
+    rendererSize.width = width;
+    rendererSize.height = height;
+}
 
-        spatialInterface.setVisibilityDistance(100);
+const launchButton = document.querySelector('#launchButton');
+launchButton.addEventListener('pointerup', function () {
+    envelope.open();
+}, false);
 
-        // whenever we receive new matrices from the editor, update the 3d scene
-        spatialInterface.subscribeToMatrix();
-        spatialInterface.addMatrixListener(matrixCallback);
-        spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+const envelopeContainer = document.querySelector('#envelopeContainer');
+const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, true, false);
 
-        // todo Steve: temporarily disable moving the tool, to work on dragging gizmo handles
-        // spatialInterface.setMoveDelay(500);
-        spatialInterface.setMoveDelay(-1);
-        
-        threejsInterface.touchDecider = function() {
-            return true;
-        };
-        spatialInterface.registerTouchDecider(threejsInterface.touchDecider);
+envelope.onClose(() => {
+    appActive = false;
+    scene.visible = false;
+    spatialInterface.setAlwaysFaceCamera(true);
+    spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+    spatialInterface.unregisterTouchDecider();
+})
 
-        // threejsInterface.removePendingLoad();
-    });
-});
+envelope.onOpen(() => {
+    appActive = true;
+    if (scene) {
+        scene.visible = true;
+    }
+    spatialInterface.setAlwaysFaceCamera(false);
+    initEverything(firstTimeLoad);
+    if (firstTimeLoad) firstTimeLoad = false;
+    spatialInterface.getScreenDimensions((width, height) => {
+        spatialInterface.changeFrameSize(width, height);
+    })
+})
+
+envelope.onBlur(() => {
+    envelopeContainer.style.display = 'none';
+    spatialInterface.setMoveDelay(500);
+})
+
+envelope.onFocus(() => {
+    envelopeContainer.style.display = '';
+    spatialInterface.setMoveDelay(-1);
+})
+
+function initEverything(firstTimeLoad) {
+    if (firstTimeLoad) {
+        threejsInterface = new ThreejsInterface(spatialInterface);
+
+        threejsInterface.addPendingLoad();
+
+        threejsInterface.onSceneCreated(function onSceneCreated(threejsInterfaceScene) {
+            scene = threejsInterfaceScene;
+
+            mainContainerObj = new THREE.Object3D();
+            mainContainerObj.matrixAutoUpdate = false;
+            mainContainerObj.name = 'mainContainerObj';
+            threejsInterfaceScene.add(mainContainerObj);
+
+            groundPlaneContainerObj = new THREE.Object3D();
+            groundPlaneContainerObj.matrixAutoUpdate = false;
+            groundPlaneContainerObj.name = 'groundPlaneContainer';
+            threejsInterfaceScene.add(groundPlaneContainerObj);
+
+            let ambLight = new THREE.AmbientLight(0xaaaaaa);
+            threejsInterfaceScene.add(ambLight);
+
+            initScene();
+
+            // todo Steve: userInterface functions not accessible. either come up with a solution with that or discuss to enable access
+            // todo Steve: for now, the main thing is just to use the camera position to write the vertex sphere mesh shader
+            // userInterfaceCamera = realityEditor.gui.threejsScene.getInternals().camera;
+            // console.log(userInterfaceCamera);
+
+            spatialInterface.onSpatialInterfaceLoaded(function () {
+
+                spatialInterface.setVisibilityDistance(100);
+
+                // whenever we receive new matrices from the editor, update the 3d scene
+                spatialInterface.subscribeToMatrix();
+                spatialInterface.addMatrixListener(matrixCallback);
+                spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+
+                // todo Steve: temporarily disable moving the tool, to work on dragging gizmo handles
+                // spatialInterface.setMoveDelay(500);
+                // spatialInterface.setMoveDelay(-1);
+
+                threejsInterface.touchDecider = function () {
+                    return appActive;
+                };
+                spatialInterface.registerTouchDecider(threejsInterface.touchDecider);
+
+                // threejsInterface.removePendingLoad();
+            });
+        });
+    }
+
+    threejsInterface.onRender(onRender);
+
+    if (delayedMain && !threejsInterface.camera) {
+        threejsInterface.main({width: rendererSize.width, height: rendererSize.height});
+    }
+}
+
+
 
 function setMatrixFromArray(matrix, array) {
     matrix.set( array[0], array[4], array[8], array[12],
@@ -96,9 +171,28 @@ function onRender() {
         //addTestSphere(camPos.x, camPos.y, camPos.z);
     }
     
+    // try to get the main camera matrix and do some fun stuff with it
+    spatialInterface.getMainCameraMatrix().then((result) => {
+        console.log(result.worldMatrix);
+        // let wm = result.worldMatrix.clone();
+        //
+        // const rotation = new THREE.Euler().setFromRotationMatrix(wm);
+        // const forwardVector = new THREE.Vector3(0, 0, -1);
+        // forwardVector.applyEuler(rotation);
+        // forwardVector.applyMatrix4(mainContainerObj.matrixWorld.clone().invert());
+        // forwardVector.normalize();
+        //
+        // addArrowHelper(new THREE.Vector3(), forwardVector, 2000, 0x00ffff);
+    })
 }
 
-threejsInterface.onRender(onRender);
+function prettyPrintMatrix(m) {
+    for (let i = 0; i < m.length; i += 4) {
+        for (let j = i; j < i + 4; j++) {
+            
+        }
+    }
+}
 
 let camera;
 let cssRenderer;

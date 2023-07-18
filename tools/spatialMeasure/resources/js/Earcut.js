@@ -785,5 +785,3 @@ function signedArea( data, start, end, dim ) {
 	return sum;
 
 }
-
-export { Earcut };
