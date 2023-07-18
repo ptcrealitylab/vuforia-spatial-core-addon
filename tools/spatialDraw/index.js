@@ -323,6 +323,7 @@ function initRenderer() {
             const geometry = new THREE.BoxGeometry(1000, 1000, 1000);
             const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
             const cube = new THREE.Mesh(geometry, material);
+            cube.frustumCulled = false;
             groundPlaneContainerObj.add(cube);
 
             spatialInterface.onSpatialInterfaceLoaded(function() {
@@ -388,7 +389,18 @@ render = function(_now) {
 
         if (renderer && scene && camera) {
             drawingManager.triggerCallbacks('render', _now);
+            camera.position.set(0, 0, 0);
+            camera.scale.set(1, 1, 1);
+            camera.quaternion.identity();
+            camera.updateMatrixWorld();
+            
             renderer.render(scene, camera);
+            
+            const cameraMat = new THREE.Matrix4();
+            setMatrixFromArray(cameraMat, lastCameraMatrix);
+            cameraMat.decompose(camera.position, camera.rotation, camera.scale);
+            camera.updateMatrixWorld();
+
             if (done && realGl) {
                 for (let proxy of proxies) {
                     proxy.__uncloneableObj = null;
