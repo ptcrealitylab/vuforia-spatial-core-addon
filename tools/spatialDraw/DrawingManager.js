@@ -462,7 +462,7 @@ DrawingManager.Cursor = class {
      */
     screenProject(pointerEvent, distance, camera, scene) {
         const ray = this.getScreenRay(pointerEvent, camera);
-        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance)).applyMatrix4(scene.matrixWorld.clone().invert());
+        return ray.origin.clone().add(ray.direction.clone().multiplyScalar(distance));
     }
 };
 
@@ -538,6 +538,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         }
         const mesh = new THREE.Mesh(this.currentLine.meshLine, this.meshLineMaterial);
         mesh.raycast = MeshLineRaycast;
+        mesh.frustumCulled = false;
         this.currentLine.obj = mesh;
         parent.add(this.currentLine.obj);
     }
@@ -590,6 +591,7 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         mesh.raycast = MeshLineRaycast;
         mesh.drawingId = drawing.drawingId;
         mesh.serialized = drawing;
+        mesh.frustumCulled = false;
         parent.add(mesh);
     }
 
