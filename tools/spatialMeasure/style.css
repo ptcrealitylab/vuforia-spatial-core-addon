@@ -13,7 +13,7 @@
 
 #button-container {
     position: absolute;
-    top: 60px;
+    top: 120px;
     left: 0;
     
     display: flex;
@@ -32,7 +32,7 @@ button {
 
 #detailed-button-container {
     position: absolute;
-    bottom: 60px;
+    bottom: 45px;
     left: 0;
 
     display: flex;

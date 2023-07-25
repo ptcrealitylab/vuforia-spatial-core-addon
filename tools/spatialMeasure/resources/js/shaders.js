@@ -1,6 +1,7 @@
 const vertexMesh_vertexShader = `
 	varying vec2 vUv;
   varying vec3 vNormal;
+  varying vec3 vPosition;
 	void main() {
   	vUv = uv;
     vNormal = normal;
@@ -15,10 +16,11 @@ const vertexMesh_fragmentShader = `
   
 	varying vec2 vUv;
   varying vec3 vNormal;
-  uniform vec3 camDir;
+  varying vec3 vPosition;
+  uniform vec3 camPos;
   
   void main() {
-  	float d = dot(vNormal, normalize(camDir));
+  	float d = dot(vNormal, normalize(camPos - vPosition));
    	d = smoothstep(.7 + blur, .7 - blur, d);
    	
     vec3 col = mix(blue, white, d);

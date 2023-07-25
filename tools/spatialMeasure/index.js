@@ -152,7 +152,11 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
 }
 
-let measurementTextObj = {};
+let measurementObjs = {};
+let history = [];
+
+let userInterfaceCamQuaternion = new THREE.Quaternion();
+let flag = false;
 
 function onRender() {
     cssRenderer.render(scene, camera);
@@ -189,16 +193,87 @@ function onRender() {
         userInterfaceCamPos.setFromMatrixPosition(wm);
         userInterfaceCamPos.applyMatrix4(mainContainerObj.matrixWorld.clone().invert());
 
+        userInterfaceCamQuaternion.setFromRotationMatrix(wm);
+
         // addArrowHelper(new THREE.Vector3(), forwardVector, 2000, 0x00ffff);
     })
+    
+    for (const [key, value] of Object.entries(measurementObjs)) {
+        if (value.text !== null && flag === false) {
+            orientMeasurementTextTowardsCamera(value.text, userInterfaceCamPos);
+            // flag = true;
+        }
+        if (value.vertices !== null) {
+            value.vertices.forEach((vertex) => {
+                vertex.material.uniforms['camPos'].value = userInterfaceCamPos;
+                vertex.material.needsUpdate = true;
+            })
+        }
+    }
+}
+
+function orientMeasurementTextTowardsCamera(text, camPos) {
+    let textPos = text.position;
+    let textToCam = camPos.clone().sub(textPos).normalize(); // equivalent to forwardVector
+    
+    let q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), textToCam);
+    let v1 = new THREE.Vector3(1, 0, 0);
+    v1.applyQuaternion(q).normalize();
+    // addArrowHelper(textPos, v1, 1000, 0xff0000);
+    let v2 = new THREE.Vector3(0, 1, 0);
+    v2.applyQuaternion(q).normalize();
+    // addArrowHelper(textPos, v2, 1000, 0x00ff00);
+    let v3 = new THREE.Vector3(0, 0, 1);
+    v3.applyQuaternion(q).normalize();
+    // addArrowHelper(textPos, v3, 1000, 0x0000ff);
+    // let a = Math.atan2(textToCam.y, textToCam.x) * -2 + Math.PI * 0.5;
+    // q.premultiply(new THREE.Quaternion().setFromAxisAngle(textToCam, a));
+    
+    let rightVector = textToCam.clone().cross(new THREE.Vector3(0, 0, -1));
+    let upVector = textToCam.clone().cross(rightVector);
+    // addArrowHelper(textPos, upVector, 1000, 0x00ffff);
+    let q2 = new THREE.Quaternion().setFromUnitVectors(v2, upVector);
+    q.premultiply(q2);
+    
+    // todo Steve: now the text label still seems to have 1 axis of freedom that it wobbles around when camera is passing near (+-)x axes
+    //  further come up with a 3rd fix to fix this
+
+    // let q3 = new THREE.Quaternion().setFromUnitVectors(v1, upVector);
+    // q.premultiply(q3);
+    
+    // let q3 = new THREE.Quaternion().setFromUnitVectors(v2, rightVector.clone().negate());
+    // q.premultiply(q3);
+    
+    // let q3 = new THREE.Quaternion().setFromAxisAngle(textToCam, Math.PI);
+    // q.premultiply(q3);
+    
+    // text.quaternion.copy(userInterfaceCamQuaternion);
+    
+    text.quaternion.copy(q);
+    text.scale.x = -1;
 }
 
 function prettyPrintMatrix(m) {
     for (let i = 0; i < m.length; i += 4) {
         for (let j = i; j < i + 4; j++) {
-            
+            // do smth
         }
     }
+}
+
+function undoMeasurementObj() {
+    if (history.length === 0) return;
+    let id = history.pop();
+    let obj = measurementObjs[`${id}`];
+    if (obj.parent !== null) {
+        obj.parent.clear();
+        obj.parent.parent.remove(obj.parent);
+    }
+    delete measurementObjs[`${id}`];
+}
+
+function eraseMeasurementObj() {
+    let obj = intersectWithSceneObjects()
 }
 
 let camera;
@@ -238,6 +313,7 @@ function initScene() {
     
     addAxisHelper(new THREE.Vector3(), 1000);
     // addAxisHelper(new THREE.Vector3(), 1000, true);
+    // addTestCube(0, 0, 1000, 0xff0000);
 }
 
 function intersectWithAngledPlane(e, plane) {
@@ -339,6 +415,21 @@ function addTestSphere(x, y, z, color, addToTop = false) {
     return sphere;
 }
 
+function makeVertexSphere(x, y, z) {
+    let geo = new THREE.SphereGeometry(50, 32, 16);
+    let mat = new THREE.ShaderMaterial({
+        vertexShader: vertexMesh_vertexShader,
+        fragmentShader: vertexMesh_fragmentShader,
+        uniforms: {
+            camPos: {value: userInterfaceCamPos}
+        }
+    });
+    let sphere = new THREE.Mesh(geo, mat);
+    sphere.position.set(x, y, z);
+    
+    return sphere;
+}
+
 function addArrowHelper(origin, direction, length, color, addToTop = false) {
     let arrow = new THREE.ArrowHelper(direction.clone().normalize(), origin.clone(), length, color);
     if (addToTop) {
@@ -409,6 +500,48 @@ let modes = {
     isMeasuringArea: true,
     isMeasuringVolume: false,
 }
+
+const { createMachine, actions, interpret } = XState;
+const fsm = createMachine({
+    /** @xstate-layout N4IgpgJg5mDOIC5QDNYFsB0aD2E4GIAVbAGQEsA7MAbQAYBdRUAB21jIBczsKmQAPRAFoATCIAcGWgFZZAZgBsAFgCctJQHZaARgA0IAJ6IRKlRjlLtCmdPFXaGkRoC+z-akw48sItgCCAE5gAIZ0jEggrOxcPHyCCELa2nJSCiLScrQqCnLa0iIK+kYIJmYWeabSSgpqcnKu7uhYuATEAGrYADYArmg0DHxRnNy8EfHaGEriGnLidZm01lriKkXGpuaW0pXVtfVuIB7N3r4AqhQQ2GGDbMOxY4jamhimCuJpU9m0OmslG+UKJLTdK0OQqBqHJpeVrYACiAWCsH64RYtxio1A8QkIkm4l2GTeCgySl+pU2FW0Gg0UzqSn2jUweA4wTInR8xAAImRYABjIIcZE3aIjOLCMQKDBVGn5BQKDS2PSGRC2Mxy7ROETadQqER1CFHJkstm+ADCPC4FG62G6sGuESG6NFCRWky0ji1KzxynEvxVGDVGq1ql1SlcBwoLXgEQ8QruGIEwjkIiUUlkBNU6i0iuK6uk5mkGhy4kWGjmRPE+qhkdjjoeCScEps6bUmh+SpK6oweOm1V1iwy9MhnkjGE6lDANZFddEVgwMwkSZUGhU0hqtB97dmONX4qUU20OsBleH3gwwSCwUn90xwi1ExMqlX8lkpg3xS3krS6U0FXlsuPxxwBgABuXS9BO9polON4IJ2hZgquKjTNYOgZL8H47t+Gi-quCgAYarJRqiwrXgm9bUpKe5zDKcoKr6oIYJSeKzNIB5JDk+FgMyhEYBA3J8lxEHEXGTozimKi5NMtDJnIq7LtmiBEhoc4WO88rqN8uqcdxbIYDy5qUFaNpXvG8RCFS5h5LqIgyKY1JWL8SkqVMtEadJg5HNCsAYN0FzYCZToVF2dJaio1SLGIcgaOh4jbl+1gmMoKjaHiAFeRgYAIkiAV1iYKTSBF4jFrqpgSXIMVxeK0nZKoKWhmGQA */
+    id: 'fsm',
+    states: {
+        modes: {
+            states: {
+                line: {},
+                area: {},
+                volume: {},
+                undo: {},
+                erase: {}
+            },
+
+            initial: "line",
+
+            on: {
+                ToLine: ".line",
+                ToArea: ".area",
+                ToVolume: ".volume",
+                ToUndo: ".undo",
+                ToErase: ".erase"
+            }
+        },
+
+        details: {
+            states: {
+                discrete: {},
+                continuous: {}
+            },
+
+            initial: "discrete",
+
+            on: {
+                ToDiscrete: ".discrete",
+                ToContinuous: ".continuous"
+            }
+        }
+    },
+    type: "parallel"
+});
 
 function setupEventListeners() {
     window.addEventListener('resize', () => {
@@ -563,6 +696,16 @@ function setupEventListeners() {
             lineMeasurer.deactivate();
             translateControls.deactivate();
         }
+    })
+    
+    let undoButton = document.getElementById('undo-button');
+    undoButton.addEventListener('pointerdown', () => {
+        undoMeasurementObj();
+    })
+
+    let eraseButton = document.getElementById('erase-button');
+    undoButton.addEventListener('pointerdown', (e) => {
+        eraseMeasurementObj(e);
     })
 }
 

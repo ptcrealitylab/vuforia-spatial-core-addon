@@ -1,6 +1,9 @@
 class LineMeasurer {
     constructor(mainContainerObj) {
         this.mainContainerObj = mainContainerObj;
+        
+        this.uuid = null;
+        this.bigParentObj = null;
 
         this.isActive = false;
 
@@ -38,8 +41,23 @@ class LineMeasurer {
         if (!isVector3Valid(intersectedPosition)) return;
 
         if (this.startPos === null) { // add the vertex sphere for the first point
-            console.log('%c measure line set start pos', 'color: green');
-            let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+            // console.log('%c measure line set start pos', 'color: green');
+            this.bigParentObj = new THREE.Group();
+            this.uuid = this.bigParentObj.uuid;
+            measurementObjs[`${this.uuid}`] = {
+                parent: this.bigParentObj,
+                vertices: [],
+                line: null,
+                area: null,
+                volume: null,
+                volumeWireframe: null,
+                text: null
+            };
+            history.push(`${this.uuid}`);
+            this.mainContainerObj.add(this.bigParentObj);
+            let sphere = makeVertexSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+            this.bigParentObj.add(sphere); // add vertex sphere as a child of the bigParentObj group, so that later undo / erase can delete everything (children) of this bigParentObj
+            measurementObjs[`${this.uuid}`].vertices.push(sphere);
             vertexSphereArray.push(sphere);
             sphere.name = `vertex_sphere_${vertexSphereArray.length - 1}`; // todo Steve: not robust enough, b/c cannot handle when deleting lines / vertex spheres case
             this.startPos = {
@@ -56,8 +74,10 @@ class LineMeasurer {
             };
 
         } else if (this.endPos === null) { // add the vertex sphere for the second point
-            console.log('%c measure line set end pos', 'color: green');
-            let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+            // console.log('%c measure line set end pos', 'color: green');
+            let sphere = makeVertexSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+            this.bigParentObj.add(sphere);
+            measurementObjs[`${this.uuid}`].vertices.push(sphere);
             vertexSphereArray.push(sphere);
             sphere.name = `vertex_sphere_${vertexSphereArray.length - 1}`;
             this.endPos = {
@@ -75,7 +95,8 @@ class LineMeasurer {
                 this.line.obj = null;
             }
             this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
-            this.mainContainerObj.add(this.line.obj);
+            this.bigParentObj.add(this.line.obj);
+            measurementObjs[`${this.uuid}`].line = this.line.obj;
             this.line.indices = [this.startPos.index, this.endPos.index];
             lineArray.push(this.line);
 
@@ -104,7 +125,8 @@ class LineMeasurer {
                 this.line.obj = null;
             }
             this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
-            this.mainContainerObj.add(this.line.obj);
+            this.bigParentObj.add(this.line.obj);
+            measurementObjs[`${this.uuid}`].line = this.line.obj;
 
             let startWorldPos = this.startPos.position.clone().applyMatrix4(this.mainContainerObj.matrixWorld);
             let endWorldPos = intersectedPosition.clone().applyMatrix4(this.mainContainerObj.matrixWorld);
@@ -114,13 +136,14 @@ class LineMeasurer {
             if (this.measurementText === null) {
                 let div1 = document.createElement('div');
                 div1.classList.add('measurement-text');
-                div1.style.background = 'rgb(0,255,255)';
+                div1.style.background = 'rgb(0,0,0)';
                 div1.innerHTML = `${distance} m`;
                 let divObj = new CSS3DObject(div1);
                 //divObj.scale.set(1, -1, 1);
                 let midPos = this.startPos.position.clone().add(intersectedPosition.clone()).divideScalar(2);
                 divObj.position.copy(midPos);
-                this.mainContainerObj.add(divObj);
+                this.bigParentObj.add(divObj);
+                measurementObjs[`${this.uuid}`].text = divObj;
                 this.measurementText = {
                     obj: divObj,
                     // indices: [this.startPos.index, ]

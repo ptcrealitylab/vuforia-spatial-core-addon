@@ -4,6 +4,9 @@ const CURVE_POINT_DIVISION = 500;
 class AreaMeasurer {
     constructor(mainContainerObj) {
         this.mainContainerObj = mainContainerObj;
+        
+        this.uuid = null;
+        this.bigParentObj = null;
 
         this.isActive = false;
         
@@ -36,8 +39,8 @@ class AreaMeasurer {
         this.lastPointTime = null;
         this.line = null;
         this.vertexCount = 0;
-        this.vertexArray = [];
-        this.vertexPositionArray = [];
+        this.vertexArray = []; // add vertex spheres to this array, to raycast on the spheres when closing the loop
+        this.vertexPositionArray = []; // array of position,x, position.y, position.z to build custom BufferGeometry from
         this.y = null;
         this.intersectedObject = null;
         
@@ -165,7 +168,8 @@ class AreaMeasurer {
         geometry.setIndex(indices);
         
         this.volumeMesh = new THREE.Mesh(geometry, this.matGreenTransparent);
-        this.mainContainerObj.add(this.volumeMesh);
+        this.bigParentObj.add(this.volumeMesh);
+        measurementObjs[`${this.uuid}`].volume = this.volumeMesh;
 
         if (this.volumeWireframeMesh !== null) {
             this.volumeWireframeMesh.geometry.dispose();
@@ -173,7 +177,8 @@ class AreaMeasurer {
             this.volumeWireframeMesh.parent.remove(this.volumeWireframeMesh);
         }
         this.volumeWireframeMesh = new THREE.Mesh(geometry, this.matWireframe);
-        this.mainContainerObj.add(this.volumeWireframeMesh);
+        this.bigParentObj.add(this.volumeWireframeMesh);
+        measurementObjs[`${this.uuid}`].volumeWireframe = this.volumeWireframeMesh;
 
         // add measure volume text
         // let fakeHeight = Math.abs(this.volumeHeight / 1000);
@@ -192,12 +197,14 @@ class AreaMeasurer {
         }
         let div = document.createElement('div');
         div.classList.add('measurement-text');
-        div.style.background = 'rgb(0,255,255)';
+        div.style.background = 'rgb(0,0,0)';
         div.innerHTML = `${volume} m<sup>3</sup>`;
         this.volumeText = new CSS3DObject(div);
         this.volumeText.position.copy(centroid);
-        this.volumeText.rotation.x = -Math.PI / 2;
-        this.mainContainerObj.add(this.volumeText);
+        // this.volumeText.scale.set(1, -1, 1);
+        // this.volumeText.rotation.x = -Math.PI / 2;
+        this.bigParentObj.add(this.volumeText);
+        measurementObjs[`${this.uuid}`].text = this.volumeText;
     }
 
     drawPoint(e) {
@@ -233,9 +240,24 @@ class AreaMeasurer {
                 // initialize the line
                 // set this.lastPos object with corresponding vertexSphere
                 // increase vertex count
-                let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+                this.bigParentObj = new THREE.Group();
+                this.uuid = this.bigParentObj.uuid;
+                measurementObjs[`${this.uuid}`] = {
+                    parent: this.bigParentObj,
+                    vertices: [],
+                    line: null,
+                    area: null,
+                    volume: null,
+                    volumeWireframe: null,
+                    text: null
+                };
+                history.push(`${this.uuid}`);
+                this.mainContainerObj.add(this.bigParentObj);
+                let sphere = makeVertexSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+                this.bigParentObj.add(sphere); // add vertex sphere as a child of the bigParentObj group, so that later undo / erase can delete everything (children) of this bigParentObj
+                measurementObjs[`${this.uuid}`].vertices.push(sphere); // add vertex sphere to the .vertices array of the global index.js object, to serve future book-keeping purposes
                 this.vertexArray = [];
-                this.vertexArray.push(sphere);
+                this.vertexArray.push(sphere); // add vertex sphere to this.vertexArray array, to later detect if hit vertex sphere to close the loop
                 // todo Steve: add to global vertexSphereArray support
                 this.lastPos = {
                     position: new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z),
@@ -261,7 +283,9 @@ class AreaMeasurer {
                 // increase vertex count
                 
                 
-                let sphere = addTestSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+                let sphere = makeVertexSphere(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z, 0xffff00);
+                this.bigParentObj.add(sphere);
+                measurementObjs[`${this.uuid}`].vertices.push(sphere);
                 this.vertexArray.push(sphere);
 
                 this.lastPos = {
@@ -315,18 +339,21 @@ class AreaMeasurer {
                 let centroid = this.computeCentroid(geometry);
                 
                 let mesh = new THREE.Mesh(geometry, this.matGreenTransparent);
-                this.mainContainerObj.add(mesh);
+                this.bigParentObj.add(mesh);
+                measurementObjs[`${this.uuid}`].area = mesh;
 
                 // add measurement area text
                 if (!this.allowVolume) {
                     let div1 = document.createElement('div');
                     div1.classList.add('measurement-text');
-                    div1.style.background = 'rgb(0,255,255)';
+                    div1.style.background = 'rgb(0,0,0)';
                     div1.innerHTML = `${this.area} m<sup>2</sup>`;
                     let divObj = new CSS3DObject(div1);
                     divObj.position.copy(centroid);
-                    divObj.rotation.x = -Math.PI / 2;
-                    this.mainContainerObj.add(divObj);
+                    // divObj.scale.set(1, -1, 1);
+                    // divObj.rotation.x = -Math.PI / 2;
+                    this.bigParentObj.add(divObj);
+                    measurementObjs[`${this.uuid}`].text = divObj;
                 }
 
                 this.firstPos = null;
@@ -426,7 +453,8 @@ class AreaMeasurer {
             this.line.obj.parent.remove(this.line.obj);
         }
         this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
-        this.mainContainerObj.add(this.line.obj);
+        this.bigParentObj.add(this.line.obj);
+        measurementObjs[`${this.uuid}`].line = this.line.obj;
     }
     
     computeArea() {
