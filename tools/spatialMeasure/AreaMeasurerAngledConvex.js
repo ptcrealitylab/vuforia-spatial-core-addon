@@ -15,11 +15,13 @@ class AreaMeasurer {
             distance: 500
         };
         
+        this.area = null;
         this.allowVolume = false;
         this.firstVolumeY = null;
         this.volumeHeight = 0;
         this.volumeMesh = null;
         this.volumeWireframeMesh = null;
+        this.volumeText = null;
         
         this.mode = { // default is discrete mode, define the area with straight line polygon
             discrete: true,
@@ -75,7 +77,7 @@ class AreaMeasurer {
 
     setupEventListeners() {
         document.addEventListener('pointerdown', function(e) {
-            if (!this.isActive) return;
+            if (!appActive || !this.isActive) return;
             if (e.button === 0) {
                 this.drawPoint(e);
                 this.justClicked = true;
@@ -83,7 +85,7 @@ class AreaMeasurer {
         }.bind(this));
 
         document.addEventListener('pointermove', function(e) {
-            if (!this.isActive) return;
+            if (!appActive || !this.isActive) return;
             if (this.mode.volume) {
                 this.updateVolume(e)
             } else {
@@ -143,11 +145,11 @@ class AreaMeasurer {
         // let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
         // geometry.setIndex(indexAttribute);
         // todo Steve: calculate the index numbers for all the faces
-        console.log(volumePointArrayBase.length / 3);
+        // console.log(volumePointArrayBase.length / 3);
         let trianglesBase = Earcut.triangulate(volumePointArrayBase, [], 3);
         let trianglesTop = [...trianglesBase];
         trianglesTop = trianglesTop.map(index => index + length / 3);
-        console.log(trianglesBase, trianglesTop);
+        // console.log(trianglesBase, trianglesTop);
         let trianglesMiddle = [];
         for (let i = 0; i < trianglesBase.length; i++) {
             if (i === trianglesBase.length - 1) {
@@ -158,7 +160,7 @@ class AreaMeasurer {
             trianglesMiddle.push(trianglesBase[i], trianglesBase[i + 1], trianglesTop[i + 1]);
             trianglesMiddle.push(trianglesTop[i + 1], trianglesTop[i], trianglesBase[i]);
         }
-        console.log(trianglesMiddle);
+        // console.log(trianglesMiddle);
         let indices = [...trianglesBase, ...trianglesTop, ...trianglesMiddle];
         geometry.setIndex(indices);
         
@@ -172,6 +174,30 @@ class AreaMeasurer {
         }
         this.volumeWireframeMesh = new THREE.Mesh(geometry, this.matWireframe);
         this.mainContainerObj.add(this.volumeWireframeMesh);
+
+        // add measure volume text
+        // let fakeHeight = Math.abs(this.volumeHeight / 1000);
+        // let realHeight = fakeHeight * this.mainContainerObj.matrixWorld.determinant();
+        // let realHeight = Math.abs(this.volumeHeight * this.mainContainerObj.matrixWorld.determinant() / 1000);
+        // let realHeight = (heightVector.applyMatrix4(this.mainContainerObj.matrixWorld).length() / 1000).toFixed(3);
+        let topPos = new THREE.Vector3(volumePointArrayBase[0], volumePointArrayBase[1], volumePointArrayBase[2]).applyMatrix4(this.mainContainerObj.matrixWorld);
+        let bottomPos = new THREE.Vector3(volumePointArrayTop[0], volumePointArrayTop[1], volumePointArrayTop[2]).applyMatrix4(this.mainContainerObj.matrixWorld);
+        let realHeight = (topPos.clone().sub(bottomPos).length() / 1000).toFixed(3);
+        let volume = (this.area * realHeight).toFixed(3);
+        let centroid = this.computeCentroid(geometry);
+        if (this.volumeText !== null) {
+            this.volumeText.element.inner = `${volume} m<sup>2</sup>`;
+            this.volumeText.position.copy(centroid);
+            return;
+        }
+        let div = document.createElement('div');
+        div.classList.add('measurement-text');
+        div.style.background = 'rgb(0,255,255)';
+        div.innerHTML = `${volume} m<sup>3</sup>`;
+        this.volumeText = new CSS3DObject(div);
+        this.volumeText.position.copy(centroid);
+        this.volumeText.rotation.x = -Math.PI / 2;
+        this.mainContainerObj.add(this.volumeText);
     }
 
     drawPoint(e) {
@@ -185,6 +211,7 @@ class AreaMeasurer {
             this.volumeWireframeMesh = null;
             this.vertexArray = [];
             this.vertexPositionArray = [];
+            this.volumeText = null;
             
             return;
         }
@@ -221,8 +248,7 @@ class AreaMeasurer {
                 }
                 
                 this.line = {
-                    // points: [new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z)],
-                    points: [],
+                    points: [new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z)],
                     meshLine: new MeshLine(),
                     obj: null
                 }
@@ -242,6 +268,9 @@ class AreaMeasurer {
                     position: new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z),
                     mesh: sphere,
                 }
+                
+                this.line.points.pop();
+                this.line.points.push(new THREE.Vector3(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z));
 
                 if (!isCalledFromUpdateLine) { // to avoid infinite loop of calling this.updateLine() and this.drawPoint() back & forth
                     this.updateLine(intersectedPosition.x, intersectedPosition.y, intersectedPosition.z);
@@ -254,6 +283,7 @@ class AreaMeasurer {
                 console.error('%c From drawPoint: Not enough vertices to form a region. Add more vertices.', 'color: red');
                 return;
             } else {
+                this.line.points.pop();
                 let intersectedObjectPosition = this.intersectedObject.position;
                 // todo Steve: update this.lastPos here, in order to avoid dead loop calling between this.updateLine() and this.drawPoint()
                 //  and then check if isCalledFromUpdateLine. If false, then run this.updateLine(), otherwise continue to the next section
@@ -281,18 +311,23 @@ class AreaMeasurer {
                 let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
                 geometry.setIndex(indexAttribute);
                 
+                this.area = this.computeArea();
+                let centroid = this.computeCentroid(geometry);
+                
                 let mesh = new THREE.Mesh(geometry, this.matGreenTransparent);
                 this.mainContainerObj.add(mesh);
 
                 // add measurement area text
-                let div1 = document.createElement('div');
-                div1.classList.add('measurement-text');
-                div1.style.background = 'rgb(0,255,255)';
-                div1.innerHTML = `area m<sup>2</sup>`;
-                let divObj = new CSS3DObject(div1);
-                // divObj.position.copy(this.finalPosition);
-                divObj.rotation.x = -Math.PI / 2;
-                this.mainContainerObj.add(divObj);
+                if (!this.allowVolume) {
+                    let div1 = document.createElement('div');
+                    div1.classList.add('measurement-text');
+                    div1.style.background = 'rgb(0,255,255)';
+                    div1.innerHTML = `${this.area} m<sup>2</sup>`;
+                    let divObj = new CSS3DObject(div1);
+                    divObj.position.copy(centroid);
+                    divObj.rotation.x = -Math.PI / 2;
+                    this.mainContainerObj.add(divObj);
+                }
 
                 this.firstPos = null;
                 this.lastPos = null;
@@ -318,10 +353,10 @@ class AreaMeasurer {
         
         if (this.intersectedObject !== null) {
             if (this.vertexCount < MIN_VERTEX_COUNT) {
-                console.log('%c From updateLine: Not enough vertices to form a region. Add more vertices.', 'color: red');
+                // console.log('%c From updateLine: Not enough vertices to form a region. Add more vertices.', 'color: red');
             } else {
                 // add a circle besides the cursor, to indicate that can form a closed loop
-                console.log('%c should draw a circle next to the cursor to indicate closed loop', 'color: blue');
+                // console.log('%c should draw a circle next to the cursor to indicate closed loop', 'color: blue');
             }
             return;
         }
@@ -366,6 +401,7 @@ class AreaMeasurer {
                 this.line.points.pop();
             }
             // if (this.line.points.length === 1) return;
+            
             this.line.points.push(intersectedPosition.clone()); // todo Steve: when drawing on a curved surface, after securing a plane, NEED to re-position (projection mapping) all the meshline points drawn before securing this plane ON THIS PLANE !!!
             this.line.meshLine.setPoints(this.line.points);
         } else {
@@ -391,5 +427,32 @@ class AreaMeasurer {
         }
         this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
         this.mainContainerObj.add(this.line.obj);
+    }
+    
+    computeArea() {
+        let area = 0;
+        let tempArr = [];
+        for (let i = 0; i < this.line.points.length; i++) {
+            tempArr.push(this.line.points[i].clone().applyMatrix4(this.mainContainerObj.matrixWorld));
+        }
+        for (let i = 0; i < tempArr.length; i++) {
+            let v1, v2;
+            if (i === tempArr.length - 1) {
+                v1 = tempArr[i];
+                v2 = tempArr[0];
+            } else {
+                v1 = tempArr[i];
+                v2 = tempArr[i + 1];
+            }
+            area += v1.clone().sub(tempArr[0]).cross(v2.clone().sub(tempArr[0])).length();
+        }
+        area *= 0.5;
+        area = (area / 1000000).toFixed(3);
+        return area;
+    }
+    
+    computeCentroid(geometry) {
+        geometry.computeBoundingBox();
+        return new THREE.Vector3().addVectors(geometry.boundingBox.min, geometry.boundingBox.max).divideScalar(2);
     }
 }

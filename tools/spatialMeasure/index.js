@@ -152,17 +152,19 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
 }
 
+let measurementTextObj = {};
+
 function onRender() {
     cssRenderer.render(scene, camera);
     
     if (ray !== undefined) {
-        userInterfaceCamDir = ray.direction.clone().applyMatrix4(camera.matrixWorld).applyMatrix4(mainContainerObj.matrixWorld.clone().invert()).normalize();
-        // todo Steve: to fix the weird facing issue, need to account for different positions of the vertices in the scene, relative to the camera, and feed the relative direction to the camDir vector, not just the camera direction relative to the scene (0, 0, 0)
-        //  and maybe this fixes the issue so that in threejsInterface, the camera FOV doesn't have to change to exactly match the iPhone FOV 41.226......
-        vertexSphereArray.forEach(sphere => {
-            sphere.material.uniforms['camDir'].value = userInterfaceCamDir;
-            sphere.material.needsUpdate = true;
-        });
+        // userInterfaceCamDir = ray.direction.clone().applyMatrix4(camera.matrixWorld).applyMatrix4(mainContainerObj.matrixWorld.clone().invert()).normalize();
+        // // todo Steve: to fix the weird facing issue, need to account for different positions of the vertices in the scene, relative to the camera, and feed the relative direction to the camDir vector, not just the camera direction relative to the scene (0, 0, 0)
+        // //  and maybe this fixes the issue so that in threejsInterface, the camera FOV doesn't have to change to exactly match the iPhone FOV 41.226......
+        // vertexSphereArray.forEach(sphere => {
+        //     sphere.material.uniforms['camDir'].value = userInterfaceCamDir;
+        //     sphere.material.needsUpdate = true;
+        // });
 
         // todo Steve: need to pass camera position from user-interface or remote-operator to here, using subscribeToCameraMatrix or smth
         //  maybe take inspiration from object.js setAlwaysFaceCamera / user-interface getOrientedCursorRelativeToWorldObject() (see the explanations before this function). See how that's implemented to get the icon / cursor always face the camera. Maybe ask Ben for help
@@ -173,15 +175,20 @@ function onRender() {
     
     // try to get the main camera matrix and do some fun stuff with it
     spatialInterface.getMainCameraMatrix().then((result) => {
-        console.log(result.worldMatrix);
-        // let wm = result.worldMatrix.clone();
-        //
-        // const rotation = new THREE.Euler().setFromRotationMatrix(wm);
-        // const forwardVector = new THREE.Vector3(0, 0, -1);
-        // forwardVector.applyEuler(rotation);
-        // forwardVector.applyMatrix4(mainContainerObj.matrixWorld.clone().invert());
-        // forwardVector.normalize();
-        //
+        let arr = result.worldMatrix.elements;
+        let wm = new THREE.Matrix4().set(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12], arr[13], arr[14], arr[15]);
+        // wm.premultiply(mainContainerObj.matrixWorld.clone().invert());
+        
+        const rotation = new THREE.Euler().setFromRotationMatrix(wm);
+        const forwardVector = new THREE.Vector3(0, 0, -1);
+        forwardVector.applyEuler(rotation);
+        forwardVector.applyMatrix4(mainContainerObj.matrixWorld.clone().invert());
+        forwardVector.normalize();
+        userInterfaceCamDir = forwardVector; // update user interface camera direction
+        
+        userInterfaceCamPos.setFromMatrixPosition(wm);
+        userInterfaceCamPos.applyMatrix4(mainContainerObj.matrixWorld.clone().invert());
+
         // addArrowHelper(new THREE.Vector3(), forwardVector, 2000, 0x00ffff);
     })
 }
@@ -199,7 +206,8 @@ let cssRenderer;
 let mouse = new THREE.Vector2();
 let raycaster = new THREE.Raycaster();
 let ray;
-let userInterfaceCamDir = new THREE.Vector3();
+let userInterfaceCamDir = new THREE.Vector3(); // under mainContainerObj coords space
+let userInterfaceCamPos = new THREE.Vector3(); // under mainContainerObj coords space
 
 let lineMeasurer;
 let vertexSphereArray = [];
