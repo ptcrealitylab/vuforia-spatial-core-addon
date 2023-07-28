@@ -11,11 +11,11 @@ class AreaMeasurer {
         this.isActive = false;
         
         this.minimumUpdate = {
-            distance: 5,
+            distance: 3,
             time: 300
         };
         this.maximumUpdate = {
-            distance: 500
+            distance: 300
         };
         
         this.area = null;
@@ -39,12 +39,10 @@ class AreaMeasurer {
         this.lastPointTime = null;
         this.line = null;
         this.vertexCount = 0;
-        this.vertexArray = []; // add vertex spheres to this array, to raycast on the spheres when closing the loop
+        this.vertexArray = []; // add vertex spheres to this array, to raycast on the spheres when closing the loop, also used in the volume mode to construct the plane for extrusion
         this.vertexPositionArray = []; // array of position,x, position.y, position.z to build custom BufferGeometry from
         this.y = null;
         this.intersectedObject = null;
-        
-        this.finalPosition = null;
         
         this.setupEventListeners();
 
@@ -53,8 +51,18 @@ class AreaMeasurer {
             transparent: true,
             opacity: 0.4,
         });
-        this.matWireframe = new THREE.MeshBasicMaterial({
-            wireframe: true
+        this.matGreyTransparent = new THREE.MeshBasicMaterial({
+            color: 0x222222,
+            transparent: true,
+            opacity: 0.4,
+        });
+        this.matLineCyan = new THREE.LineMaterial({
+            color: 0xffffff,
+            linewidth: 0.003
+        });
+        this.matLineGrey = new THREE.LineMaterial({
+            color: 0xffffff,
+            linewidth: 0.001
         });
     }
 
@@ -104,7 +112,7 @@ class AreaMeasurer {
         
         setInterval(() => {
             if (this.line !== null) {
-                console.log(this.line.points.length);
+                // console.log(this.line.points.length);
             }
         }, 10);
     }
@@ -176,7 +184,26 @@ class AreaMeasurer {
             this.volumeWireframeMesh.material.dispose();
             this.volumeWireframeMesh.parent.remove(this.volumeWireframeMesh);
         }
-        this.volumeWireframeMesh = new THREE.Mesh(geometry, this.matWireframe);
+        // this.volumeWireframeMesh = new THREE.Mesh(geometry, this.matWireframe);
+        
+        // let edges = new THREE.EdgesGeometry(geometry, 70);
+        // console.log(edges);
+        // console.log(edges.attributes.position.array);
+        let lineSegmentBase = [], lineSegmentTop = [], lineSegmentMid = [];
+        for (let i = 0; i < volumePointArrayBase.length; i += 3) {
+            if (i === volumePointArrayBase.length - 3) {
+                lineSegmentBase.push(volumePointArrayBase[i], volumePointArrayBase[i + 1], volumePointArrayBase[i + 2], volumePointArrayBase[0], volumePointArrayBase[1], volumePointArrayBase[2]);
+                lineSegmentTop.push(volumePointArrayTop[i], volumePointArrayTop[i + 1], volumePointArrayTop[i + 2], volumePointArrayTop[0], volumePointArrayTop[1], volumePointArrayTop[2]);
+            } else {
+                lineSegmentBase.push(volumePointArrayBase[i], volumePointArrayBase[i + 1], volumePointArrayBase[i + 2], volumePointArrayBase[i + 3], volumePointArrayBase[i + 4], volumePointArrayBase[i + 5]);
+                lineSegmentTop.push(volumePointArrayTop[i], volumePointArrayTop[i + 1], volumePointArrayTop[i + 2], volumePointArrayTop[i + 3], volumePointArrayTop[i + 4], volumePointArrayTop[i + 5]);
+            }
+            lineSegmentMid.push(volumePointArrayBase[i], volumePointArrayBase[i + 1], volumePointArrayBase[i + 2], volumePointArrayTop[i], volumePointArrayTop[i + 1], volumePointArrayTop[i + 2]);
+        }
+        let geoLine = new THREE.LineSegmentsGeometry();
+        geoLine.setPositions([...lineSegmentBase, ...lineSegmentMid, ...lineSegmentTop]);
+        // geoLine.fromEdgesGeometry(edges);
+        this.volumeWireframeMesh = new THREE.LineSegments2(geoLine, this.matLineCyan);
         this.bigParentObj.add(this.volumeWireframeMesh);
         measurementObjs[`${this.uuid}`].volumeWireframe = this.volumeWireframeMesh;
 
@@ -191,7 +218,7 @@ class AreaMeasurer {
         let volume = (this.area * realHeight).toFixed(3);
         let centroid = this.computeCentroid(geometry);
         if (this.volumeText !== null) {
-            this.volumeText.element.inner = `${volume} m<sup>2</sup>`;
+            this.volumeText.element.innerHTML = `${volume} m<sup>3</sup>`;
             this.volumeText.position.copy(centroid);
             return;
         }
@@ -199,7 +226,7 @@ class AreaMeasurer {
         div.classList.add('measurement-text');
         div.style.background = 'rgb(0,0,0)';
         div.innerHTML = `${volume} m<sup>3</sup>`;
-        this.volumeText = new CSS3DObject(div);
+        this.volumeText = new THREE.CSS2DObject(div);
         this.volumeText.position.copy(centroid);
         // this.volumeText.scale.set(1, -1, 1);
         // this.volumeText.rotation.x = -Math.PI / 2;
@@ -208,18 +235,8 @@ class AreaMeasurer {
     }
 
     drawPoint(e) {
-        if (this.mode.volume) { // when drawing a volume
-            
-            this.mode.volume = false;
-            
-            this.lastVolumeY = null;
-            this.volumeHeight = 0;
-            this.volumeMesh = null;
-            this.volumeWireframeMesh = null;
-            this.vertexArray = [];
-            this.vertexPositionArray = [];
-            this.volumeText = null;
-            
+        if (this.mode.volume) { // after drawing a volume
+            this.onAfterVolume();
             return;
         }
         
@@ -322,8 +339,9 @@ class AreaMeasurer {
                 let geometry = new THREE.BufferGeometry();
                 this.vertexPositionArray = [];
                 // this.line.points.splice(1, 1);
-                // todo Steve: somehow there's one extra point added to the points array... Get rid of it!
-                console.log(`%c ${this.line.points.length}`, 'color: red');
+                // todo Steve: somehow there's one extra point added to the points array... Get rid of it! 
+                //  This is fixed now.
+                // console.log(`%c ${this.line.points.length}`, 'color: red');
                 for (let i = 0; i < this.line.points.length; i++) {
                     this.vertexPositionArray.push(this.line.points[i].x);
                     this.vertexPositionArray.push(this.line.points[i].y);
@@ -337,18 +355,18 @@ class AreaMeasurer {
                 
                 this.area = this.computeArea();
                 let centroid = this.computeCentroid(geometry);
-                
-                let mesh = new THREE.Mesh(geometry, this.matGreenTransparent);
-                this.bigParentObj.add(mesh);
-                measurementObjs[`${this.uuid}`].area = mesh;
 
                 // add measurement area text
                 if (!this.allowVolume) {
+                    let mesh = new THREE.Mesh(geometry, this.matGreenTransparent);
+                    this.bigParentObj.add(mesh);
+                    measurementObjs[`${this.uuid}`].area = mesh;
+                    
                     let div1 = document.createElement('div');
                     div1.classList.add('measurement-text');
                     div1.style.background = 'rgb(0,0,0)';
                     div1.innerHTML = `${this.area} m<sup>2</sup>`;
-                    let divObj = new CSS3DObject(div1);
+                    let divObj = new THREE.CSS2DObject(div1);
                     divObj.position.copy(centroid);
                     // divObj.scale.set(1, -1, 1);
                     // divObj.rotation.x = -Math.PI / 2;
@@ -356,21 +374,7 @@ class AreaMeasurer {
                     measurementObjs[`${this.uuid}`].text = divObj;
                 }
 
-                this.firstPos = null;
-                this.lastPos = null;
-                this.lastPointTime = null;
-                this.line = null;
-                this.vertexCount = 0;
-                // this.vertexArray = [];
-                this.y = null;
-                this.intersectedObject = null;
-
-                // todo Steve: handle the volume mode cleaner
-                if (this.allowVolume) {
-                    this.mode.volume = true;
-                } else {
-                    this.mode.volume = false;
-                }
+                this.onAfterArea();
             }
         }
     }
@@ -452,7 +456,7 @@ class AreaMeasurer {
             this.line.obj.material.dispose();
             this.line.obj.parent.remove(this.line.obj);
         }
-        this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
+        this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineCyan);
         this.bigParentObj.add(this.line.obj);
         measurementObjs[`${this.uuid}`].line = this.line.obj;
     }
@@ -482,5 +486,60 @@ class AreaMeasurer {
     computeCentroid(geometry) {
         geometry.computeBoundingBox();
         return new THREE.Vector3().addVectors(geometry.boundingBox.min, geometry.boundingBox.max).divideScalar(2);
+    }
+    
+    onAfterArea() {
+        this.firstPos = null;
+        this.lastPos = null;
+        this.lastPointTime = null;
+        this.line = null;
+        this.vertexCount = 0;
+        // this.vertexArray = [];
+        this.y = null;
+        this.intersectedObject = null;
+
+        // todo Steve: handle the volume mode cleaner
+        if (this.allowVolume) {
+            this.mode.volume = true;
+        } else {
+            this.mode.volume = false;
+        }
+    }
+    
+    onAfterVolume() {
+        this.mode.volume = false;
+
+        this.volumeHeight = 0;
+        this.volumeMesh = null;
+        this.volumeWireframeMesh = null;
+        this.vertexArray = [];
+        this.vertexPositionArray = [];
+        this.volumeText = null;
+    }
+
+    reset() {
+        this.uuid = null;
+        this.bigParentObj = null;
+
+        this.area = null;
+        this.firstVolumeY = null;
+        this.volumeHeight = 0;
+        this.volumeMesh = null;
+        this.volumeWireframeMesh = null;
+        this.volumeText = null;
+        
+        this.mode.volume = false;
+
+        this.justClicked = false;
+
+        this.firstPos = null;
+        this.lastPos = null;
+        this.lastPointTime = null;
+        this.line = null;
+        this.vertexCount = 0;
+        this.vertexArray = []; // add vertex spheres to this array, to raycast on the spheres when closing the loop, also used in the volume mode to construct the plane for extrusion
+        this.vertexPositionArray = []; // array of position,x, position.y, position.z to build custom BufferGeometry from
+        this.y = null;
+        this.intersectedObject = null;
     }
 }

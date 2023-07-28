@@ -11,6 +11,10 @@
     font-style: normal;
 }
 
+* {
+    font-family: "Roboto", "Avenir", "Futura", Helvetica Neue, Helvetica, Arial, sans-serif;
+}
+
 #button-container {
     position: absolute;
     top: 120px;
@@ -49,7 +53,7 @@ button {
     border-radius: 10px;
     transform-origin: center;
     color: white;
-    font-size: 60px;
+    font-size: 20px;
 }
 
 #envelopeContainer {

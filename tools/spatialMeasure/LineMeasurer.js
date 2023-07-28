@@ -94,7 +94,7 @@ class LineMeasurer {
                 this.line.obj.parent.remove(this.line.obj);
                 this.line.obj = null;
             }
-            this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
+            this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineCyan);
             this.bigParentObj.add(this.line.obj);
             measurementObjs[`${this.uuid}`].line = this.line.obj;
             this.line.indices = [this.startPos.index, this.endPos.index];
@@ -124,7 +124,7 @@ class LineMeasurer {
                 this.line.obj.parent.remove(this.line.obj);
                 this.line.obj = null;
             }
-            this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineMaterial);
+            this.line.obj = new THREE.Mesh(this.line.meshLine, meshLineCyan);
             this.bigParentObj.add(this.line.obj);
             measurementObjs[`${this.uuid}`].line = this.line.obj;
 
@@ -138,7 +138,7 @@ class LineMeasurer {
                 div1.classList.add('measurement-text');
                 div1.style.background = 'rgb(0,0,0)';
                 div1.innerHTML = `${distance} m`;
-                let divObj = new CSS3DObject(div1);
+                let divObj = new THREE.CSS2DObject(div1);
                 //divObj.scale.set(1, -1, 1);
                 let midPos = this.startPos.position.clone().add(intersectedPosition.clone()).divideScalar(2);
                 divObj.position.copy(midPos);

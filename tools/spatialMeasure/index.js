@@ -43,20 +43,25 @@ const envelopeContainer = document.querySelector('#envelopeContainer');
 const envelope = new Envelope(spatialInterface, [], envelopeContainer, launchButton, true, false);
 
 envelope.onClose(() => {
+    console.log('%c on CLOSE', 'color: red');
     appActive = false;
     scene.visible = false;
+    toggleMeasureText(false);
     spatialInterface.setAlwaysFaceCamera(true);
     spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
     spatialInterface.unregisterTouchDecider();
+    spatialInterface.setMoveDelay(500);
 })
 
 envelope.onOpen(() => {
+    console.log('%c on OPEN', 'color: green');
     appActive = true;
     if (scene) {
         scene.visible = true;
     }
     spatialInterface.setAlwaysFaceCamera(false);
     initEverything(firstTimeLoad);
+    toggleMeasureText(true);
     if (firstTimeLoad) firstTimeLoad = false;
     spatialInterface.getScreenDimensions((width, height) => {
         spatialInterface.changeFrameSize(width, height);
@@ -64,13 +69,18 @@ envelope.onOpen(() => {
 })
 
 envelope.onBlur(() => {
+    console.log('%c on BLUR', 'color: blue');
     envelopeContainer.style.display = 'none';
+    spatialInterface.unregisterTouchDecider();
     spatialInterface.setMoveDelay(500);
+    toggleMeasureMeshColor(false);
 })
 
 envelope.onFocus(() => {
+    console.log('%c on FOCUS', 'color: purple');
     envelopeContainer.style.display = '';
     spatialInterface.setMoveDelay(-1);
+    toggleMeasureMeshColor(true);
 })
 
 function initEverything(firstTimeLoad) {
@@ -144,12 +154,14 @@ function setMatrixFromArray(matrix, array) {
 
 function matrixCallback(modelViewMatrix, _projectionMatrix) {
     if (threejsInterface.isProjectionMatrixSet) {
-        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        // setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
     }
 }
 
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
-    setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
+    if (threejsInterface.isProjectionMatrixSet) {
+        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+    }
 }
 
 let measurementObjs = {};
@@ -200,13 +212,13 @@ function onRender() {
     
     for (const [key, value] of Object.entries(measurementObjs)) {
         if (value.text !== null && flag === false) {
-            orientMeasurementTextTowardsCamera(value.text, userInterfaceCamPos);
+            // orientMeasurementTextTowardsCamera(value.text, userInterfaceCamPos);
             // flag = true;
         }
         if (value.vertices !== null) {
             value.vertices.forEach((vertex) => {
-                vertex.material.uniforms['camPos'].value = userInterfaceCamPos;
-                vertex.material.needsUpdate = true;
+                // vertex.material.uniforms['camPos'].value = userInterfaceCamPos;
+                // vertex.material.needsUpdate = true;
             })
         }
     }
@@ -253,10 +265,33 @@ function orientMeasurementTextTowardsCamera(text, camPos) {
     text.scale.x = -1;
 }
 
-function prettyPrintMatrix(m) {
-    for (let i = 0; i < m.length; i += 4) {
-        for (let j = i; j < i + 4; j++) {
-            // do smth
+function toggleMeasureText(isOn) {
+    if (Object.keys(measurementObjs).length === 0) return;
+    for (const value of Object.values(measurementObjs)) {
+        if (value.text !== null) {
+            value.text.visible = !!isOn;
+        }
+    }
+}
+
+function toggleMeasureMeshColor(isOn) {
+    if (Object.keys(measurementObjs).length === 0) return;
+    for (const value of Object.values(measurementObjs)) {
+        if (value.line !== null) {
+            value.line.material = isOn ? meshLineCyan : meshLineGrey;
+            value.line.material.needsUpdate = true;
+        }
+        if (value.area !== null) {
+            value.area.material = isOn ? areaMeasurer.matGreenTransparent : areaMeasurer.matGreyTransparent;
+            value.area.material.needsUpdate = true;
+        }
+        if (value.volume !== null) {
+            value.volume.material = isOn ? areaMeasurer.matGreenTransparent : areaMeasurer.matGreyTransparent;
+            value.volume.material.needsUpdate = true;
+        }
+        if (value.volumeWireframe !== null) {
+            value.volumeWireframe.material = isOn ? areaMeasurer.matLineCyan : areaMeasurer.matLineGrey;
+            value.volumeWireframe.material.needsUpdate = true;
         }
     }
 }
@@ -272,8 +307,8 @@ function undoMeasurementObj() {
     delete measurementObjs[`${id}`];
 }
 
-function eraseMeasurementObj() {
-    let obj = intersectWithSceneObjects()
+function eraseMeasurementObj(e) {
+    let obj = intersectWithSceneObjects(e);
 }
 
 let camera;
@@ -294,7 +329,7 @@ let areaMeasurer;
 function initScene() {
     camera = threejsInterface.camera;
 
-    cssRenderer = new CSS3DRenderer();
+    cssRenderer = new THREE.CSS2DRenderer();
     cssRenderer.setSize(window.innerWidth, window.innerHeight);
     const css3dCanvas = cssRenderer.domElement;
     css3dCanvas.id = 'spatial-measure-css-3d-renderer';
@@ -311,9 +346,7 @@ function initScene() {
     areaMeasurer = new AreaMeasurer(mainContainerObj);
     setupEventListeners();
     
-    addAxisHelper(new THREE.Vector3(), 1000);
-    // addAxisHelper(new THREE.Vector3(), 1000, true);
-    // addTestCube(0, 0, 1000, 0xff0000);
+    // addAxisHelper(new THREE.Vector3(), 1000);
 }
 
 function intersectWithAngledPlane(e, plane) {
@@ -390,9 +423,13 @@ function isNumberValid(number) {
 }
 
 // todo Steve: temporarily generate a single global meshline material outside of MeasureLine. But will change it to generate different colors later
-const meshLineMaterial = new MeshLineMaterial({
+const meshLineCyan = new MeshLineMaterial({
     color: new THREE.Color( 0x00ffff ),
-    lineWidth: 10
+    lineWidth: 6
+});
+const meshLineGrey = new MeshLineMaterial({
+    color: new THREE.Color( 0xcccccc ),
+    lineWidth: 6
 });
 
 function addTestSphere(x, y, z, color, addToTop = false) {
@@ -416,13 +453,16 @@ function addTestSphere(x, y, z, color, addToTop = false) {
 }
 
 function makeVertexSphere(x, y, z) {
-    let geo = new THREE.SphereGeometry(50, 32, 16);
-    let mat = new THREE.ShaderMaterial({
-        vertexShader: vertexMesh_vertexShader,
-        fragmentShader: vertexMesh_fragmentShader,
-        uniforms: {
-            camPos: {value: userInterfaceCamPos}
-        }
+    let geo = new THREE.SphereGeometry(15, 32, 16);
+    // let mat = new THREE.ShaderMaterial({
+    //     vertexShader: vertexMesh_vertexShader,
+    //     fragmentShader: vertexMesh_fragmentShader,
+    //     uniforms: {
+    //         camPos: {value: userInterfaceCamPos}
+    //     }
+    // });
+    let mat = new THREE.MeshBasicMaterial({
+        color: 0xffffff
     });
     let sphere = new THREE.Mesh(geo, mat);
     sphere.position.set(x, y, z);
@@ -503,40 +543,46 @@ let modes = {
 
 const { createMachine, actions, interpret } = XState;
 const fsm = createMachine({
-    /** @xstate-layout N4IgpgJg5mDOIC5QDNYFsB0aD2E4GIAVbAGQEsA7MAbQAYBdRUAB21jIBczsKmQAPRAFoATCIAcGWgFZZAZgBsAFgCctJQHZaARgA0IAJ6IRKlRjlLtCmdPFXaGkRoC+z-akw48sItgCCAE5gAIZ0jEggrOxcPHyCCELa2nJSCiLScrQqCnLa0iIK+kYIJmYWeabSSgpqcnKu7uhYuATEAGrYADYArmg0DHxRnNy8EfHaGEriGnLidZm01lriKkXGpuaW0pXVtfVuIB7N3r4AqhQQ2GGDbMOxY4jamhimCuJpU9m0OmslG+UKJLTdK0OQqBqHJpeVrYACiAWCsH64RYtxio1A8QkIkm4l2GTeCgySl+pU2FW0Gg0UzqSn2jUweA4wTInR8xAAImRYABjIIcZE3aIjOLCMQKDBVGn5BQKDS2PSGRC2Mxy7ROETadQqER1CFHJkstm+ADCPC4FG62G6sGuESG6NFCRWky0ji1KzxynEvxVGDVGq1ql1SlcBwoLXgEQ8QruGIEwjkIiUUlkBNU6i0iuK6uk5mkGhy4kWGjmRPE+qhkdjjoeCScEps6bUmh+SpK6oweOm1V1iwy9MhnkjGE6lDANZFddEVgwMwkSZUGhU0hqtB97dmONX4qUU20OsBleH3gwwSCwUn90xwi1ExMqlX8lkpg3xS3krS6U0FXlsuPxxwBgABuXS9BO9polON4IJ2hZgquKjTNYOgZL8H47t+Gi-quCgAYarJRqiwrXgm9bUpKe5zDKcoKr6oIYJSeKzNIB5JDk+FgMyhEYBA3J8lxEHEXGTozimKi5NMtDJnIq7LtmiBEhoc4WO88rqN8uqcdxbIYDy5qUFaNpXvG8RCFS5h5LqIgyKY1JWL8SkqVMtEadJg5HNCsAYN0FzYCZToVF2dJaio1SLGIcgaOh4jbl+1gmMoKjaHiAFeRgYAIkiAV1iYKTSBF4jFrqpgSXIMVxeK0nZKoKWhmGQA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QDNYFsB0aD2E4GIAVbAGQEsA7MAbQAYBdRUAB21jIBczsKmQAPRAFoAzADYAnBloSArLLEAOAOwAmZYrG0AjABoQAT0SqJUkQBZtW+Yqu01ygL6P9qTDjywi2AIIAnMABDOkYkEFZ2Lh4+QQQhbW0RaTFVWREZMRFtWVUxfSMEEzNLWVNZc0laERFnV3QsXAJiADVsABsAVzQaBj4Izm5eMNjtDHMVEUVq9NotZVpFCXzjUwwLbLKKiSqalxA3Bs9vAFUKCGwQvrYB6OHEbXNlDFMlFPGJLR1lwtX1sQSVKkqhJavt6h4mtgAKJ+QKwHqhFjXKJDUCxVSKVRjRRbNKvNLmb5FNYlCTaZTKcbVcy7OqYPAcQJkNpeYgAETIsAAxgEOAirpFBjFhKpchhylScmIxMpZLZvnKpDLtOpVNpaOYJKpqqCDgymSzvABhHhcCgdbAdWCXML9FHCuKLMbzNTqxY4sTjBVO5Wq9Wa7XmXX1fXM1nYABKYC5HBtSMFtzRiCduWUIlSotk2kUORE3qVyhVhZk6fkIL2erAjLDxrIfi5bX5tuRQruhXEYxpNIS5Kzc3zGF9xYkpdKwfcjXDPgoUEbcfCLcTAhF5ixCVyWVm5m3jyJv0s1jldgczj2FEnfDcApuqOXcQqsmkcgUgI0Wj0hnuqTWsmUYnkD46O646HHA172m2QiWE8MjyEoDiaF8n6FCqGA4io8gUikEiYooIEQrAGCNjOHAABbga2SZxOIYgYFYOYjo8f4bHkyGTFiCiip6qQJFm2j4ZOGCBAEgQUUusTxDoGAmJqCjyCIZY4d87HiikqSPBssrSgJngYAAbu0XRgGJt4jFif4iHIkgqJ82R5mxmKqZmGmlFpYggaGLImQ6QjqOY4rblMUoykeCpVHRGg0rIMiPKo9geVWBqERAnI8lWxnNgmpkig8zxZCotCqFFMpkt8-5PGm4whRqtCFbSYL0olYYYFypqUBaVreZBFJrNk2pxaUEiUlYZW-hglWaLKNV1TpcAYB0ZzYF1VEbGh3YxVoakiMoymOZxuSFR8mrZkGFbgoJYCwvCy13iYSTRSkiiKHVpgjvZBQqftWgmJ6ZI4gl1YshgAQxjdIzhZiCzZmomqWDIo0VRYk3ReYtXagDSUtXWDYZfGN4OkVtFQ5hmoLPY8PIeV41I9VqMzWdE66YEM6NmDIrpuNpTVBiFLZk9si7RxancXxfGno4QA */
     id: 'fsm',
     states: {
         modes: {
             states: {
-                line: {},
+                length: {},
                 area: {},
                 volume: {},
                 undo: {},
-                erase: {}
+                erase: {},
+                angle: {}
             },
 
-            initial: "line",
+            initial: "length",
 
             on: {
-                ToLine: ".line",
+                ToLine: ".length",
                 ToArea: ".area",
                 ToVolume: ".volume",
                 ToUndo: ".undo",
-                ToErase: ".erase"
+                ToErase: ".erase",
+                ToAngle: ".angle"
             }
         },
 
         details: {
             states: {
                 discrete: {},
-                continuous: {}
+                continuous: {},
+                rect: {},
+                circle: {}
             },
 
             initial: "discrete",
 
             on: {
                 ToDiscrete: ".discrete",
-                ToContinuous: ".continuous"
+                ToContinuous: ".continuous",
+                ToRect: ".rect",
+                ToCircle: ".circle"
             }
         }
     },
@@ -700,11 +746,12 @@ function setupEventListeners() {
     
     let undoButton = document.getElementById('undo-button');
     undoButton.addEventListener('pointerdown', () => {
+        areaMeasurer.reset();
         undoMeasurementObj();
     })
 
     let eraseButton = document.getElementById('erase-button');
-    undoButton.addEventListener('pointerdown', (e) => {
+    eraseButton.addEventListener('pointerdown', (e) => {
         eraseMeasurementObj(e);
     })
 }
