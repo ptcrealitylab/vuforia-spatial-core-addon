@@ -141,7 +141,9 @@ class AreaMeasurer {
         // todo Steve: after passing userInterface three js scene camera into the data flow, add a function to check where is the camera compared to the plane
         //  If the plane normal direction is on the opposite side of the camera, flip the normal direction to aligns with the camera's side.
         //  b/c based on different ways of clicking points to form the plane, the plane's normal can have opposite directions
-        let heightVector = plane2.normal.clone().multiplyScalar(this.volumeHeight);
+        let normalDir = plane2.normal.clone();
+        if (normalDir.clone().dot(userInterfaceCamPos) > 0) normalDir.negate();
+        let heightVector = normalDir.multiplyScalar(this.volumeHeight);
         for (let i = 0; i < length; i += 3) {
             volumePointArrayTop.push(volumePointArrayBase[i] + heightVector.x);
             volumePointArrayTop.push(volumePointArrayBase[i + 1] + heightVector.y);
@@ -152,7 +154,7 @@ class AreaMeasurer {
         let geometry = new THREE.BufferGeometry();
         let positionAttribute = new THREE.BufferAttribute(new Float32Array([...volumePointArrayBase, ...volumePointArrayTop]), 3);
         geometry.setAttribute('position', positionAttribute);
-        let triangles = Earcut.triangulate([...volumePointArrayBase, ...volumePointArrayTop], [], 3);
+        // let triangles = Earcut.triangulate([...volumePointArrayBase, ...volumePointArrayTop], [], 3);
         // let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
         // geometry.setIndex(indexAttribute);
         // todo Steve: calculate the index numbers for all the faces

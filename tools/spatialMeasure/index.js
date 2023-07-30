@@ -120,6 +120,13 @@ function initEverything(firstTimeLoad) {
                 spatialInterface.subscribeToMatrix();
                 spatialInterface.addMatrixListener(matrixCallback);
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+                // todo Steve: add listeners to indicate that the phone moves
+                //  before this, first add an if statement to check if this is on a phone or computer. Maybe need to build a new listener like I did for the camera position listener
+                // spatialInterface.addAccelerationListener();
+                // spatialInterface.addScreenPositionListener();
+                // spatialInterface.addDevicePoseMatrixListener();
+                // spatialInterface.addModelAndViewListener();
+                
 
                 // todo Steve: temporarily disable moving the tool, to work on dragging gizmo handles
                 // spatialInterface.setMoveDelay(500);
@@ -154,13 +161,14 @@ function setMatrixFromArray(matrix, array) {
 
 function matrixCallback(modelViewMatrix, _projectionMatrix) {
     if (threejsInterface.isProjectionMatrixSet) {
-        // setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
     }
 }
 
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     if (threejsInterface.isProjectionMatrixSet) {
-        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        // setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        // todo Steve: need a 3D earcut algorithm! B/c the current one only works in 2D, as if all the points are projected onto the x-y plane, causing points that have similar (x, y) values to not generate an edge correctly
     }
 }
 
@@ -223,6 +231,12 @@ function onRender() {
         }
     }
 }
+
+setInterval(() => {
+    if (userInterfaceCamPos !== undefined) {
+        console.log(userInterfaceCamPos.x, userInterfaceCamPos.y, userInterfaceCamPos.z);
+    }
+}, 1000);
 
 function orientMeasurementTextTowardsCamera(text, camPos) {
     let textPos = text.position;
@@ -346,7 +360,7 @@ function initScene() {
     areaMeasurer = new AreaMeasurer(mainContainerObj);
     setupEventListeners();
     
-    // addAxisHelper(new THREE.Vector3(), 1000);
+    addAxisHelper(new THREE.Vector3(), 1000);
 }
 
 function intersectWithAngledPlane(e, plane) {
@@ -453,7 +467,7 @@ function addTestSphere(x, y, z, color, addToTop = false) {
 }
 
 function makeVertexSphere(x, y, z) {
-    let geo = new THREE.SphereGeometry(15, 32, 16);
+    let geo = new THREE.SphereGeometry(40, 32, 16);
     // let mat = new THREE.ShaderMaterial({
     //     vertexShader: vertexMesh_vertexShader,
     //     fragmentShader: vertexMesh_fragmentShader,
