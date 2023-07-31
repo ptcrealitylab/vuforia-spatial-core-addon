@@ -181,6 +181,12 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
 //  and use the acceleration / device pose / model view callback to decide if the phone has changed transformation. If changed, then should format the corresponding data into an event, and feed it into areaMeasurer.update()
 
 function accelerationCallback(acceleration) {
+    let isdesktop = isDesktop();
+    console.log(`%c ${isdesktop}`, 'color: red');
+    if (isDesktop) return;
+    spatialInterface.getSpatialCursorEvent().then((result) => {
+        console.log(result);
+    })
     // console.log(`%c ${JSON.stringify(acceleration)}`, 'color: red');
 }
 
