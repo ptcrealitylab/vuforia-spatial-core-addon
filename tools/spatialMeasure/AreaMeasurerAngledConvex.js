@@ -91,11 +91,11 @@ class AreaMeasurer {
         document.addEventListener('pointerdown', function(e) {
             if (!appActive || !this.isActive) return;
             if (!isdesktop) {
+                this.justClicked = true;
                 this.drawPoint(fakeE);
-                this.justClicked = true;
             } else if (e.button === 0) {
-                this.drawPoint(e);
                 this.justClicked = true;
+                this.drawPoint(e);
             }
         }.bind(this));
 
