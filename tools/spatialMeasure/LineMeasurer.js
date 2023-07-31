@@ -25,7 +25,7 @@ class LineMeasurer {
     setupEventListeners() {
         document.addEventListener('pointerdown', function(e) {
             if (!appActive || !this.isActive) return;
-            if (isdesktop) {
+            if (!isdesktop) {
                 this.drawPoint(fakeE);
             } else if (e.button === 0) {
                 this.drawPoint(e);
