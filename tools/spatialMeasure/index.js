@@ -5,7 +5,7 @@ const MINIMIZED_TOOL_HEIGHT = 400;
 let appActive = false;
 let firstTimeLoad = true;
 
-let mainContainerObj, groundPlaneContainerObj;
+let mainContainerObj, groundPlaneContainerObj, realMatrixContainerObj;
 let spatialInterface;
 let threejsInterface;
 let scene;
@@ -102,6 +102,10 @@ function initEverything(firstTimeLoad) {
             groundPlaneContainerObj.name = 'groundPlaneContainer';
             threejsInterfaceScene.add(groundPlaneContainerObj);
 
+            realMatrixContainerObj = new THREE.Object3D();
+            realMatrixContainerObj.matrixAutoUpdate = false;
+            threejsInterfaceScene.add(realMatrixContainerObj);
+
             let ambLight = new THREE.AmbientLight(0xaaaaaa);
             threejsInterfaceScene.add(ambLight);
 
@@ -122,10 +126,9 @@ function initEverything(firstTimeLoad) {
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
                 // todo Steve: add listeners to indicate that the phone moves
                 //  before this, first add an if statement to check if this is on a phone or computer. Maybe need to build a new listener like I did for the camera position listener
-                // spatialInterface.addAccelerationListener();
-                // spatialInterface.addScreenPositionListener();
-                // spatialInterface.addDevicePoseMatrixListener();
-                // spatialInterface.addModelAndViewListener();
+                spatialInterface.addAccelerationListener(accelerationCallback);
+                spatialInterface.addDevicePoseMatrixListener(devicePoseCallback);
+                spatialInterface.addModelAndViewListener(modelAndViewCallback);
                 
 
                 // todo Steve: temporarily disable moving the tool, to work on dragging gizmo handles
@@ -159,17 +162,34 @@ function setMatrixFromArray(matrix, array) {
     );
 }
 
+
 function matrixCallback(modelViewMatrix, _projectionMatrix) {
     if (threejsInterface.isProjectionMatrixSet) {
-        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        // setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        setMatrixFromArray(realMatrixContainerObj.matrix, modelViewMatrix);
     }
 }
 
 function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
     if (threejsInterface.isProjectionMatrixSet) {
-        // setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
+        setMatrixFromArray(mainContainerObj.matrix, modelViewMatrix);
         // todo Steve: need a 3D earcut algorithm! B/c the current one only works in 2D, as if all the points are projected onto the x-y plane, causing points that have similar (x, y) values to not generate an edge correctly
     }
+}
+
+// todo Steve: should set up a similar thing in object.js and userInterface spatial cursor (since they're using the same logic)
+//  and use the acceleration / device pose / model view callback to decide if the phone has changed transformation. If changed, then should format the corresponding data into an event, and feed it into areaMeasurer.update()
+
+function accelerationCallback(acceleration) {
+    // console.log(`%c ${JSON.stringify(acceleration)}`, 'color: red');
+}
+
+function devicePoseCallback(devicePose, _projectionMatrix) {
+    // console.log(`%c ${devicePose}`, 'color: green');
+}
+
+function modelAndViewCallback(modelMatrix, viewMatrix, _projectionMatrix) {
+    // console.log(`%c ${modelMatrix} ${viewMatrix}`, 'color: blue');
 }
 
 let measurementObjs = {};
@@ -234,7 +254,7 @@ function onRender() {
 
 setInterval(() => {
     if (userInterfaceCamPos !== undefined) {
-        console.log(userInterfaceCamPos.x, userInterfaceCamPos.y, userInterfaceCamPos.z);
+        // console.log(userInterfaceCamPos.x, userInterfaceCamPos.y, userInterfaceCamPos.z);
     }
 }, 1000);
 
@@ -467,7 +487,7 @@ function addTestSphere(x, y, z, color, addToTop = false) {
 }
 
 function makeVertexSphere(x, y, z) {
-    let geo = new THREE.SphereGeometry(40, 32, 16);
+    let geo = new THREE.SphereGeometry(25, 32, 16);
     // let mat = new THREE.ShaderMaterial({
     //     vertexShader: vertexMesh_vertexShader,
     //     fragmentShader: vertexMesh_fragmentShader,

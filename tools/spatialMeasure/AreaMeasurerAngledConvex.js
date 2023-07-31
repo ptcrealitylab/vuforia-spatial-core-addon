@@ -18,6 +18,7 @@ class AreaMeasurer {
             distance: 300
         };
         
+        this.plane = null;
         this.area = null;
         this.allowVolume = false;
         this.firstVolumeY = null;
@@ -116,14 +117,37 @@ class AreaMeasurer {
             }
         }, 10);
     }
+    
+    update() {
+        if (!appActive || !this.isActive) return;
+        if (this.mode.volume) {
+            // this.updateVolume(e)
+        } else {
+            // this.updateArea(e);
+        }
+    }
 
     updateVolume(e) {
-        if (this.firstVolumeY === null) {
-            this.firstVolumeY = e.clientY;
-            return;
-        } else {
-            this.volumeHeight = 10 * (e.clientY - this.firstVolumeY);
-        }
+        // todo Steve: rewrite this logic to make volume extrusion exactly align with the cursor position
+        //  do a intersectWithScenePosition(e), and subtract pos.y with volumeBase.y to get the volumeHeight ???
+        //  what about extrusion direction other than +y direction ???
+        //  maybe it's just better to take Ben's advice to have a slider in the bottom to control the extrusion amount
+        
+        // method 1: cannot work on phone, since spatial cursor always at screen center
+        // if (this.firstVolumeY === null) {
+        //     this.firstVolumeY = e.clientY;
+        //     return;
+        // } else {
+        //     this.volumeHeight = 10 * (e.clientY - this.firstVolumeY);
+        // }
+        // 
+        // method 2: not general enough, b/c doesn't work on volume base plane not directly facing +y
+        // if (this.firstVolumeY === null) {
+        //     this.firstVolumeY = intersectWithScenePosition(e).y;
+        //     return;
+        // } else {
+        //     this.volumeHeight = intersectWithScenePosition(e).y - this.firstVolumeY;
+        // }
 
         if (this.volumeMesh !== null) {
             this.volumeMesh.geometry.dispose();
@@ -137,12 +161,24 @@ class AreaMeasurer {
         let v4 = this.vertexArray[0].position.clone().applyMatrix4(camera.matrixWorldInverse);
         let v5 = this.vertexArray[1].position.clone().applyMatrix4(camera.matrixWorldInverse);
         let v6 = this.vertexArray[2].position.clone().applyMatrix4(camera.matrixWorldInverse);
-        let plane2 = new THREE.Plane().setFromCoplanarPoints(v4, v5, v6);
-        // todo Steve: after passing userInterface three js scene camera into the data flow, add a function to check where is the camera compared to the plane
-        //  If the plane normal direction is on the opposite side of the camera, flip the normal direction to aligns with the camera's side.
-        //  b/c based on different ways of clicking points to form the plane, the plane's normal can have opposite directions
+        let plane2 = new THREE.Plane().setFromCoplanarPoints(v4, v5, v6); // mainContainerObj coords plane, used to draw volume
         let normalDir = plane2.normal.clone();
-        if (normalDir.clone().dot(userInterfaceCamPos) > 0) normalDir.negate();
+        if (normalDir.clone().dot(new THREE.Vector3(0, 1, 0)) < 0) normalDir.negate(); // if plane normal towards -y, then flip it
+
+        // method 3: has some limitations, b/c there might be nothing around the volume in the scene for mouse to intersect with
+        // if (this.firstVolumeY === null) {
+        //     this.firstVolumeY = intersectWithScenePosition(e);
+        //     return;
+        // } else {
+        //     this.volumeHeight = intersectWithScenePosition(e).clone().sub(this.firstVolumeY).dot(normalDir);
+        // }
+        // method 4: well it works, but maybe not so intuitive on the iPhone / iPad. Maybe a combination of method 1, 3 & 4 would work
+        if (this.firstVolumeY === null) {
+            this.firstVolumeY = intersectWithAngledPlane(e, this.plane);
+        } else {
+            this.volumeHeight = intersectWithAngledPlane(e, this.plane).clone().sub(this.firstVolumeY).length();
+        }
+        
         let heightVector = normalDir.multiplyScalar(this.volumeHeight);
         for (let i = 0; i < length; i += 3) {
             volumePointArrayTop.push(volumePointArrayBase[i] + heightVector.x);
@@ -247,6 +283,8 @@ class AreaMeasurer {
             let intersectedPosition = null;
             if (isCalledFromUpdateLine) { // account for calling this.drawPoint(e) within this.updateLine(e) function to automatically add vertex points after a distance
                 intersectedPosition = e.clone();
+            } else if (this.plane !== null) {
+                intersectedPosition = intersectWithAngledPlane(e, this.plane);
             } else {
                 intersectedPosition = intersectWithScenePosition(e);
             }
@@ -344,14 +382,21 @@ class AreaMeasurer {
                 // todo Steve: somehow there's one extra point added to the points array... Get rid of it! 
                 //  This is fixed now.
                 // console.log(`%c ${this.line.points.length}`, 'color: red');
+                let tempEarcutArray = []; // todo Steve: populate this array with all the x, y, z's of this.line.points, but w.r.t matrix coords instead of groundPlaneCoords, for the Earcut algorithm to work... This is a work-around and will need to change in the future
                 for (let i = 0; i < this.line.points.length; i++) {
                     this.vertexPositionArray.push(this.line.points[i].x);
                     this.vertexPositionArray.push(this.line.points[i].y);
                     this.vertexPositionArray.push(this.line.points[i].z);
+                    
+                    let tempLinePoint = this.line.points[i].clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(realMatrixContainerObj.matrixWorld.clone().invert());
+                    tempEarcutArray.push(tempLinePoint.x);
+                    tempEarcutArray.push(tempLinePoint.y);
+                    tempEarcutArray.push(tempLinePoint.z);
                 }
                 let positionAttribute = new THREE.BufferAttribute(new Float32Array(this.vertexPositionArray), 3);
                 geometry.setAttribute('position', positionAttribute);
-                let triangles = Earcut.triangulate(this.vertexPositionArray, [], 3);
+                // let triangles = Earcut.triangulate(this.vertexPositionArray, [], 3);
+                let triangles = Earcut.triangulate(tempEarcutArray, [], 3);
                 let indexAttribute = new THREE.Uint16BufferAttribute(triangles, 1);
                 geometry.setIndex(indexAttribute);
                 
@@ -411,7 +456,7 @@ class AreaMeasurer {
             let v1 = this.vertexArray[0].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
             let v2 = this.vertexArray[1].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
             let v3 = this.vertexArray[2].position.clone().applyMatrix4(this.mainContainerObj.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
-            let plane = new THREE.Plane().setFromCoplanarPoints(v1, v2, v3);
+            let plane = new THREE.Plane().setFromCoplanarPoints(v1, v2, v3); // camera coords plane, used to intersect with camera
             this.plane = plane;
             let intersectedPlanePosition = intersectWithAngledPlane(e, plane);
             if (intersectedPlanePosition !== null) {
@@ -505,12 +550,16 @@ class AreaMeasurer {
             this.mode.volume = true;
         } else {
             this.mode.volume = false;
+            this.plane = null;
         }
     }
     
     onAfterVolume() {
         this.mode.volume = false;
 
+        this.plane = null;
+        
+        this.firstVolumeY = null;
         this.volumeHeight = 0;
         this.volumeMesh = null;
         this.volumeWireframeMesh = null;
@@ -523,6 +572,7 @@ class AreaMeasurer {
         this.uuid = null;
         this.bigParentObj = null;
 
+        this.plane = null;
         this.area = null;
         this.firstVolumeY = null;
         this.volumeHeight = 0;
