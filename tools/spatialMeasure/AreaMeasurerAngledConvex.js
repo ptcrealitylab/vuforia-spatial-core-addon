@@ -90,7 +90,10 @@ class AreaMeasurer {
     setupEventListeners() {
         document.addEventListener('pointerdown', function(e) {
             if (!appActive || !this.isActive) return;
-            if (e.button === 0) {
+            if (!isdesktop) {
+                this.drawPoint(fakeE);
+                this.justClicked = true;
+            } else if (e.button === 0) {
                 this.drawPoint(e);
                 this.justClicked = true;
             }
@@ -98,16 +101,11 @@ class AreaMeasurer {
 
         document.addEventListener('pointermove', function(e) {
             if (!appActive || !this.isActive) return;
+            if (!isdesktop) return;
             if (this.mode.volume) {
                 this.updateVolume(e)
             } else {
                 this.updateArea(e);
-            }
-        }.bind(this));
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Backspace') {
-                console.log('backspace pressed');
             }
         }.bind(this));
         
@@ -118,12 +116,12 @@ class AreaMeasurer {
         }, 10);
     }
     
-    update() {
+    triggerPointerMove(e) {
         if (!appActive || !this.isActive) return;
         if (this.mode.volume) {
-            // this.updateVolume(e)
+            this.updateVolume(e)
         } else {
-            // this.updateArea(e);
+            this.updateArea(e);
         }
     }
 

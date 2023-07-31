@@ -1,5 +1,5 @@
 /* global THREE, SpatialInterface, ThreejsInterface, document, EnvelopeContents */
-
+let isdesktop;
 const MINIMIZED_TOOL_WIDTH = 400;
 const MINIMIZED_TOOL_HEIGHT = 400;
 let appActive = false;
@@ -84,6 +84,7 @@ envelope.onFocus(() => {
 })
 
 function initEverything(firstTimeLoad) {
+    isdesktop = isDesktop();
     if (firstTimeLoad) {
         threejsInterface = new ThreejsInterface(spatialInterface);
 
@@ -179,13 +180,13 @@ function groundPlaneCallback(modelViewMatrix, _projectionMatrix) {
 
 // todo Steve: should set up a similar thing in object.js and userInterface spatial cursor (since they're using the same logic)
 //  and use the acceleration / device pose / model view callback to decide if the phone has changed transformation. If changed, then should format the corresponding data into an event, and feed it into areaMeasurer.update()
-
+let fakeE;
 function accelerationCallback(acceleration) {
-    let isdesktop = isDesktop();
-    console.log(`%c ${isdesktop}`, 'color: red');
-    if (isDesktop) return;
+    if (isdesktop) return;
     spatialInterface.getSpatialCursorEvent().then((result) => {
-        console.log(result);
+        // console.log(result);
+        fakeE = result;
+        areaMeasurer.triggerPointerMove(fakeE);
     })
     // console.log(`%c ${JSON.stringify(acceleration)}`, 'color: red');
 }
