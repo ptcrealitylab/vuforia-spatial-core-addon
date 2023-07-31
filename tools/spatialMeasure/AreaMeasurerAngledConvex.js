@@ -118,6 +118,7 @@ class AreaMeasurer {
     
     triggerPointerMove(e) {
         if (!appActive || !this.isActive) return;
+        if (isdesktop) return;
         if (this.mode.volume) {
             this.updateVolume(e)
         } else {

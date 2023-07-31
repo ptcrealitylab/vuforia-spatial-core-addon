@@ -84,8 +84,9 @@ envelope.onFocus(() => {
 })
 
 function initEverything(firstTimeLoad) {
-    isdesktop = isDesktop();
     if (firstTimeLoad) {
+        isdesktop = isDesktop();
+        
         threejsInterface = new ThreejsInterface(spatialInterface);
 
         threejsInterface.addPendingLoad();
@@ -186,6 +187,7 @@ function accelerationCallback(acceleration) {
     spatialInterface.getSpatialCursorEvent().then((result) => {
         // console.log(result);
         fakeE = result;
+        lineMeasurer.triggerPointerMove(fakeE);
         areaMeasurer.triggerPointerMove(fakeE);
     })
     // console.log(`%c ${JSON.stringify(acceleration)}`, 'color: red');
@@ -652,10 +654,10 @@ function setupEventListeners() {
     )
     
     document.addEventListener('pointerdown', (e) => {
-        if (e.button === 0) {
-            if (translateControls.isActive) return;
-            intersectWithScenePosition(e);
-        }
+        // if (e.button === 0) {
+        //     if (translateControls.isActive) return;
+        //     intersectWithScenePosition(e);
+        // }
     })
 
     let editModeButton = document.getElementById('edit-mode-button');

@@ -24,16 +24,25 @@ class LineMeasurer {
 
     setupEventListeners() {
         document.addEventListener('pointerdown', function(e) {
-            if (!this.isActive) return;
-            if (e.button === 0) {
+            if (!appActive || !this.isActive) return;
+            if (isdesktop) {
+                this.drawPoint(fakeE);
+            } else if (e.button === 0) {
                 this.drawPoint(e);
             }
         }.bind(this));
 
         document.addEventListener('pointermove', function(e) {
-            if (!this.isActive) return;
+            if (!appActive || !this.isActive) return;
+            if (!isdesktop) return;
             this.updateLine(e);
         }.bind(this));
+    }
+    
+    triggerPointerMove(e) {
+        if (!appActive || !this.isActive) return;
+        if (isdesktop) return;
+        this.updateLine(e);
     }
 
     drawPoint(e) {
