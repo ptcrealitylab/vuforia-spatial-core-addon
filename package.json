@@ -19,7 +19,7 @@
   "homepage": "https://github.com/ptcrealitylab/vuforia-spatial-core-addon#readme",
   "dependencies": {
     "node-fetch": "^2.7.0",
-    "node-opcua": "^2.103.0",
+    "node-opcua": "^2.110.0",
     "request": "^2.*"
   },
   "devDependencies": {
