@@ -73,6 +73,7 @@ recordingIcon.addEventListener('pointerup', function() {
         startTime = Date.now();
         regionCardStartTime = startTime;
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
@@ -82,6 +83,7 @@ recordingIcon.addEventListener('pointerup', function() {
         setRecordingState(RecordingState.done);
         endTime = Date.now();
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
@@ -127,6 +129,7 @@ envelope.onOpen(() => {
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
@@ -146,6 +149,7 @@ envelope.onFocus(() => {
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
