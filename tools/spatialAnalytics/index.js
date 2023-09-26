@@ -71,7 +71,6 @@ recordingIcon.addEventListener('pointerup', function() {
     case RecordingState.empty:
         setRecordingState(RecordingState.recording);
         startTime = Date.now();
-        regionCardStartTime = startTime;
         spatialInterface.analyticsSetDisplayRegion({
             recordingState,
             startTime,
@@ -89,7 +88,7 @@ recordingIcon.addEventListener('pointerup', function() {
         });
         writePublicData();
         // user pressed the mark split button during this recording
-        if (regionCardStartTime !== startTime) {
+        if (regionCardStartTime !== startTime && regionCardStartTime > 0) {
             appendRegionCard({
                 startTime: regionCardStartTime,
                 endTime,
@@ -114,12 +113,20 @@ markStepIcon.addEventListener('pointerup', function() {
     if (recordingState !== RecordingState.recording) {
         return;
     }
-    let regionCardEndTime = Date.now();
-    appendRegionCard({
-        startTime: regionCardStartTime,
-        endTime: regionCardEndTime,
-    });
-    regionCardStartTime = regionCardEndTime;
+    if (regionCardStartTime > 0) {
+        let regionCardEndTime = Date.now();
+        appendRegionCard({
+            startTime: regionCardStartTime,
+            endTime: regionCardEndTime,
+        });
+        regionCardStartTime = -1;
+        markStepIcon.parentNode.classList.remove('end');
+        markStepIcon.parentNode.classList.add('start');
+    } else {
+        regionCardStartTime = Date.now();
+        markStepIcon.parentNode.classList.remove('start');
+        markStepIcon.parentNode.classList.add('end');
+    }
 });
 
 let lastSetDisplayRegion = {};
