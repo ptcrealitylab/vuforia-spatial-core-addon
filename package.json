@@ -23,6 +23,10 @@
     "request": "^2.*"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "eslint": "^8.48.0"
+=======
+    "eslint": "^8.49.0"
+>>>>>>> master
   }
 }
