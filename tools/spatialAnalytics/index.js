@@ -4,7 +4,9 @@ let spatialInterface;
 
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
-let knownRegionCards = [];
+let data = {
+    regionCards: [],
+};
 let regionCardStartTime = -1;
 
 if (!spatialInterface) {
@@ -131,8 +133,8 @@ envelope.onOpen(() => {
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (knownRegionCards.length > 0) {
-        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (data.regionCards.length > 0) {
+        spatialInterface.analyticsHydrate(data);
     }
 });
 
@@ -150,8 +152,8 @@ envelope.onFocus(() => {
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (knownRegionCards.length > 0) {
-        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (data.regionCards.length > 0) {
+        spatialInterface.analyticsHydrate(data);
     }
 });
 
@@ -180,9 +182,9 @@ const writePublicData = () => {
 };
 
 function appendRegionCard(regionCard) {
-    knownRegionCards.push(regionCard);
-    spatialInterface.writePublicData('storage', 'cards', knownRegionCards);
-    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    data.regionCards.push(regionCard);
+    spatialInterface.writePublicData('storage', 'analyticsData', data);
+    spatialInterface.analyticsHydrate(data);
 }
 
 spatialInterface.onSpatialInterfaceLoaded(function() {
@@ -233,10 +235,10 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
         }
     });
 
-    spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
-        knownRegionCards = cards;
-        if (knownRegionCards.length > 0) {
-            spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    spatialInterface.addReadPublicDataListener('storage', 'analyticsData', analyticsData => {
+        data = analyticsData;
+        if (data.regionCards.length > 0) {
+            spatialInterface.analyticsHydrate(analyticsData);
         }
     });
 });
