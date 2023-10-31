@@ -241,4 +241,17 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
             spatialInterface.analyticsHydrate(analyticsData);
         }
     });
+    spatialInterface.addReadPublicDataListener('storage', 'cards', migrateCardData);
 });
+
+function migrateCardData(cards) {
+    if (!cards) {
+        return;
+    }
+    const newCards = cards.filter(card => !data.regionCards.some(existingCard => existingCard.label === card.label));
+    newCards.forEach(card => {
+        data.regionCards.push(card);
+    });
+    spatialInterface.writePublicData('storage', 'cards', null);
+    spatialInterface.analyticsHydrate(data);
+}
