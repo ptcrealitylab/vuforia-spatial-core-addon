@@ -80,7 +80,7 @@ img {
 .iconContainer {
     position: fixed;
     transform: translateX(-50%);
-    bottom: 230px;
+    bottom: calc(230px - 66px);
     left: 50%;
     width: max-content;
     height: max-content;
@@ -91,7 +91,7 @@ img {
     width: 64px;
     height: 64px;
     margin: 0 10px;
-    bottom: 230px;
+    bottom: calc(230px - 66px);
     background-color: #00000080;
     border-radius: 50%;
     box-sizing: border-box;
@@ -124,7 +124,7 @@ img {
     position: absolute;
     width: max-content;
     transform: translateX(-50%);
-    bottom: 230px;
+    bottom: calc(230px - 66px);
     left: 50%;
 
     text-align: center;
@@ -138,6 +138,13 @@ img {
     width: 38px;
     height: 38px;
     margin-top: calc(50% - 19px);
+}
+
+.iconBackground.start {
+    border-color: green;
+}
+.iconBackground.end {
+    border-color: red;
 }
 
 .markStepIcon.pressed {

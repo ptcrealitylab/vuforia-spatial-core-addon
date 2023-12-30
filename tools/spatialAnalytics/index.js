@@ -4,7 +4,9 @@ let spatialInterface;
 
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
-let knownRegionCards = [];
+let data = {
+    regionCards: [],
+};
 let regionCardStartTime = -1;
 
 if (!spatialInterface) {
@@ -69,8 +71,8 @@ recordingIcon.addEventListener('pointerup', function() {
     case RecordingState.empty:
         setRecordingState(RecordingState.recording);
         startTime = Date.now();
-        regionCardStartTime = startTime;
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
@@ -80,12 +82,13 @@ recordingIcon.addEventListener('pointerup', function() {
         setRecordingState(RecordingState.done);
         endTime = Date.now();
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
         writePublicData();
         // user pressed the mark split button during this recording
-        if (regionCardStartTime !== startTime) {
+        if (regionCardStartTime !== startTime && regionCardStartTime > 0) {
             appendRegionCard({
                 startTime: regionCardStartTime,
                 endTime,
@@ -110,12 +113,20 @@ markStepIcon.addEventListener('pointerup', function() {
     if (recordingState !== RecordingState.recording) {
         return;
     }
-    let regionCardEndTime = Date.now();
-    appendRegionCard({
-        startTime: regionCardStartTime,
-        endTime: regionCardEndTime,
-    });
-    regionCardStartTime = regionCardEndTime;
+    if (regionCardStartTime > 0) {
+        let regionCardEndTime = Date.now();
+        appendRegionCard({
+            startTime: regionCardStartTime,
+            endTime: regionCardEndTime,
+        });
+        regionCardStartTime = -1;
+        markStepIcon.parentNode.classList.remove('end');
+        markStepIcon.parentNode.classList.add('start');
+    } else {
+        regionCardStartTime = Date.now();
+        markStepIcon.parentNode.classList.remove('start');
+        markStepIcon.parentNode.classList.add('end');
+    }
 });
 
 let lastSetDisplayRegion = {};
@@ -125,14 +136,15 @@ envelope.onOpen(() => {
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (knownRegionCards.length > 0) {
-        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (data.regionCards.length > 0) {
+        spatialInterface.analyticsHydrate(data);
     }
 });
 
@@ -144,14 +156,15 @@ envelope.onFocus(() => {
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
         spatialInterface.analyticsSetDisplayRegion({
+            recordingState,
             startTime,
             endTime,
         });
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (knownRegionCards.length > 0) {
-        spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    if (data.regionCards.length > 0) {
+        spatialInterface.analyticsHydrate(data);
     }
 });
 
@@ -180,9 +193,9 @@ const writePublicData = () => {
 };
 
 function appendRegionCard(regionCard) {
-    knownRegionCards.push(regionCard);
-    spatialInterface.writePublicData('storage', 'cards', knownRegionCards);
-    spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    data.regionCards.push(regionCard);
+    spatialInterface.writePublicData('storage', 'analyticsData', data);
+    spatialInterface.analyticsHydrate(data);
 }
 
 spatialInterface.onSpatialInterfaceLoaded(function() {
@@ -233,10 +246,23 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
         }
     });
 
-    spatialInterface.addReadPublicDataListener('storage', 'cards', cards => {
-        knownRegionCards = cards;
-        if (knownRegionCards.length > 0) {
-            spatialInterface.analyticsHydrateRegionCards(knownRegionCards);
+    spatialInterface.addReadPublicDataListener('storage', 'analyticsData', analyticsData => {
+        data = analyticsData;
+        if (data.regionCards.length > 0) {
+            spatialInterface.analyticsHydrate(analyticsData);
         }
     });
+    spatialInterface.addReadPublicDataListener('storage', 'cards', migrateCardData);
 });
+
+function migrateCardData(cards) {
+    if (!cards) {
+        return;
+    }
+    const newCards = cards.filter(card => !data.regionCards.some(existingCard => existingCard.label === card.label));
+    newCards.forEach(card => {
+        data.regionCards.push(card);
+    });
+    spatialInterface.writePublicData('storage', 'cards', null);
+    spatialInterface.analyticsHydrate(data);
+}
