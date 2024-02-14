@@ -77,6 +77,8 @@ recordingIcon.addEventListener('pointerup', function() {
             endTime,
         });
         writePublicData();
+
+        spatialInterface.startVirtualizerRecording();
         break;
     case RecordingState.recording:
         setRecordingState(RecordingState.done);
@@ -94,6 +96,14 @@ recordingIcon.addEventListener('pointerup', function() {
                 endTime,
             });
         }
+
+        spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+            const urls = {
+                color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+                rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+            };
+            loadFromURLs(urls);
+        });
         break;
     case RecordingState.done:
         break;
@@ -266,3 +276,11 @@ function migrateCardData(cards) {
     spatialInterface.writePublicData('storage', 'cards', null);
     spatialInterface.analyticsHydrate(data);
 }
+
+const loadFromURLs = (urls) => {
+    console.log('loadFromURLs', urls);
+    let videoPlayback = spatialInterface.createVideoPlayback(urls);
+    videoPlayback.onStateChange(state => {
+        console.log('new vp state', state);
+    });
+};
