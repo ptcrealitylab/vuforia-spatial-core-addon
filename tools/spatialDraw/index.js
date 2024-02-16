@@ -162,14 +162,10 @@ envelope.onClose(() => {
     scene.visible = false;
 });
 envelope.onBlur(() => {
-    console.log('spatialDraw envelope.onBlur');
-
     // hide the 2D UI
     ui.style.display = 'none';
 });
 envelope.onFocus(() => {
-    console.log('spatialDraw envelope.onFocus');
-    
     // show the UI
     ui.style.display = '';
 });
