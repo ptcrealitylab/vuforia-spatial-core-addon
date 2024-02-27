@@ -246,6 +246,23 @@ function glIsReady() {
     return (gl instanceof WebGLRenderingContext);
 }
 
+function adjustSidebarForWindowSize(viewportHeight) {
+    const envelopeButtonsHeight = 148;
+    const padding = 20;
+    const usableHeight = viewportHeight - envelopeButtonsHeight;
+    const scale = (usableHeight - padding) / 556; // Calculate the scale factor
+
+    // on desktop, move toolbar down below envelope close button, and scale it down, so it doesn't overlap
+    if (window.isDesktop()) {
+        uiParent.style.position = 'absolute';
+        uiParent.style.top = `${envelopeButtonsHeight - padding}px`;
+        uiParent.style.height = `${usableHeight - padding}px`;
+        ui.style.transform = `scale(${Math.max(0.6, Math.min(1.0, scale))})`;
+    } else {
+        ui.style.transform = '';
+    }
+}
+
 function initRenderer() {
     if (rendererStarted) {
         return;
@@ -271,6 +288,7 @@ function initRenderer() {
                 realRenderer.setSize(rendererWidth, rendererHeight);
                 isProjectionMatrixSet = false;
                 spatialInterface.subscribeToMatrix(); // this should trigger a new retrieval of the projectionMatrix
+                adjustSidebarForWindowSize(height);
             });
 
             realRenderer = new THREE.WebGLRenderer( { alpha: true } );
@@ -320,6 +338,9 @@ function initRenderer() {
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
                 spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
                 spatialInterface.registerTouchDecider(touchDecider);
+                spatialInterface.getScreenDimensions((width, height) => {
+                    adjustSidebarForWindowSize(height);
+                });
                 resolve();
             });
         } else {
