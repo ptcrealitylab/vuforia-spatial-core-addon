@@ -95,7 +95,7 @@ class DrawingManager {
         const newDrawings = obj.drawings.filter(newDrawing => !this.drawingGroup.children.some(drawing => newDrawing.drawingId === drawing.drawingId));
 
         // Remove drawings which are not present in the JSON
-        this.drawingGroup.children.forEach(drawing => {
+        [...this.drawingGroup.children].forEach(drawing => {
             if (drawing.serialized && !obj.drawings.some(newDrawing => newDrawing.drawingId === drawing.drawingId)) {
                 this.drawingGroup.remove(drawing);
             }
