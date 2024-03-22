@@ -6,6 +6,7 @@ let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
 let data = {
     regionCards: [],
+    videoUrls: null,
 };
 let regionCardStartTime = -1;
 
@@ -33,6 +34,7 @@ const msIconBackground = document.querySelector('#analyticsMarkStepIcon');
 const RecordingState = {
     empty: 'empty',
     recording: 'recording',
+    saving: 'saving',
     done: 'done',
 };
 let recordingState = RecordingState.empty;
@@ -49,6 +51,12 @@ function setRecordingState(newState) {
         markStepIcon.style.display = 'inline';
         recIconBackground.classList.add('recording');
         break;
+    case RecordingState.saving:
+        recordingIcon.src = 'sprites/saving.svg';
+        markStepIcon.style.display = 'none';
+        recIconBackground.classList.add('recording');
+        break;
+
     case RecordingState.done:
         recordingIcon.style.display = 'none';
         markStepIcon.style.display = 'none';
@@ -81,7 +89,7 @@ recordingIcon.addEventListener('pointerup', function() {
         spatialInterface.startVirtualizerRecording();
         break;
     case RecordingState.recording:
-        setRecordingState(RecordingState.done);
+        setRecordingState(RecordingState.saving);
         endTime = Date.now();
         spatialInterface.analyticsSetDisplayRegion({
             recordingState,
@@ -98,11 +106,14 @@ recordingIcon.addEventListener('pointerup', function() {
         }
 
         spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+            setRecordingState(RecordingState.done);
             const urls = {
                 color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
                 rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
             };
-            loadFromURLs(urls);
+            data.videoUrls = urls;
+            spatialInterface.writePublicData('storage', 'analyticsData', data);
+            spatialInterface.analyticsHydrate(data);
         });
         break;
     case RecordingState.done:
@@ -153,7 +164,7 @@ envelope.onOpen(() => {
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (data.regionCards.length > 0) {
+    if (data.regionCards.length > 0 || data.videoUrls) {
         spatialInterface.analyticsHydrate(data);
     }
 });
@@ -173,7 +184,7 @@ envelope.onFocus(() => {
         lastSetDisplayRegion.startTime = startTime;
         lastSetDisplayRegion.endTime = endTime;
     }
-    if (data.regionCards.length > 0) {
+    if (data.regionCards.length > 0 || data.videoUrls) {
         spatialInterface.analyticsHydrate(data);
     }
 });
@@ -276,11 +287,3 @@ function migrateCardData(cards) {
     spatialInterface.writePublicData('storage', 'cards', null);
     spatialInterface.analyticsHydrate(data);
 }
-
-const loadFromURLs = (urls) => {
-    console.log('loadFromURLs', urls);
-    let videoPlayback = spatialInterface.createVideoPlayback(urls);
-    videoPlayback.onStateChange(state => {
-        console.log('new vp state', state);
-    });
-};
