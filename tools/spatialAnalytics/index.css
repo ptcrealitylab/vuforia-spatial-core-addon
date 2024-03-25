@@ -76,8 +76,8 @@ img {
     font-family: "Open Sans", sans-serif;
 }
 
-/** vaguely ipad-ish sizes */
-@media (min-width: 800px) and (max-width: 1600px) {
+/** device is wide and touch-based */
+@media (min-width: 800px) and (hover: none) {
     .iconContainer {
         position: fixed;
         left: auto;
