@@ -76,6 +76,16 @@ img {
     font-family: "Open Sans", sans-serif;
 }
 
+/** vaguely ipad-ish sizes */
+@media (min-width: 800px) and (max-width: 1600px) {
+    .iconContainer {
+        position: fixed;
+        left: auto;
+        right: 66px;
+        transform: none;
+    }
+}
+
 .markStepIcon {
     width: 38px;
     height: 38px;
