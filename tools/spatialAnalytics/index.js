@@ -2,6 +2,8 @@
 const MINIMIZED_TOOL_WIDTH = 1200;
 const MINIMIZED_TOOL_HEIGHT = 600;
 
+const RECORD_VIDEO = false;
+
 let spatialInterface;
 
 let startTime = Date.now(); // 1675809876408 - 20
@@ -101,7 +103,9 @@ recordingIcon.addEventListener('pointerup', function() {
             spatialInterface.analyticsHydrate(data);
         }
 
-        spatialInterface.startVirtualizerRecording();
+        if (RECORD_VIDEO) {
+            spatialInterface.startVirtualizerRecording();
+        }
         break;
     case RecordingState.recording:
         setRecordingState(RecordingState.saving);
@@ -120,16 +124,22 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+        if (RECORD_VIDEO) {
+            spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
+                setRecordingState(RecordingState.done);
+                const urls = {
+                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+                };
+                data.videoUrls = urls;
+                spatialInterface.writePublicData('storage', 'analyticsData', data);
+                spatialInterface.analyticsHydrate(data);
+            });
+        } else {
             setRecordingState(RecordingState.done);
-            const urls = {
-                color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-            };
-            data.videoUrls = urls;
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
-        });
+        }
         break;
     case RecordingState.done:
         break;
