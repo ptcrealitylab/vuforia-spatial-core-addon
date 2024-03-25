@@ -1,10 +1,13 @@
 /* global Envelope, SpatialInterface, isDesktop */
+const MINIMIZED_TOOL_WIDTH = 1200;
+const MINIMIZED_TOOL_HEIGHT = 600;
 
 let spatialInterface;
 
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
 let data = {
+    title: '',
     regionCards: [],
     videoUrls: null,
 };
@@ -14,7 +17,7 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
 
-const launchButton = document.getElementById('launchButton');
+const launchButton = document.getElementById('layout');
 launchButton.addEventListener('pointerup', function () {
     envelope.open();
 }, false);
@@ -85,6 +88,18 @@ recordingIcon.addEventListener('pointerup', function() {
             endTime,
         });
         writePublicData();
+
+        if (!data.title) {
+            const dateTimeFormat = new Intl.DateTimeFormat('default', {
+                timeStyle: 'short',
+                hour12: false,
+            });
+            data.title = 'Study ' + dateTimeFormat.format(new Date());
+            setLabelTitle(data.title);
+
+            spatialInterface.writePublicData('storage', 'analyticsData', data);
+            spatialInterface.analyticsHydrate(data);
+        }
 
         spatialInterface.startVirtualizerRecording();
         break;
@@ -237,33 +252,6 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
             } else {
                 setRecordingState(RecordingState.done);
             }
-            if (status.summary) {
-                const container = document.createElement('div');
-                container.id = 'summaryContainer';
-                // TODO if the socket io connection is compromised then this is
-                // compromised too
-                container.innerHTML = status.summary;
-                launchButton.appendChild(container);
-                launchButton.style.width = '2400px';
-                launchButton.style.height = '1600px';
-                spatialInterface.changeFrameSize(2400, 1600);
-                const card = container.querySelector('.analytics-region-card');
-                card.setAttribute('style', '');
-                // card.classList.add('minimized');
-                // card.addEventListener('pointermove', () => { // should be `over`
-                //     card.classList.remove('minimized');
-                // });
-                // card.addEventListener('pointerout', () => {
-                //     card.classList.add('minimized');
-                // });
-                let pin = container.querySelector('.analytics-region-card-pin');
-                pin.parentNode.removeChild(pin);
-                let enter = container.querySelector('.analytics-region-card-enter');
-                enter.parentNode.removeChild(enter);
-
-                const launchIcon = document.getElementById('launchIcon');
-                launchIcon.parentNode.removeChild(launchIcon);
-            }
         }
     });
 
@@ -271,6 +259,9 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
         data = analyticsData;
         if (data.regionCards.length > 0) {
             spatialInterface.analyticsHydrate(analyticsData);
+        }
+        if (data.title) {
+            setLabelTitle(data.title);
         }
     });
     spatialInterface.addReadPublicDataListener('storage', 'cards', migrateCardData);
@@ -287,3 +278,33 @@ function migrateCardData(cards) {
     spatialInterface.writePublicData('storage', 'cards', null);
     spatialInterface.analyticsHydrate(data);
 }
+
+function calculateFontSize(stringLength, pixelWidth) {
+    return (pixelWidth / stringLength * 2);
+}
+
+function setLabelTitle(titleText) {
+    let labelTitle = document.getElementById('labelTitle');
+    let label = document.getElementById('label');
+    label.style.display = '';
+
+    labelTitle.innerText = titleText;
+    if (titleText && titleText.length > 0) {
+        label.classList.remove('noTitle');
+    }
+
+    let labelFontSize = 100;
+    if (titleText.length > 6) {
+        let labelWidth = label.getBoundingClientRect().width || MINIMIZED_TOOL_WIDTH;
+        labelFontSize = calculateFontSize(titleText.length,  labelWidth - 180);
+        labelFontSize = Math.max(40, Math.min(100, labelFontSize));
+    }
+    if (titleText.length > 20) {
+        labelTitle.classList.add('longTitle');
+    } else {
+        labelTitle.classList.remove('longTitle');
+    }
+    labelTitle.style.fontSize = `${labelFontSize}px`;
+}
+
+spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
