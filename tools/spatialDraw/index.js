@@ -151,6 +151,7 @@ envelope.onOpen(() => {
         appActive = true;
         scene.visible = true;
     }
+    spatialInterface.changeFrameSize(mainData.width, mainData.height);
 });
 envelope.onClose(() => {
     // we don't need to location.reload() here if we properly reset the state
