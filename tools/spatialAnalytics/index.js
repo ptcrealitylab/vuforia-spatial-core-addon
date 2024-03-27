@@ -1,10 +1,12 @@
-/* global Envelope, SpatialInterface, isDesktop */
+/* global Envelope, SpatialInterface */
 const MINIMIZED_TOOL_WIDTH = 1200;
 const MINIMIZED_TOOL_HEIGHT = 600;
 
 const RECORD_VIDEO = false;
 
 let spatialInterface;
+
+let screenDimensions = null;
 
 let startTime = Date.now(); // 1675809876408 - 20
 let endTime = -1; // 1675809963335 + 3 * 60 * 60 * 1000;
@@ -35,6 +37,9 @@ const recordingIcon = document.querySelector('.recordingIcon');
 const markStepIcon = document.querySelector('.markStepIcon');
 const recIconBackground = document.querySelector('#analyticsRecordingIcon');
 const msIconBackground = document.querySelector('#analyticsMarkStepIcon');
+
+const labelTitle = document.getElementById('labelTitle');
+const label = document.getElementById('label');
 
 const RecordingState = {
     empty: 'empty',
@@ -69,13 +74,6 @@ function setRecordingState(newState) {
         recIconBackground.style.display = 'none';
         iconContainer.style.display = 'none';
         break;
-    }
-
-    if (recordingState === RecordingState.done && !isDesktop()) {
-        const message = document.createElement('p');
-        message.textContent = 'Recording Done';
-        message.classList.add('recordingDone');
-        envelopeContainer.appendChild(message);
     }
 }
 
@@ -178,6 +176,12 @@ markStepIcon.addEventListener('pointerup', function() {
 let lastSetDisplayRegion = {};
 
 envelope.onOpen(() => {
+    if (screenDimensions) {
+        const {width, height} = screenDimensions;
+        spatialInterface.changeFrameSize(width, height);
+        updateDocumentStyles(width, height);
+    }
+
     spatialInterface.analyticsOpen();
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
@@ -229,6 +233,9 @@ envelope.onClose(() => {
         endTime = Date.now();
         writePublicData();
     }
+    spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+    updateDocumentStyles(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+    setLabelTitle(labelTitle.textContent);
 });
 
 const writePublicData = () => {
@@ -294,11 +301,9 @@ function calculateFontSize(stringLength, pixelWidth) {
 }
 
 function setLabelTitle(titleText) {
-    let labelTitle = document.getElementById('labelTitle');
-    let label = document.getElementById('label');
     label.style.display = '';
 
-    labelTitle.innerText = titleText;
+    labelTitle.textContent = titleText;
     if (titleText && titleText.length > 0) {
         label.classList.remove('noTitle');
     }
@@ -317,4 +322,20 @@ function setLabelTitle(titleText) {
     labelTitle.style.fontSize = `${labelFontSize}px`;
 }
 
-spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+spatialInterface.wasToolJustCreated((_isFirstCreated) => {
+    spatialInterface.getScreenDimensions((width, height) => {
+        screenDimensions = {width, height};
+    });
+    spatialInterface.changeFrameSize(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+    updateDocumentStyles(MINIMIZED_TOOL_WIDTH, MINIMIZED_TOOL_HEIGHT);
+    setLabelTitle(labelTitle.textContent);
+});
+
+// function for changing the tool window size for open and closed states to accommodate title label UI
+// (smaller screenizes crop the title)
+function updateDocumentStyles(width, height) {
+    document.body.width = width + 'px';
+    document.body.height = height + 'px';
+    document.body.style.width = width + 'px';
+    document.body.style.height = height + 'px';
+}
