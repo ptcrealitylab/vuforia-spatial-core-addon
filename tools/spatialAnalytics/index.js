@@ -82,6 +82,7 @@ recordingIcon.addEventListener('pointerup', function() {
     case RecordingState.empty:
         setRecordingState(RecordingState.recording);
         startTime = Date.now();
+        regionCardStartTime = startTime;
         spatialInterface.analyticsSetDisplayRegion({
             recordingState,
             startTime,
@@ -157,20 +158,13 @@ markStepIcon.addEventListener('pointerup', function() {
     if (recordingState !== RecordingState.recording) {
         return;
     }
-    if (regionCardStartTime > 0) {
-        let regionCardEndTime = Date.now();
-        appendRegionCard({
-            startTime: regionCardStartTime,
-            endTime: regionCardEndTime,
-        });
-        regionCardStartTime = -1;
-        markStepIcon.parentNode.classList.remove('end');
-        markStepIcon.parentNode.classList.add('start');
-    } else {
-        regionCardStartTime = Date.now();
-        markStepIcon.parentNode.classList.remove('start');
-        markStepIcon.parentNode.classList.add('end');
-    }
+    let regionCardEndTime = Date.now();
+    appendRegionCard({
+        startTime: regionCardStartTime,
+        endTime: regionCardEndTime,
+    });
+    // Immediately start next regionCard
+    regionCardStartTime = regionCardEndTime;
 });
 
 let lastSetDisplayRegion = {};
