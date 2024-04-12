@@ -334,6 +334,26 @@ class DrawingManager {
             this.setCursor(this.cursorMap['PROJECTION']);
         }
     }
+    
+    apiDrawLine(startPoint, endPoint, color) {
+        // this.setColor(color);
+        // this.setTool(drawingManager.toolMap['LINE']);
+        console.log('TODO: support programmatically drawn lines')
+    }
+    
+    apiCountLines() {
+        return this.eventStack.length; // todo; this only counts lines from active session
+    }
+    
+    apiClearCanvas() {
+        // let numUndoEvents = this.eventStack.filter(item => item.type === 'erase').length;
+        // for (let i = 0; i < numUndoEvents; i++) {
+        //    
+        // }
+        while (this.eventStack.length > 0) {
+            drawingManager.popUndoEvent(); // todo; this only clears lines from active session
+        }
+    }
 }
 
 /* ========== Classes ========== */

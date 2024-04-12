@@ -41,6 +41,47 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
 }
 
+function setupAPI() {
+    const api = new SpatialApplicationAPI('spatialDraw', spatialObject.object, spatialObject.frame);
+
+    api.defineAPI('addLine', [
+        {name: 'startPoint', type: 'Point', description: 'Start point of the line'},
+        {name: 'endPoint', type: 'Point', description: 'End point of the line'},
+        {name: 'color', type: 'String', description: 'Color of the line'}
+    ], {
+        type: 'boolean',
+        description: 'Draws a line on the canvas; returns success or error'
+    }, (startPoint, endPoint, color) => {
+        console.log('>> spatialDraw addLine', startPoint, endPoint, color);
+        drawingManager.apiDrawLine(startPoint, endPoint, color);
+        return true;
+    });
+
+    api.defineAPI('clearCanvas', [
+        // no parameters
+    ], {
+        type: 'boolean',
+        description: 'Erases all drawings, resetting the canvas to an empty state; returns success or error'
+    }, () => {
+        console.log('>> spatialDraw clearCanvas');
+        drawingManager.apiClearCanvas();
+        return true;
+    });
+    
+    api.defineAPI('countLines', [
+        // no parameters
+    ], {
+        type: 'number',
+        description: 'Returns the number of visible strokes that users have drawn onto the canvas'
+    }, () => {
+        console.log('>> spatialDraw countLines');
+        return drawingManager.apiCountLines();
+    });
+
+    api.sendAPIDefinitionsToParent();
+    api.listenForCalls();
+}
+
 spatialInterface.setMoveDelay(500);
 spatialInterface.useWebGlWorker();
 spatialInterface.setAlwaysFaceCamera(true);
@@ -335,6 +376,7 @@ function initRenderer() {
             groundPlaneContainerObj.add(directionalLight2);
 
             spatialInterface.onSpatialInterfaceLoaded(function() {
+                setupAPI();
                 spatialInterface.subscribeToMatrix();
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
                 spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
