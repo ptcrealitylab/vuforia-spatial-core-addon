@@ -20,7 +20,7 @@ img {
 }
 
 .iconContainer {
-    position: fixed;
+    position: absolute;
     transform: translateX(-50%);
     bottom: calc(230px - 66px);
     left: 50%;
@@ -79,7 +79,7 @@ img {
 /** device is wide and touch-based */
 @media (min-width: 800px) and (hover: none) {
     .iconContainer {
-        position: fixed;
+        position: absolute;
         left: auto;
         right: 66px;
         transform: none;
@@ -140,4 +140,65 @@ img {
 
 .longTitle {
     text-overflow: ellipsis;
+}
+
+#toggleModeDivContainer {
+    position: absolute;
+    right: calc(50% + 108px);
+    bottom: calc(230px - 66px + 32px - 24px);
+}
+
+.toggleModeDiv {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 80px;
+    height: 40px;
+    background-color: #00000080;
+    padding: 3px;
+    border-radius: 40px;
+}
+.toggleModeDiv.disabled {
+    pointer-events: none;
+}
+.toggleModeDiv.disabled p {
+    color:  #4B4B4B;
+}
+.toggleModeDiv p {
+    font-family: OpenSans, sans-serif;
+    margin: auto;
+}
+.toggleModeSlider {
+    border-radius: 50%;
+    border: solid #ffffff 3px;
+    background-color: #FFFFFF50;
+    width: 40px;
+    height: 40px;
+    position: absolute;
+}
+.toggleIcon {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+}
+.toggleIcon > img {
+    width: 32px;
+    height: 32px;
+}
+.activeToggle {
+    opacity: 1;
+    transition: .4s;
+}
+.inactiveToggle {
+    opacity: .6;
+    transition: .4s;
+}
+.mode_left {
+    left: 0;
+    transition: .4s;
+}
+.mode_right {
+    left: 50%;
+    transition: .4s;
 }
