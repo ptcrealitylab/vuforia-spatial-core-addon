@@ -1,8 +1,8 @@
 /* global Envelope, SpatialInterface */
+import {VideoToggle} from './VideoToggle.js';
+
 const MINIMIZED_TOOL_WIDTH = 1200;
 const MINIMIZED_TOOL_HEIGHT = 600;
-
-const RECORD_VIDEO = false;
 
 let spatialInterface;
 
@@ -41,6 +41,12 @@ const msIconBackground = document.querySelector('#analyticsMarkStepIcon');
 const labelTitle = document.getElementById('labelTitle');
 const label = document.getElementById('label');
 
+let videoEnabled = true;
+const videoToggle = new VideoToggle();
+videoToggle.onToggle = (newVideoEnabled) => {
+    videoEnabled = newVideoEnabled;
+};
+
 const RecordingState = {
     empty: 'empty',
     recording: 'recording',
@@ -54,25 +60,27 @@ function setRecordingState(newState) {
     switch (recordingState) {
     case RecordingState.empty:
         recordingIcon.src = 'sprites/empty.png';
-        markStepIcon.style.display = 'none';
+        msIconBackground.style.display = 'none';
         break;
     case RecordingState.recording:
         recordingIcon.src = 'sprites/recording.png';
-        markStepIcon.style.display = 'inline';
+        msIconBackground.style.display = '';
         recIconBackground.classList.add('recording');
+        videoToggle.remove();
         break;
     case RecordingState.saving:
         recordingIcon.src = 'sprites/saving.svg';
-        markStepIcon.style.display = 'none';
+        msIconBackground.style.visibility = 'hidden';
         recIconBackground.classList.add('recording');
+        videoToggle.remove();
         break;
 
     case RecordingState.done:
         recordingIcon.style.display = 'none';
-        markStepIcon.style.display = 'none';
         msIconBackground.style.display = 'none';
         recIconBackground.style.display = 'none';
         iconContainer.style.display = 'none';
+        videoToggle.remove();
         break;
     }
 }
@@ -102,7 +110,7 @@ recordingIcon.addEventListener('pointerup', function() {
             spatialInterface.analyticsHydrate(data);
         }
 
-        if (RECORD_VIDEO) {
+        if (videoEnabled) {
             spatialInterface.startVirtualizerRecording();
         }
         break;
@@ -123,7 +131,7 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        if (RECORD_VIDEO) {
+        if (videoEnabled) {
             spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
                 setRecordingState(RecordingState.done);
                 const urls = {
@@ -195,7 +203,7 @@ envelope.onOpen(() => {
 let focused = false;
 envelope.onFocus(() => {
     focused = true;
-    iconContainer.style.display = 'block';
+    envelopeContainer.style.display = 'block';
     spatialInterface.analyticsFocus();
     if (lastSetDisplayRegion.startTime !== startTime ||
         lastSetDisplayRegion.endTime !== endTime) {
@@ -214,7 +222,7 @@ envelope.onFocus(() => {
 
 envelope.onBlur(() => {
     focused = false;
-    iconContainer.style.display = 'none';
+    envelopeContainer.style.display = 'none';
     spatialInterface.analyticsBlur();
 });
 
