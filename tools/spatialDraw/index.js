@@ -252,9 +252,13 @@ function initDrawingApp() {
         nextCircle.classList.add('active'); // Activates
     });
     drawingManager.addCallback('color', (color) => {
-        sizeCircles.forEach(sizeCircle => sizeCircle.setColor(color));
-        colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
-        colorCircles.find(circle => circle.dataset.color === color).classList.add('active');
+        try {
+            sizeCircles.forEach(sizeCircle => sizeCircle.setColor(color));
+            colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
+            colorCircles.find(circle => circle.dataset.color === color).classList.add('active');
+        } catch (e) {
+            console.warn('cant update 2D UI to match the colors value');
+        }
     });
     drawingManager.addCallback('eraseMode', (eraseMode) => {
         if (eraseMode) {

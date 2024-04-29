@@ -336,11 +336,49 @@ class DrawingManager {
     }
     
     apiDrawLine(startPoint, endPoint, color) {
-        // this.setColor(color);
-        // this.setTool(drawingManager.toolMap['LINE']);
-        console.log('TODO: support programmatically drawn lines')
+        try {
+            this.setColor(color);
+            this.setTool(drawingManager.toolMap['LINE']);
+            console.log('TODO: support programmatically drawn lines')
+
+            this.tool.startDraw(this.drawingGroup, this.convertToVec3(startPoint), this.cursor.getNormal());
+            this.tool.moveDraw(this.drawingGroup, this.convertToVec3(endPoint), this.cursor.getNormal());
+            this.tool.endDraw();
+        } catch (e) {
+            console.warn(e);
+        }
     }
-    
+
+    convertToVec3(input) {
+        let x, y, z;
+
+        if (Array.isArray(input)) {
+            // Input format is an array [x, y, z]
+            [x, y, z] = input;
+        } else if (typeof input === 'string') {
+            // Input format is a string "(x, y, z)"
+            const match = input.match(/\(([^)]+)\)/);
+            if (match) {
+                [x, y, z] = match[1].split(',').map(Number);
+            } else {
+                throw new Error('Invalid string format');
+            }
+        } else if (typeof input === 'object' && input !== null) {
+            // Input format is an object {x, y, z}
+            if ('x' in input && 'y' in input && 'z' in input) {
+                x = input.x;
+                y = input.y;
+                z = input.z;
+            } else {
+                throw new Error('Object does not have x, y, and z properties');
+            }
+        } else {
+            throw new Error('Unsupported input type');
+        }
+
+        return new THREE.Vector3(x, y, z);
+    }
+
     apiCountLines() {
         return this.eventStack.length; // todo; this only counts lines from active session
     }
