@@ -55,6 +55,7 @@ const RecordingState = {
     done: 'done',
 };
 let recordingState = RecordingState.empty;
+let recordingStarted = false;
 
 function setRecordingState(newState) {
     recordingState = newState;
@@ -70,6 +71,7 @@ function setRecordingState(newState) {
         videoToggle.remove();
 
         if (videoEnabled) {
+            recordingStarted = true;
             spatialInterface.startVirtualizerRecording(error => {
                 if (!error) {
                     return;
@@ -85,7 +87,8 @@ function setRecordingState(newState) {
         recIconBackground.classList.add('recording');
         videoToggle.remove();
 
-        if (videoEnabled) {
+        if (recordingStarted) {
+            recordingStarted = false;
             spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
         }
         break;
@@ -96,6 +99,10 @@ function setRecordingState(newState) {
         recIconBackground.style.display = 'none';
         iconContainer.style.display = 'none';
         videoToggle.remove();
+        if (recordingStarted) {
+            recordingStarted = false;
+            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
+        }
         break;
     }
 }
@@ -158,7 +165,7 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        if (!videoEnabled) {
+        if (!recordingStarted) {
             setRecordingState(RecordingState.done);
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
