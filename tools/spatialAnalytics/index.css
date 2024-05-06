@@ -202,3 +202,14 @@ img {
     left: 50%;
     transition: .4s;
 }
+
+.error-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid black;
+    color: #300;
+}
