@@ -86,21 +86,7 @@ function setRecordingState(newState) {
         videoToggle.remove();
 
         if (videoEnabled) {
-            spatialInterface.stopVirtualizerRecording((error, baseUrl, recordingId, deviceId, orientation) => {
-                if (error) {
-                    createErrorPopup(envelopeContainer, error);
-                }
-                const urls = {
-                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-                };
-                data.videoUrls = urls;
-                data.orientation = orientation;
-                spatialInterface.writePublicData('storage', 'analyticsData', data);
-                spatialInterface.analyticsHydrate(data);
-
-                setRecordingState(RecordingState.done);
-            });
+            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
         }
         break;
 
@@ -112,6 +98,22 @@ function setRecordingState(newState) {
         videoToggle.remove();
         break;
     }
+}
+
+function onStopVirtualizerRecording(error, baseUrl, recordingId, deviceId, orientation) {
+    if (error) {
+        createErrorPopup(envelopeContainer, error);
+    }
+    const urls = {
+        color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+        rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+    };
+    data.videoUrls = urls;
+    data.orientation = orientation;
+    spatialInterface.writePublicData('storage', 'analyticsData', data);
+    spatialInterface.analyticsHydrate(data);
+
+    setRecordingState(RecordingState.done);
 }
 
 recordingIcon.addEventListener('pointerup', function() {
@@ -156,18 +158,7 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        if (videoEnabled) {
-            spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
-                setRecordingState(RecordingState.done);
-                const urls = {
-                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-                };
-                data.videoUrls = urls;
-                spatialInterface.writePublicData('storage', 'analyticsData', data);
-                spatialInterface.analyticsHydrate(data);
-            });
-        } else {
+        if (!videoEnabled) {
             setRecordingState(RecordingState.done);
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
