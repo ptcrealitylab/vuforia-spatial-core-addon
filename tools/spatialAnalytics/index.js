@@ -165,7 +165,7 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        if (!recordingStarted) {
+        if (!videoEnabled) {
             setRecordingState(RecordingState.done);
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
