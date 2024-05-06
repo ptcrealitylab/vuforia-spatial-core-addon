@@ -94,15 +94,17 @@ function setRecordingState(newState) {
         break;
 
     case RecordingState.done:
+        if (recordingStarted) {
+            recordingStarted = false;
+            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
+            setRecordingState(RecordingState.saving);
+            return;
+        }
         recordingIcon.style.display = 'none';
         msIconBackground.style.display = 'none';
         recIconBackground.style.display = 'none';
         iconContainer.style.display = 'none';
         videoToggle.remove();
-        if (recordingStarted) {
-            recordingStarted = false;
-            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
-        }
         break;
     }
 }
