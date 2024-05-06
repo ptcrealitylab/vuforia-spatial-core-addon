@@ -304,6 +304,9 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
         if (data.title) {
             setLabelTitle(data.title);
         }
+        if (data.videoUrls && recordingState !== RecordingState.done) {
+            setRecordingState(recordingState.done);
+        }
     });
     spatialInterface.addReadPublicDataListener('storage', 'cards', migrateCardData);
 });
