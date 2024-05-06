@@ -291,7 +291,8 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
     });
 
     spatialInterface.addReadPublicDataListener('storage', 'analyticsData', analyticsData => {
-        data = analyticsData;
+        // Keep any keys in `data` that aren't in `analyticsData`
+        Object.assign(data, analyticsData);
         if (data.regionCards.length > 0) {
             spatialInterface.analyticsHydrate(analyticsData);
         }
