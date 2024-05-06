@@ -1,5 +1,6 @@
 /* global Envelope, SpatialInterface */
 import {VideoToggle} from './VideoToggle.js';
+import {createErrorPopup} from './createErrorPopup.js';
 
 const MINIMIZED_TOOL_WIDTH = 1200;
 const MINIMIZED_TOOL_HEIGHT = 600;
@@ -67,12 +68,40 @@ function setRecordingState(newState) {
         msIconBackground.style.display = '';
         recIconBackground.classList.add('recording');
         videoToggle.remove();
+
+        if (videoEnabled) {
+            spatialInterface.startVirtualizerRecording(error => {
+                if (!error) {
+                    return;
+                }
+                createErrorPopup(envelopeContainer, error);
+                setRecordingState(RecordingState.empty);
+            });
+        }
         break;
     case RecordingState.saving:
         recordingIcon.src = 'sprites/saving.svg';
         msIconBackground.style.visibility = 'hidden';
         recIconBackground.classList.add('recording');
         videoToggle.remove();
+
+        if (videoEnabled) {
+            spatialInterface.stopVirtualizerRecording((error, baseUrl, recordingId, deviceId, orientation) => {
+                if (error) {
+                    createErrorPopup(envelopeContainer, error);
+                }
+                const urls = {
+                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+                };
+                data.videoUrls = urls;
+                data.orientation = orientation;
+                spatialInterface.writePublicData('storage', 'analyticsData', data);
+                spatialInterface.analyticsHydrate(data);
+
+                setRecordingState(RecordingState.done);
+            });
+        }
         break;
 
     case RecordingState.done:
@@ -108,10 +137,6 @@ recordingIcon.addEventListener('pointerup', function() {
 
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
-        }
-
-        if (videoEnabled) {
-            spatialInterface.startVirtualizerRecording();
         }
         break;
     case RecordingState.recording:
