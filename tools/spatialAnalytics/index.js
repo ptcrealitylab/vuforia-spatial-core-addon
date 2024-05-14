@@ -1,5 +1,6 @@
 /* global Envelope, SpatialInterface */
 import {VideoToggle} from './VideoToggle.js';
+import {createErrorPopup} from './createErrorPopup.js';
 
 const MINIMIZED_TOOL_WIDTH = 1200;
 const MINIMIZED_TOOL_HEIGHT = 600;
@@ -54,6 +55,7 @@ const RecordingState = {
     done: 'done',
 };
 let recordingState = RecordingState.empty;
+let recordingStarted = false;
 
 function setRecordingState(newState) {
     recordingState = newState;
@@ -67,15 +69,37 @@ function setRecordingState(newState) {
         msIconBackground.style.display = '';
         recIconBackground.classList.add('recording');
         videoToggle.remove();
+
+        if (videoEnabled) {
+            recordingStarted = true;
+            spatialInterface.startVirtualizerRecording(error => {
+                if (!error) {
+                    return;
+                }
+                createErrorPopup(envelopeContainer, error);
+                setRecordingState(RecordingState.empty);
+            });
+        }
         break;
     case RecordingState.saving:
         recordingIcon.src = 'sprites/saving.svg';
         msIconBackground.style.visibility = 'hidden';
         recIconBackground.classList.add('recording');
         videoToggle.remove();
+
+        if (recordingStarted) {
+            recordingStarted = false;
+            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
+        }
         break;
 
     case RecordingState.done:
+        if (recordingStarted) {
+            recordingStarted = false;
+            spatialInterface.stopVirtualizerRecording(onStopVirtualizerRecording);
+            setRecordingState(RecordingState.saving);
+            return;
+        }
         recordingIcon.style.display = 'none';
         msIconBackground.style.display = 'none';
         recIconBackground.style.display = 'none';
@@ -83,6 +107,22 @@ function setRecordingState(newState) {
         videoToggle.remove();
         break;
     }
+}
+
+function onStopVirtualizerRecording(error, baseUrl, recordingId, deviceId, orientation) {
+    if (error) {
+        createErrorPopup(envelopeContainer, error);
+    }
+    const urls = {
+        color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
+        rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
+    };
+    data.videoUrls = urls;
+    data.orientation = orientation;
+    spatialInterface.writePublicData('storage', 'analyticsData', data);
+    spatialInterface.analyticsHydrate(data);
+
+    setRecordingState(RecordingState.done);
 }
 
 recordingIcon.addEventListener('pointerup', function() {
@@ -109,10 +149,6 @@ recordingIcon.addEventListener('pointerup', function() {
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
         }
-
-        if (videoEnabled) {
-            spatialInterface.startVirtualizerRecording();
-        }
         break;
     case RecordingState.recording:
         setRecordingState(RecordingState.saving);
@@ -131,18 +167,7 @@ recordingIcon.addEventListener('pointerup', function() {
             });
         }
 
-        if (videoEnabled) {
-            spatialInterface.stopVirtualizerRecording((baseUrl, recordingId, deviceId) => {
-                setRecordingState(RecordingState.done);
-                const urls = {
-                    color: `${baseUrl}/virtualizer_recordings/${deviceId}/color/${recordingId}.mp4`,
-                    rvl: `${baseUrl}/virtualizer_recordings/${deviceId}/depth/${recordingId}.dat`
-                };
-                data.videoUrls = urls;
-                spatialInterface.writePublicData('storage', 'analyticsData', data);
-                spatialInterface.analyticsHydrate(data);
-            });
-        } else {
+        if (!videoEnabled) {
             setRecordingState(RecordingState.done);
             spatialInterface.writePublicData('storage', 'analyticsData', data);
             spatialInterface.analyticsHydrate(data);
@@ -275,12 +300,14 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
     });
 
     spatialInterface.addReadPublicDataListener('storage', 'analyticsData', analyticsData => {
-        data = analyticsData;
-        if (data.regionCards.length > 0) {
-            spatialInterface.analyticsHydrate(analyticsData);
-        }
+        // Keep any keys in `data` that aren't in `analyticsData`
+        Object.assign(data, analyticsData);
+        spatialInterface.analyticsHydrate(analyticsData);
         if (data.title) {
             setLabelTitle(data.title);
+        }
+        if (data.videoUrls && recordingState !== RecordingState.done) {
+            setRecordingState(RecordingState.done);
         }
     });
     spatialInterface.addReadPublicDataListener('storage', 'cards', migrateCardData);
