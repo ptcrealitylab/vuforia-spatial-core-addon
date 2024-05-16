@@ -336,17 +336,75 @@ class DrawingManager {
     }
     
     apiDrawLine(startPoint, endPoint, color) {
+        // TODO: convert from world coordinates to the tool coordinates
+        let startPointVec3 = this.convertToVec3(startPoint);
+        let endPointVec3 = this.convertToVec3(endPoint);
+        // const worldPosition_end = endPointVec3.clone().applyMatrix4(this.groundPlaneContainer.matrixWorld);
+        // const inverseTargetMatrixWorld_end = new THREE.Matrix4().copy(this.scene.matrixWorld).invert();
+        // const targetLocalPosition_end = worldPosition_end.applyMatrix4(inverseTargetMatrixWorld_end);
+        // console.log(targetLocalPosition_end);
+        //
+        // const worldPosition_start = startPointVec3.clone().applyMatrix4(this.groundPlaneContainer.matrixWorld);
+        // const inverseTargetMatrixWorld_start = new THREE.Matrix4().copy(this.scene.matrixWorld).invert();
+        // const targetLocalPosition_start = worldPosition_end.applyMatrix4(inverseTargetMatrixWorld_start);
+        // console.log(targetLocalPosition_start);
+        
+        const targetLocalPosition_start = this.convertWorldToTool(startPointVec3);
+        const targetLocalPosition_end = this.convertWorldToTool(endPointVec3);
+
         try {
             this.setColor(color);
             this.setTool(drawingManager.toolMap['LINE']);
-            console.log('TODO: support programmatically drawn lines')
 
-            this.tool.startDraw(this.drawingGroup, this.convertToVec3(startPoint), this.cursor.getNormal());
-            this.tool.moveDraw(this.drawingGroup, this.convertToVec3(endPoint), this.cursor.getNormal());
+            console.log('startDraw', targetLocalPosition_start);
+            this.tool.startDraw(this.drawingGroup, targetLocalPosition_start, this.cursor.getNormal());
+            this.tool.moveDraw(this.drawingGroup, targetLocalPosition_end, this.cursor.getNormal());
+            console.log('endDraw', targetLocalPosition_end);
+
+            // this.tool.startDraw(this.drawingGroup, this.convertToVec3(startPoint), this.cursor.getNormal());
+            // this.tool.moveDraw(this.drawingGroup, this.convertToVec3(endPoint), this.cursor.getNormal());
             this.tool.endDraw();
         } catch (e) {
             console.warn(e);
         }
+    }
+
+    updateCoordinateSystems(toolOrigin, worldOrigin) {
+        let toolMatrixThree = new THREE.Matrix4();
+        this.setMatrixFromArray(toolMatrixThree, toolOrigin);
+        let worldMatrixThree = new THREE.Matrix4();
+        this.setMatrixFromArray(worldMatrixThree, worldOrigin);
+
+//         // Create an inverse of the world matrix
+//         let inverseWorldMatrix = new THREE.Matrix4().copy(worldMatrixThree).invert();
+//
+// // Create the worldToToolMatrix by multiplying toolMatrixThree by the inverse of worldMatrixThree
+//         this.worldToToolMatrix = new THREE.Matrix4().multiplyMatrices(toolMatrixThree, inverseWorldMatrix);
+
+        // Create an inverse of the world matrix
+        let inverseToolMatrix = new THREE.Matrix4().copy(toolMatrixThree).invert();
+
+// Create the worldToToolMatrix by multiplying toolMatrixThree by the inverse of worldMatrixThree
+        this.worldToToolMatrix = new THREE.Matrix4().multiplyMatrices(worldMatrixThree, inverseToolMatrix);
+    }
+
+    convertWorldToTool(point) {
+        if (!this.worldToToolMatrix) return point;
+        let worldPoint = new THREE.Vector3(point.x, point.y, point.z);
+        let toolPoint = worldPoint.applyMatrix4(this.worldToToolMatrix);
+        return toolPoint;
+    }
+
+    /**
+     * This is just a helper function to set a three.js matrix using an array
+     * @param {*} matrix
+     * @param {*} array
+     */
+    setMatrixFromArray(matrix, array) {
+        matrix.set(array[0], array[4], array[8], array[12],
+            array[1], array[5], array[9], array[13],
+            array[2], array[6], array[10], array[14],
+            array[3], array[7], array[11], array[15]);
     }
 
     convertToVec3(input) {

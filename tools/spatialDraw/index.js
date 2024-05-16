@@ -384,6 +384,22 @@ function initRenderer() {
                 spatialInterface.subscribeToMatrix();
                 spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
                 spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
+
+                spatialInterface.subscribeToCoordinateSystems([
+                    // spatialObject.COORDINATE_SYSTEMS.CAMERA,
+                    // spatialObject.COORDINATE_SYSTEMS.PROJECTION_MATRIX,
+                    spatialObject.COORDINATE_SYSTEMS.WORLD_ORIGIN,
+                    spatialObject.COORDINATE_SYSTEMS.TOOL_ORIGIN
+                ], (coordinateSystems) => {
+                    // let cameraMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.CAMERA];
+                    // let projectionMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.PROJECTION_MATRIX];
+                    let toolMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.TOOL_ORIGIN];
+                    let worldMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.WORLD_ORIGIN];
+                    if (toolMatrix && worldMatrix) {
+                        drawingManager.updateCoordinateSystems(toolMatrix, worldMatrix);
+                    }
+                });
+                
                 spatialInterface.registerTouchDecider(touchDecider);
                 spatialInterface.getScreenDimensions((width, height) => {
                     adjustSidebarForWindowSize(height);
