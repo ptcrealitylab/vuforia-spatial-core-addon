@@ -67,7 +67,7 @@ class GLTFExample {
     } 
     
     onReceivedSet(state) {
-        console.log("gltfExample: ", state)
+        console.log("gltfExample (set): ", state)
         if (this.#world === null) {
             this.#world = new WorldNode(new WorldStore());
         }
@@ -82,6 +82,11 @@ class GLTFExample {
             this.#tool.setChild("gltfObject", this.#gltfObject);
         }
         this.#socket.sendUpdate(this.#world.getChanges());
+    }
+
+    onReceivedUpdate(delta) {
+        console.log("gltfExample (update): ", delta);
+        this.#world.setChanges(delta);
     }
 }
 
