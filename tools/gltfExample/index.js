@@ -5,6 +5,7 @@ import WorldStore from "/objectDefaultFiles/scene/WorldStore.js";
 import {ParentMessageInterface} from "/objectDefaultFiles/scene/MessageInterface.js";
 import EntityNode from "/objectDefaultFiles/scene/EntityNode.js";
 import EntityStore from "/objectDefaultFiles/scene/EntityStore.js";
+import DefaultEntity from "/objectDefaultFiles/scene/DefaultEntity.js";
 import GltfLoaderComponentNode from "/objectDefaultFiles/scene/GltfLoaderComponentNode.js";
 import GltfLoaderComponentStore from "/objectDefaultFiles/scene/GltfLoaderComponentStore.js";
 
@@ -74,7 +75,7 @@ class GLTFExample {
         this.#world.setState(state);
         this.#tool = this.#world.get("threejsContainer").get("tools").values()[0]; // <- server will only send content for this tool (world with one tool)
         if (!this.#tool.hasChild("gltfObject")) {
-            this.#gltfObject = new EntityNode(new EntityStore());
+            this.#gltfObject = new EntityNode(new EntityStore(new DefaultEntity()));
             const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
             gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.addComponent(1, gltfLoader);
