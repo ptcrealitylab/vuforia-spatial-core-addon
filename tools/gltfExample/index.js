@@ -1,46 +1,35 @@
 import {ToolRenderSocket} from "/objectDefaultFiles/scene/ToolRenderStream.js";
 import WorldNode from "/objectDefaultFiles/scene/WorldNode.js";
 import WorldStore from "/objectDefaultFiles/scene/WorldStore.js";
-//import {GLTFNode} from "/objectDefaultFiles/scene/scene3DNode.js";
 import {ParentMessageInterface} from "/objectDefaultFiles/scene/MessageInterface.js";
 import EntityNode from "/objectDefaultFiles/scene/EntityNode.js";
 import EntityStore from "/objectDefaultFiles/scene/EntityStore.js";
 import DefaultEntity from "/objectDefaultFiles/scene/DefaultEntity.js";
 import GltfLoaderComponentNode from "/objectDefaultFiles/scene/GltfLoaderComponentNode.js";
 import GltfLoaderComponentStore from "/objectDefaultFiles/scene/GltfLoaderComponentStore.js";
+import Base3DTool from "/objectDefaultFiles/scene/Base3DTool.js";
 
 /**
  * @typedef {import("/objectDefaultFiles/scene/ToolNode.js").default} ToolNode
  */
 
-class GLTFExample {
+class GLTFExample2 {
     /** @type {import('../../../../libraries/objectDefaultFiles/object.js').SpatialInterface} */
     #spatialInterface;
 
     /** @type {import('../../../../liberaries/objectDefaultFiles/envelope.js').Envelope} */
     #envelope;
 
-    /** @type {ToolRenderSocket} */
-    #socket;
-
-    /** @type {WorldNode|null} */
-    #world; 
-
-    /** @type {ToolNode|null} */
-    #tool;
-
-    /**@type {EntityNode|null} */
+    /** @type {EntityNode|null} */
     #gltfObject;
+
+    /** @type {Base3DTool} */
+    #baseTool;
 
     constructor() {
         this.#spatialInterface = new SpatialInterface();
 
         this.#spatialInterface.setMoveDelay(500);
-        this.#spatialInterface.useToolRenderer();
-
-        const messageInterface = new ParentMessageInterface("*");
-        this.#socket = new ToolRenderSocket(messageInterface);
-        this.#socket.setListener(this);
 
         const isStackable = true;
         const areFramesOrdered = false;
@@ -58,37 +47,47 @@ class GLTFExample {
         this.#envelope.onFocus(() => {
         });
 
-        this.#world = null;
-        this.#tool = null;
-        this.#gltfObject = null;
-
-        this.#spatialInterface.onSpatialInterfaceLoaded(() => {
-            this.#socket.sendGet(this.#spatialInterface);
-        });
+        this.#baseTool = new Base3DTool(this.#spatialInterface, this);
     } 
     
-    onReceivedSet(state) {
-        console.log("gltfExample (set): ", state)
-        if (this.#world === null) {
-            this.#world = new WorldNode(new WorldStore());
-        }
-        this.#world.setState(state);
-        this.#tool = this.#world.get("threejsContainer").get("tools").values()[0]; // <- server will only send content for this tool (world with one tool)
-        if (!this.#tool.hasChild("gltfObject")) {
+    onStart() {
+        if (!this.#baseTool.getTool().hasChild("gltfObject")) {
             this.#gltfObject = new EntityNode(new EntityStore(new DefaultEntity()));
             const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
             gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.addComponent(1, gltfLoader);
             this.#gltfObject.setScale(1000, 1000, 1000);
-            this.#tool.setChild("gltfObject", this.#gltfObject);
+            this.#baseTool.getTool().setChild("gltfObject", this.#gltfObject);
         }
-        this.#socket.sendUpdate(this.#world.getChanges());
     }
 
-    onReceivedUpdate(delta) {
-        console.log("gltfExample (update): ", delta);
-        this.#world.setChanges(delta);
+    /**
+     * 
+     * @param {BaseComponentNodeState} _state 
+     * @returns null
+     */
+    createComponent(_state) {
+        return null;
     }
+
+    /**
+     * 
+     * @param {string} _name 
+     * @returns {BaseEntity}
+     */
+    createEntity(_name) {
+        return new DefaultEntity();
+    }
+
+    /**
+     * 
+     * @param {string} _key 
+     * @param {EntityNode} _node 
+     */
+    onInitializeEntity(_key, _node) {
+
+    }
+
 }
 
-new GLTFExample();
+new GLTFExample2();
