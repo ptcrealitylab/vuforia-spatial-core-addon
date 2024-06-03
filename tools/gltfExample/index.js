@@ -39,8 +39,10 @@ class GLTFExample2 {
         const rootWhenClosed = document.querySelector('#rootWhenClosed');
         this.#envelope = new Envelope(this.#spatialInterface, [], rootWhenOpened, rootWhenClosed, isStackable, areFramesOrdered, isFullscreenFull2D, opensWhenAdded);
         this.#envelope.onOpen(() => {
+            this.#baseTool.setVisible(true);
         });
         this.#envelope.onClose(() => {
+            this.#baseTool.setVisible(false);
         });
         this.#envelope.onBlur(() => {
         });
