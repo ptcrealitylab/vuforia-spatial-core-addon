@@ -1,13 +1,10 @@
-import {ToolRenderSocket} from "/objectDefaultFiles/scene/ToolRenderStream.js";
-import WorldNode from "/objectDefaultFiles/scene/WorldNode.js";
-import WorldStore from "/objectDefaultFiles/scene/WorldStore.js";
-import {ParentMessageInterface} from "/objectDefaultFiles/scene/MessageInterface.js";
 import EntityNode from "/objectDefaultFiles/scene/EntityNode.js";
 import EntityStore from "/objectDefaultFiles/scene/EntityStore.js";
 import DefaultEntity from "/objectDefaultFiles/scene/DefaultEntity.js";
 import GltfLoaderComponentNode from "/objectDefaultFiles/scene/GltfLoaderComponentNode.js";
 import GltfLoaderComponentStore from "/objectDefaultFiles/scene/GltfLoaderComponentStore.js";
 import Base3DTool from "/objectDefaultFiles/scene/Base3DTool.js";
+import SimpleAnimationComponentNode from "/objectDefaultFiles/scene/SimpleAnimationComponentNode.js";
 
 /**
  * @typedef {import("/objectDefaultFiles/scene/ToolNode.js").default} ToolNode
@@ -25,6 +22,9 @@ class GLTFExample2 {
 
     /** @type {Base3DTool} */
     #baseTool;
+
+    #frequency;
+    #amplitude;
 
     constructor() {
         this.#spatialInterface = new SpatialInterface();
@@ -49,6 +49,9 @@ class GLTFExample2 {
         this.#envelope.onFocus(() => {
         });
 
+        this.#frequency = 0.25;
+        this.#amplitude = 100;
+
         this.#baseTool = new Base3DTool(this.#spatialInterface, this);
     } 
     
@@ -58,9 +61,13 @@ class GLTFExample2 {
             const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
             gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.addComponent(1, gltfLoader);
+            this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
             this.#gltfObject.setScale(1000, 1000, 1000);
             this.#baseTool.getTool().setChild("gltfObject", this.#gltfObject);
         }
+        this.#gltfObject.getComponentByType(SimpleAnimationComponentNode.TYPE).setAnimation((timestamp) => {
+            return {x: 0, y: this.#amplitude * Math.sin(2.0 * Math.PI * this.#frequency * timestamp), z: 0};
+        });
     }
 
     /**
