@@ -61,13 +61,13 @@ class GLTFExample2 {
             const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
             gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.addComponent(1, gltfLoader);
-            this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
+           //this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
             this.#gltfObject.setScale(1000, 1000, 1000);
             this.#baseTool.getTool().setChild("gltfObject", this.#gltfObject);
         }
-        this.#gltfObject.getComponentByType(SimpleAnimationComponentNode.TYPE).setAnimation((timestamp) => {
+        /*this.#gltfObject.getComponentByType(SimpleAnimationComponentNode.TYPE).setAnimation((timestamp) => {
             return {x: 0, y: this.#amplitude * Math.sin(2.0 * Math.PI * this.#frequency * timestamp), z: 0};
-        });
+        });*/
     }
 
     /**
