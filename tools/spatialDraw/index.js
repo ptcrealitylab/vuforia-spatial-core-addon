@@ -85,12 +85,12 @@ function setupAPI() {
 
     languageInterface = new LanguageInterface('spatialDraw', spatialObject.object, spatialObject.frame);
 
-    // TODO: populate these with correct data
-    languageInterface.updateSummarizedState('numStrokes', 0);
-    languageInterface.updateSummarizedState('centroid', {x: 0, y: 0, z: 0});
-    languageInterface.updateSummarizedState('bbox', { min: {x: 0, y: 0, z: 0}, max: {x: 0, y: 0, z: 0} });
-    languageInterface.updateSummarizedState('colorsList', []);
-    languageInterface.sendSummarizedStateToParent();
+    // TODO: populate these with correct data as the user draws into the scene
+    // languageInterface.updateSummarizedState('numStrokes', 0);
+    // languageInterface.updateSummarizedState('centroid', {x: 0, y: 0, z: 0});
+    // languageInterface.updateSummarizedState('bbox', { min: {x: 0, y: 0, z: 0}, max: {x: 0, y: 0, z: 0} });
+    // languageInterface.updateSummarizedState('colorsList', []);
+    // languageInterface.sendSummarizedStateToParent();
 
     if (loadedDrawing) {
         let drawingCopy = copyDrawingForAiSummary(loadedDrawing);
