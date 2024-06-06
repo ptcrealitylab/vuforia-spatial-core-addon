@@ -281,6 +281,7 @@ spatialInterface.onSpatialInterfaceLoaded(function() {
     spatialInterface.setVisibilityDistance(100);
     spatialInterface.setMoveDelay(300);
     spatialInterface.setAlwaysFaceCamera(true);
+    spatialInterface.registerTouchDecider(touchDecider);
 
     spatialInterface.initNode('storage', 'storeData');
 
@@ -366,4 +367,8 @@ function updateDocumentStyles(width, height) {
     document.body.height = height + 'px';
     document.body.style.width = width + 'px';
     document.body.style.height = height + 'px';
+}
+
+function touchDecider(_eventData) {
+    return false;
 }
