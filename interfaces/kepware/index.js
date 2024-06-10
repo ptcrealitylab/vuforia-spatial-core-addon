@@ -263,7 +263,7 @@ if (exports.enabled) {
          */
         this.error = function(_err) {
             //  console.error('kepware error', err); // todo err just outputs a gigantic json object. Needs some more specifics.
-            console.error('cant find kepware server: \033[33m' + kepwareServerName + '\033[0m with the IP: \033[33m' + kepwareServerIP + '\033[0m');
+            console.error('cant find kepware server: \u001b[33m' + kepwareServerName + '\u001b[0m with the IP: \u001b[33m' + kepwareServerIP + '\u001b[0m');
         };
     }
 
