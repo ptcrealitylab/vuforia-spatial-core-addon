@@ -1,4 +1,4 @@
-/* global SpatialInterface, Envelope, DrawingManager, realGl, gl, proxies */
+/* global DrawingManager, realGl, gl, proxies */
 
 gl.enableWebGL2 = false;
 
