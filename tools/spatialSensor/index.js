@@ -31,6 +31,11 @@ if (!spatialInterface) {
     spatialInterface = new SpatialInterface();
     envelopeContents = new EnvelopeContents(spatialInterface, document.getElementById('container'));
     spatialInterface.useWebGlWorker();
+
+    languageInterface = new LanguageInterface('spatialSensor', spatialObject.object, spatialObject.frame);
+    languageInterface.updateSummarizedState('occupied', false);
+    languageInterface.updateSummarizedState('position', {x: 0, y: 0, z: 0});
+    languageInterface.sendSummarizedStateToParent();
 }
 
 let threejsInterface = new ThreejsInterface(spatialInterface);
@@ -140,6 +145,8 @@ function onHumanPoses(humanPoseObjects) {
 
     setSensorActive(active);
     isPlaybackActive = false;
+    languageInterface.updateSummarizedState('occupied', active);
+    languageInterface.sendSummarizedStateToParent();
 }
 
 function anchoredModelViewCallback(modelViewMatrix, _projectionMatrix) {
@@ -193,6 +200,8 @@ function updateSensorPosition() {
         return;
     }
     spatialInterface.analyticsSetSensor(newPos);
+    languageInterface.updateSummarizedState('position', newPos);
+    languageInterface.sendSummarizedStateToParent();
     oldPos = newPos;
 }
 
