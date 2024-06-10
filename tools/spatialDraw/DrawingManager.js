@@ -1,3 +1,5 @@
+/* global MeshLine, MeshLineMaterial, MeshLineRaycast */
+
 /** Class that draws to a 3D scene. */
 class DrawingManager {
     /**

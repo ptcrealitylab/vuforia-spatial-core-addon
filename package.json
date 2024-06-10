@@ -19,10 +19,11 @@
   "homepage": "https://github.com/ptcrealitylab/vuforia-spatial-core-addon#readme",
   "dependencies": {
     "node-fetch": "^2.7.0",
-    "node-opcua": "^2.124.0",
+    "node-opcua": "^2.125.0",
     "request": "^2.*"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "@eslint/js": "^9.3.0",
+    "eslint": "^9.4.0"
   }
 }

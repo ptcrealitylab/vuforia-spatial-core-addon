@@ -1,4 +1,3 @@
-/* global Envelope, SpatialInterface */
 import {VideoToggle} from './VideoToggle.js';
 import {createErrorPopup} from './createErrorPopup.js';
 
