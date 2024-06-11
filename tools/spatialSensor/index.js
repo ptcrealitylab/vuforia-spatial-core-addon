@@ -1,8 +1,6 @@
-/* global SpatialInterface, ThreejsInterface, EnvelopeContents, spatialObject */
-
 // Various threejs and gl proxy support variables
 var mainContainerObj, groundPlaneContainerObj;
-let spatialInterface;
+let spatialInterface, languageInterface;
 let envelopeContents;
 
 let isGroundPlaneFound = false;
