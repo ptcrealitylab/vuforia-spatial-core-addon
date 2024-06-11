@@ -10,7 +10,7 @@ import SimpleAnimationComponentNode from "/objectDefaultFiles/scene/SimpleAnimat
  * @typedef {import("/objectDefaultFiles/scene/ToolNode.js").default} ToolNode
  */
 
-class GLTFExample2 {
+class GLTFExample {
     /** @type {import('../../../../libraries/objectDefaultFiles/object.js').SpatialInterface} */
     #spatialInterface;
 
@@ -52,7 +52,7 @@ class GLTFExample2 {
         this.#frequency = 0.25;
         this.#amplitude = 100;
 
-        this.#baseTool = new Base3DTool(this.#spatialInterface, this);
+        this.#baseTool = new Base3DTool(this.#spatialInterface, this, "gltfExample");
     } 
     
     onStart() {
@@ -61,7 +61,7 @@ class GLTFExample2 {
             const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
             gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.addComponent(1, gltfLoader);
-           //this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
+            this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
             this.#gltfObject.setScale(1000, 1000, 1000);
             this.#baseTool.getTool().setChild("gltfObject", this.#gltfObject);
         }
@@ -71,11 +71,11 @@ class GLTFExample2 {
     }
 
     /**
-     * 
+     * @param {number} _index;
      * @param {BaseComponentNodeState} _state 
      * @returns null
      */
-    createComponent(_state) {
+    createComponent(_index, _state) {
         return null;
     }
 
@@ -84,8 +84,8 @@ class GLTFExample2 {
      * @param {string} _name 
      * @returns {BaseEntity}
      */
-    createEntity(_name) {
-        return new DefaultEntity();
+    createEntity(_name, _state) {
+        return new EntityNode(new EntityStore(new DefaultEntity()));
     }
 
     /**
@@ -99,4 +99,4 @@ class GLTFExample2 {
 
 }
 
-new GLTFExample2();
+new GLTFExample();
