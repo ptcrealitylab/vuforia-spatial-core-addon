@@ -210,7 +210,7 @@ function updateSensorPosition() {
 function makeSpatialSensor() {
     let group = new THREE.Group();
     // Should be 0.8 2 0.8
-    let geo = new THREE.BoxGeometry(sensorWidth * mToUnit, sensorHeight * mToUnit, sensorDepth * mToUnit);
+    let geo = new THREE.PlaneGeometry(sensorWidth * mToUnit, sensorDepth * mToUnit);
     let mat = new THREE.MeshBasicMaterial({
         color: sensorColor,
         opacity: 0.3,
@@ -218,12 +218,13 @@ function makeSpatialSensor() {
     });
     let obj = new THREE.Mesh(geo, mat);
     obj.position.x = 0;
-    obj.position.y = sensorHeight / 2 * mToUnit;
+    obj.position.y = 0;
     obj.position.z = 0;
+    obj.rotateX(Math.PI / 2);
     sensorMesh = obj;
     group.add(obj);
 
-    geo = new THREE.BoxGeometry(sensorWidth * mToUnit, sensorHeight * mToUnit, sensorDepth * mToUnit);
+    geo = new THREE.PlaneGeometry(sensorWidth * mToUnit, sensorDepth * mToUnit);
     mat = new THREE.MeshBasicMaterial({
         color: sensorColor,
         wireframe: true,
@@ -231,8 +232,9 @@ function makeSpatialSensor() {
     obj = new THREE.Mesh(geo, mat);
     sensorWireframe = obj;
     obj.position.x = 0;
-    obj.position.y = sensorHeight / 2 * mToUnit;
+    obj.position.y = 0;
     obj.position.z = 0;
+    obj.rotateX(Math.PI / 2);
     group.add(obj);
 
     // note: sensor gets added to mainContainerObj, which is positioned at the anchor
