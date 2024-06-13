@@ -197,7 +197,7 @@ function updateSensorPosition() {
         coordEqual(oldPos.z, newPos.z)) {
         return;
     }
-    spatialInterface.analyticsSetSensor(newPos);
+    spatialInterface.analyticsSetSensor({position: newPos});
     languageInterface.updateSummarizedState('position', newPos);
     languageInterface.sendSummarizedStateToParent();
     oldPos = newPos;
