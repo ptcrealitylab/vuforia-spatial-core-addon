@@ -371,6 +371,39 @@ class DrawingManager {
         }
     }
 
+    apiDrawPath(points, color) {
+        if (!points || !points.length || points.length < 2) return;
+
+        this.setColor(color);
+        this.setTool(drawingManager.toolMap['LINE']);
+
+        for (let i = 0; i < points.length; i++) {
+            let startPoint = points[i];
+            // let endPoint = points[i+1];
+            let startPointVec3 = this.convertToVec3(startPoint);
+            // let endPointVec3 = this.convertToVec3(endPoint);
+
+            const targetLocalPosition_start = this.convertWorldToTool(startPointVec3);
+            // const targetLocalPosition_end = this.convertWorldToTool(endPointVec3);
+
+            try {
+
+                if (i === 0) {
+                    this.tool.startDraw(this.drawingGroup, targetLocalPosition_start, this.cursor.getNormal());
+                } else {
+                    this.tool.moveDraw(this.drawingGroup, targetLocalPosition_start, this.cursor.getNormal());
+                }
+
+                // this.tool.startDraw(this.drawingGroup, this.convertToVec3(startPoint), this.cursor.getNormal());
+                // this.tool.moveDraw(this.drawingGroup, this.convertToVec3(endPoint), this.cursor.getNormal());
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        this.tool.endDraw();
+    }
+
     updateCoordinateSystems(toolOrigin, worldOrigin) {
         let toolMatrixThree = new THREE.Matrix4();
         this.setMatrixFromArray(toolMatrixThree, toolOrigin);

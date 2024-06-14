@@ -59,6 +59,18 @@ function setupAPI() {
         return true;
     });
 
+    api.defineAPI('drawMultipointPath', [
+        {name: 'points', type: 'Point[]', description: 'Array of points'},
+        {name: 'color', type: 'String', description: 'Color of the path'}
+    ], {
+        type: 'boolean',
+        description: 'Draws a colored path on the canvas, starting at the first point in the array and connected piecewise until reaching the last point in the array; returns success or error'
+    }, (points, color) => {
+        console.log('>> spatialDraw drawMultipointPath', color);
+        drawingManager.apiDrawPath(points, color);
+        return true;
+    });
+
     api.defineAPI('clearCanvas', [
         // no parameters
     ], {
