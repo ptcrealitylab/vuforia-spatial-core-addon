@@ -3,8 +3,44 @@ import EntityStore from "/objectDefaultFiles/scene/EntityStore.js";
 import DefaultEntity from "/objectDefaultFiles/scene/DefaultEntity.js";
 import GltfLoaderComponentNode from "/objectDefaultFiles/scene/GltfLoaderComponentNode.js";
 import GltfLoaderComponentStore from "/objectDefaultFiles/scene/GltfLoaderComponentStore.js";
-import Base3DTool from "/objectDefaultFiles/scene/Base3DTool.js";
+import Tool3D from "/objectDefaultFiles/scene/Tool3D.js";
 import SimpleAnimationComponentNode from "/objectDefaultFiles/scene/SimpleAnimationComponentNode.js";
+import ToolNode from "/objectDefaultFiles/scene/ToolNode.js";
+import ToolStore from "/objectDefaultFiles/scene/ToolStore.js";
+
+class GLTFExampleStore extends ToolStore {
+    #amplitude;
+    #frequency;
+
+    constructor(entity, frequency, amplitude) {
+        super(entity);
+        this.#frequency = frequency;
+        this.#amplitude = amplitude;
+    }
+
+    createBuoyEntity(key, state) {
+        const entityNode = super.createEntity(key, state);
+        entityNode.addComponent("1", new GltfLoaderComponentNode(new GltfLoaderComponentStore()), false);
+        const animator = new SimpleAnimationComponentNode();
+        /*animator.setAnimation((timestamp) => {
+            return {x: 0, y: this.#amplitude * Math.sin(2.0 * Math.PI * this.#frequency * timestamp), z: 0};
+        });*/
+        entityNode.addComponent("2", animator, false);
+        return entityNode
+    }
+
+    createEntity(key, state) {
+        if (key === "buoy") {
+            console.log("create buoy from network");
+            return createBuoyEntity(key, state);        
+        }
+        return super.createEntity(key, state);
+    }
+
+    createComponent(order, state) {
+        return super.createComponent(order, state);
+    }
+}
 
 /**
  * @typedef {import("/objectDefaultFiles/scene/ToolNode.js").default} ToolNode
@@ -52,51 +88,26 @@ class GLTFExample {
         this.#frequency = 0.25;
         this.#amplitude = 100;
 
-        this.#baseTool = new Base3DTool(this.#spatialInterface, this, "gltfExample");
+        this.#baseTool = new Tool3D(this);
     } 
     
     onStart() {
-        if (!this.#baseTool.getTool().hasChild("gltfObject")) {
-            this.#gltfObject = new EntityNode(new EntityStore(new DefaultEntity()));
-            const gltfLoader = new GltfLoaderComponentNode(new GltfLoaderComponentStore());
-            gltfLoader.setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
-            this.#gltfObject.addComponent(1, gltfLoader);
-            this.#gltfObject.addComponent(2, new SimpleAnimationComponentNode());
+        const toolNode = this.#baseTool.getToolNode();
+        if (!toolNode.hasChild("buoy")) {
+            this.#gltfObject = toolNode.getListener().createBuoyEntity();
+            this.#gltfObject.getComponentByType(GltfLoaderComponentNode.TYPE).setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
             this.#gltfObject.setScale(1000, 1000, 1000);
-            this.#baseTool.getTool().setChild("gltfObject", this.#gltfObject);
+            toolNode.setChild("buoy", this.#gltfObject);
         }
-        /*this.#gltfObject.getComponentByType(SimpleAnimationComponentNode.TYPE).setAnimation((timestamp) => {
-            return {x: 0, y: this.#amplitude * Math.sin(2.0 * Math.PI * this.#frequency * timestamp), z: 0};
-        });*/
     }
 
-    /**
-     * @param {number} _index;
-     * @param {BaseComponentNodeState} _state 
-     * @returns null
-     */
-    createComponent(_index, _state) {
-        return null;
+    getSpatialInterface() {
+        return this.#spatialInterface;
     }
 
-    /**
-     * 
-     * @param {string} _name 
-     * @returns {BaseEntity}
-     */
-    createEntity(_name, _state) {
-        return new EntityNode(new EntityStore(new DefaultEntity()));
+    createToolNode() {
+        return new ToolNode(new GLTFExampleStore(new DefaultEntity(), this.#frequency, this.#amplitude), `${ToolNode.TYPE}.gltfExample`);
     }
-
-    /**
-     * 
-     * @param {string} _key 
-     * @param {EntityNode} _node 
-     */
-    onInitializeEntity(_key, _node) {
-
-    }
-
 }
 
 new GLTFExample();
