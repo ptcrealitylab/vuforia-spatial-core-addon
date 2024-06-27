@@ -391,7 +391,12 @@ class DrawingManager {
                 if (i === 0) {
                     this.tool.startDraw(this.drawingGroup, targetLocalPosition_start, this.cursor.getNormal());
                 } else {
+                    let prevPoint = points[i - 1];
+                    let prevPointVec3 = this.convertToVec3(prevPoint);
+                    const targetLocalPosition_prev = this.convertWorldToTool(prevPointVec3);
+                    this.tool.startDraw(this.drawingGroup, targetLocalPosition_prev, this.cursor.getNormal());
                     this.tool.moveDraw(this.drawingGroup, targetLocalPosition_start, this.cursor.getNormal());
+                    this.tool.endDraw();
                 }
 
                 // this.tool.startDraw(this.drawingGroup, this.convertToVec3(startPoint), this.cursor.getNormal());
@@ -401,7 +406,7 @@ class DrawingManager {
             }
         }
 
-        this.tool.endDraw();
+        // this.tool.endDraw();
     }
 
     updateCoordinateSystems(toolOrigin, worldOrigin) {
