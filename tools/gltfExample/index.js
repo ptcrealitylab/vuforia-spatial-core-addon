@@ -1,31 +1,29 @@
-import EntityNode from "/objectDefaultFiles/scene/EntityNode.js";
-import EntityStore from "/objectDefaultFiles/scene/EntityStore.js";
-import DefaultEntity from "/objectDefaultFiles/scene/DefaultEntity.js";
+import MemoryEntity from "/objectDefaultFiles/scene/MemoryEntity.js";
 import GltfLoaderComponentNode from "/objectDefaultFiles/scene/GltfLoaderComponentNode.js";
-import GltfLoaderComponentStore from "/objectDefaultFiles/scene/GltfLoaderComponentStore.js";
 import Tool3D from "/objectDefaultFiles/scene/Tool3D.js";
 import SimpleAnimationComponentNode from "/objectDefaultFiles/scene/SimpleAnimationComponentNode.js";
 import ToolNode from "/objectDefaultFiles/scene/ToolNode.js";
-import ToolStore from "/objectDefaultFiles/scene/ToolStore.js";
 
-class GLTFExampleStore extends ToolStore {
+class GLTFExampleNode extends ToolNode {
+    static TYPE = `${ToolNode.TYPE}.gltfExample`;
+
     #amplitude;
     #frequency;
 
-    constructor(entity, frequency, amplitude) {
-        super(entity);
+    constructor(frequency, amplitude) {
+        super(new MemoryEntity(), GLTFExampleNode.TYPE);
         this.#frequency = frequency;
         this.#amplitude = amplitude;
     }
 
     createBuoyEntity(key, state) {
         const entityNode = super.createEntity(key, state);
-        entityNode.addComponent("1", new GltfLoaderComponentNode(new GltfLoaderComponentStore()), false);
+        entityNode.setComponent("1", new GltfLoaderComponentNode(), false);
         const animator = new SimpleAnimationComponentNode();
-        /*animator.setAnimation((timestamp) => {
+        animator.setAnimation((timestamp) => {
             return {x: 0, y: this.#amplitude * Math.sin(2.0 * Math.PI * this.#frequency * timestamp), z: 0};
-        });*/
-        entityNode.addComponent("2", animator, false);
+        });
+        entityNode.setComponent("2", animator, false);
         return entityNode
     }
 
@@ -94,9 +92,9 @@ class GLTFExample {
     onStart() {
         const toolNode = this.#baseTool.getToolNode();
         if (!toolNode.hasChild("buoy")) {
-            this.#gltfObject = toolNode.getListener().createBuoyEntity();
+            this.#gltfObject = toolNode.createBuoyEntity();
             this.#gltfObject.getComponentByType(GltfLoaderComponentNode.TYPE).setUrl(self.location.href.substring(0, self.location.href.lastIndexOf('/')) + "/flagab.glb");
-            this.#gltfObject.setScale(1000, 1000, 1000);
+            this.#gltfObject.scale = {x: 1000, y: 1000, z: 1000};
             toolNode.setChild("buoy", this.#gltfObject);
         }
     }
@@ -105,8 +103,12 @@ class GLTFExample {
         return this.#spatialInterface;
     }
 
+    getToolNodeType() {
+        return GLTFExampleNode.TYPE;
+    }
+
     createToolNode() {
-        return new ToolNode(new GLTFExampleStore(new DefaultEntity(), this.#frequency, this.#amplitude), `${ToolNode.TYPE}.gltfExample`);
+        return new GLTFExampleNode(this.#frequency, this.#amplitude);
     }
 }
 
