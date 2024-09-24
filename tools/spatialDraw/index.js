@@ -1,4 +1,4 @@
-/* global DrawingManager, realGl, gl, proxies */
+/* global DrawingManager, SpatialInterface, spatialObject, Envelope, THREE, realGl, gl, proxies */
 
 gl.enableWebGL2 = false;
 
@@ -14,13 +14,16 @@ let camera, scene;
 let mainContainerObj;
 let groundPlaneContainerObj;
 let spatialInterface;
+let viewMatrixThree;
+let groundPlaneThree;
+let toolThree;
 
 let rendererWidth;
 let rendererHeight;
 let aspectRatio;
 
-let lastProjectionMatrix = null;
-let lastModelViewMatrix = null;
+// let lastProjectionMatrix = null;
+// let lastModelViewMatrix = null;
 let isProjectionMatrixSet = false;
 let done = false; // used by gl renderer
 
@@ -335,13 +338,65 @@ function initRenderer() {
             groundPlaneContainerObj.add(directionalLight2);
 
             spatialInterface.onSpatialInterfaceLoaded(function() {
-                spatialInterface.subscribeToMatrix();
-                spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
-                spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
+                // spatialInterface.subscribeToMatrix();
+                // spatialInterface.addGroundPlaneMatrixListener(groundPlaneCallback);
+                // spatialInterface.addMatrixListener(updateMatrices); // whenever we receive new matrices from the editor, update the 3d scene
                 spatialInterface.registerTouchDecider(touchDecider);
                 spatialInterface.getScreenDimensions((width, height) => {
                     adjustSidebarForWindowSize(height);
                 });
+
+                spatialInterface.subscribeToCoordinateSystems([
+                    spatialObject.COORDINATE_SYSTEMS.CAMERA,
+                    spatialObject.COORDINATE_SYSTEMS.PROJECTION_MATRIX,
+                    spatialObject.COORDINATE_SYSTEMS.GROUND_PLANE_ORIGIN,
+                    spatialObject.COORDINATE_SYSTEMS.TOOL_ORIGIN
+                ], (coordinateSystems) => {
+                    let projectionMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.PROJECTION_MATRIX];
+                    let groundPlaneMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.GROUND_PLANE_ORIGIN];
+                    let toolMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.TOOL_ORIGIN];
+                    let cameraMatrix = coordinateSystems[spatialObject.COORDINATE_SYSTEMS.CAMERA];
+
+                    if (projectionMatrix) {
+                        setMatrixFromArray(camera.projectionMatrix, projectionMatrix);
+                        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+                        isProjectionMatrixSet = true;
+                    }
+                    // we finally move the camera, not the scene! -- actually not, the drawingManager needs updates to work that way
+                    if (cameraMatrix) {
+                        let cameraMatrixThree = new THREE.Matrix4();
+                        setMatrixFromArray(cameraMatrixThree, cameraMatrix);
+                        viewMatrixThree = new THREE.Matrix4();
+                        viewMatrixThree.copy(cameraMatrixThree).invert();
+                    }
+                    // onshape model stays flat on the groundplane
+                    if (groundPlaneMatrix) {
+                        groundPlaneThree = new THREE.Matrix4();
+                        setMatrixFromArray(groundPlaneThree, groundPlaneMatrix);
+                    }
+                    if (toolMatrix) {
+                        toolThree = new THREE.Matrix4();
+                        setMatrixFromArray(toolThree, toolMatrix);
+                    }
+
+                    if (groundPlaneThree && viewMatrixThree) {
+                        let modelViewMatrix = new THREE.Matrix4();
+                        modelViewMatrix.multiplyMatrices(viewMatrixThree, groundPlaneThree);
+
+                        groundPlaneContainerObj.matrix.copy(modelViewMatrix);
+                        groundPlaneContainerObj.updateMatrixWorld(true);
+
+                        mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
+                    }
+                    if (toolThree && viewMatrixThree) {
+                        let modelViewMatrix = new THREE.Matrix4();
+                        modelViewMatrix.multiplyMatrices(viewMatrixThree, toolThree);
+
+                        mainContainerObj.matrix.copy(modelViewMatrix);
+                        mainContainerObj.updateMatrixWorld(true);
+                    }
+                });
+
                 resolve();
             });
         } else {
@@ -353,7 +408,7 @@ function initRenderer() {
 }
 
 // Gets passed eventData if needed
-function touchDecider(eventData) {
+function touchDecider(_eventData) {
     return appActive;
 }
 
@@ -365,30 +420,32 @@ function setMatrixFromArray(matrix, array) {
     );
 }
 
-function groundPlaneCallback(modelViewMatrix) {
-    setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
-    mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
-}
-
-
-function updateMatrices(modelViewMatrix, projectionMatrix) {
-    lastProjectionMatrix = projectionMatrix;
-    lastModelViewMatrix = modelViewMatrix;
-}
+// function groundPlaneCallback(modelViewMatrix) {
+//     setMatrixFromArray(groundPlaneContainerObj.matrix, modelViewMatrix);
+//     mainContainerObj.groundPlaneContainerObj = groundPlaneContainerObj;
+// }
+//
+//
+// function updateMatrices(modelViewMatrix, projectionMatrix) {
+//     lastProjectionMatrix = projectionMatrix;
+//     lastModelViewMatrix = modelViewMatrix;
+// }
 
 // Draw the scene repeatedly
 // eslint-disable-next-line no-undef
 render = function(_now) {
     // only set the projection matrix for the camera 1 time, since it stays the same
-    if (!isProjectionMatrixSet && lastProjectionMatrix && lastProjectionMatrix.length === 16) {
-        setMatrixFromArray(camera.projectionMatrix, lastProjectionMatrix);
-        camera.projectionMatrixInverse.getInverse(camera.projectionMatrix);
-        isProjectionMatrixSet = true;
-    }
+    // if (!isProjectionMatrixSet && lastProjectionMatrix && lastProjectionMatrix.length === 16) {
+    //     console.log('set draw projection matrix to', lastProjectionMatrix);
+    //     setMatrixFromArray(camera.projectionMatrix, lastProjectionMatrix);
+    //     camera.projectionMatrixInverse.getInverse(camera.projectionMatrix);
+    //     isProjectionMatrixSet = true;
+    //     lastProjectionMatrix = null;
+    // }
 
-    if (isProjectionMatrixSet && lastModelViewMatrix && lastModelViewMatrix.length === 16) {
+    if (isProjectionMatrixSet) { // && lastModelViewMatrix && lastModelViewMatrix.length === 16) {
         // update model view matrix
-        setMatrixFromArray(mainContainerObj.matrix, lastModelViewMatrix);
+        // setMatrixFromArray(mainContainerObj.matrix, lastModelViewMatrix);
 
         // render the scene
         mainContainerObj.visible = true;
