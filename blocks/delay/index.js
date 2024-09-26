@@ -94,7 +94,13 @@ exports.render = function (object, frame, node, block, index, thisBlock, callbac
     var delayedValue = thisBlock.data[index].value;
 
     setTimeout(function() {
-        thisBlock.processedData[index].value = delayedValue;
+        for (var key in thisBlock.data[index]) {
+            if (key === 'value') {
+                thisBlock.processedData[index].value = delayedValue;
+            } else {
+                thisBlock.processedData[index][key] = thisBlock.data[index][key];
+            }
+        }
         callback(object, frame, node, block, index, thisBlock);
     }, thisBlock.publicData.delayTime);
 
