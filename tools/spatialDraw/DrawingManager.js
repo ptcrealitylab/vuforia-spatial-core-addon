@@ -1,5 +1,3 @@
-/* global MeshLine, MeshLineMaterial, MeshLineRaycast */
-
 /** Class that draws to a 3D scene. */
 class DrawingManager {
     /**
@@ -10,7 +8,8 @@ class DrawingManager {
     constructor(scene, camera) {
         this.toolMap = {
             'LINE': new DrawingManager.Tool.Line(this),
-            'ICON': new DrawingManager.Tool.Icon(this)
+            'POLYGON': new DrawingManager.Tool.Polygon(this),
+            'ICON': new DrawingManager.Tool.Icon(this),
         };
         this.cursorMap = {
             'PROJECTION': new DrawingManager.Cursor.SmoothProjection(),
@@ -588,6 +587,150 @@ DrawingManager.Tool.Line = class extends DrawingManager.Tool {
         const curve = new THREE.CatmullRomCurve3(threePoints);
         const meshLine = new MeshLine();
         meshLine.setPoints(curve.getPoints(1000));
+        const mesh = new THREE.Mesh(meshLine, meshLineMaterial);
+        mesh.raycast = MeshLineRaycast;
+        mesh.drawingId = drawing.drawingId;
+        mesh.serialized = drawing;
+        parent.add(mesh);
+    }
+
+    /**
+     * Sets the drawing size.
+     * @param {number} size - The size.
+     */
+    setSize(size) {
+        super.setSize(size);
+        this.meshLineMaterial = generateMeshLineMaterial(size, this.color);
+    }
+
+    /**
+     * Sets the drawing color.
+     * @param {string} color - The color.
+     */
+    setColor(color) {
+        super.setColor(color);
+        this.meshLineMaterial = generateMeshLineMaterial(this.size, color);
+    }
+};
+
+DrawingManager.Tool.Polygon = class extends DrawingManager.Tool {
+    /**
+     * Creates a Polygon Tool.
+     */
+    constructor(drawingManager) {
+        super(drawingManager);
+
+        this.currentPolygon = null;
+
+        this.lastPointTime = 0;
+        this.minimumUpdate = {
+            distance: 5,
+            time: 1000
+        };
+    }
+
+    /**
+     * Starts drawing with the tool.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     */
+    startDraw(parent, position) {
+        this.currentPolygon = {
+            points: [position.clone()],
+            meshLine: new MeshLine(),
+            obj: null,
+        };
+
+        this.lastPointTime = Date.now();
+    }
+
+    /**
+     * Updates drawing with the tool.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     */
+    moveDraw(parent, position) {
+        if (!this.currentPolygon) {
+            return;
+        }
+        const lastPosition = this.currentPolygon.points[this.currentPolygon.points.length - 1];
+        const newPosition = position.clone();
+
+        if (newPosition.clone().sub(lastPosition).length() < this.minimumUpdate.length && Date.now() - this.lastPointTime < this.minimumUpdate.time) {
+            return; // Return if the cursor hasn't moved far enough and enough time hasn't passed, simplifies path when cursor doesn't move much for a bit
+        }
+        this.lastPointTime = Date.now();
+
+        this.currentPolygon.points.push(newPosition);
+        if (this.currentPolygon.points.length < 3) {
+            this.currentPolygon.meshLine.setPoints(this.currentPolygon.points);
+        } else {
+            this.currentPolygon.meshLine.setPoints([...this.currentPolygon.points, this.currentPolygon.points[0]]);
+        }
+        if (this.currentPolygon.obj) { // Clear previous in-progress drawing
+            this.currentPolygon.obj.geometry.dispose();
+            this.currentPolygon.obj.material.dispose();
+            this.currentPolygon.obj.parent.remove(this.currentPolygon.obj);
+            this.currentPolygon.obj = null;
+        }
+        const meshLine = new THREE.Mesh(this.currentPolygon.meshLine, this.meshLineMaterial);
+        meshLine.raycast = MeshLineRaycast;
+        this.currentPolygon.obj = meshLine;
+        parent.add(this.currentPolygon.obj);
+    }
+
+    /**
+     * Finishes drawing with the tool. Can be called when tool is not currently drawing.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {THREE.Vector3} position - The position of the cursor.
+     */
+    endDraw(parent) {
+        if (this.currentPolygon && this.currentPolygon.obj) {
+            const drawingId = `${Math.round(Math.random() * 100000000)}`;
+
+            const serialized = {
+                tool: 'POLYGON',
+                points: this.currentPolygon.points,
+                size: this.size,
+                color: this.color,
+                drawingId: drawingId
+            };
+            this.drawFromSerialized(parent, serialized);
+
+            this.currentPolygon.obj.geometry.dispose();
+            this.currentPolygon.obj.material.dispose();
+            this.currentPolygon.obj.parent.remove(this.currentPolygon.obj);
+            this.currentPolygon = null;
+
+            const undoEvent = {
+                type: 'erase',
+                data: {
+                    drawingId
+                }
+            };
+
+            this.drawingManager.pushUndoEvent(undoEvent);
+            this.lastPointTime = 0;
+        } else {
+            this.currentPolygon = null;
+            this.lastPointTime = 0;
+        }
+    }
+
+    /**
+     * Creates a drawing from a serialized version.
+     * @param {THREE.Object3D} parent - The parent object to draw in.
+     * @param {Object} drawing - The serialized object defining the object to be drawn.
+     */
+    drawFromSerialized(parent, drawing) {
+        const meshLineMaterial = generateMeshLineMaterial(drawing.size, drawing.color);
+
+        const points = drawing.points.map(point => new THREE.Vector3(point.x, point.y, point.z));
+        if (points.length >= 3) {
+            points.push(points[0]);
+        }
+        const meshLine = new MeshLine();
+        meshLine.setPoints(points);
         const mesh = new THREE.Mesh(meshLine, meshLineMaterial);
         mesh.raycast = MeshLineRaycast;
         mesh.drawingId = drawing.drawingId;

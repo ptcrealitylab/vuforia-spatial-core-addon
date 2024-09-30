@@ -1,4 +1,4 @@
-/* global DrawingManager, realGl, gl, proxies */
+/* global SpatialInterface, Envelope, DrawingManager, realGl, gl, proxies */
 
 gl.enableWebGL2 = false;
 
@@ -87,6 +87,8 @@ sizeCircles.forEach((circle, i) => {
 });
 const colorCircles = Array.from(ui.children).filter(child => child.classList.contains('color'));
 const eraseCircle = Array.from(ui.children).filter(child => child.classList.contains('erase'))[0];
+const polygonCircle = Array.from(ui.children).filter(child => child.classList.contains('polygon'))[0];
+
 colorCircles.forEach(circle => {
     circle.style.backgroundColor = circle.dataset.color;
     circle.addEventListener('pointerdown', e => {
@@ -99,6 +101,14 @@ eraseCircle.addEventListener('pointerdown', e => {
     colorCircles.forEach(colorCircle => colorCircle.classList.remove('active'));
     eraseCircle.classList.add('active');
     drawingManager.setEraseMode(true);
+});
+polygonCircle.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    if (drawingManager.tool !== drawingManager.toolMap['POLYGON']) {
+        drawingManager.setTool(drawingManager.toolMap['POLYGON']);
+    } else {
+        drawingManager.setTool(drawingManager.toolMap['LINE']);
+    }
 });
 const undoCircle = Array.from(ui.children).filter(child => child.classList.contains('undo'))[0];
 undoCircle.addEventListener('pointerdown', e => {
@@ -234,9 +244,15 @@ function initDrawingApp() {
         const toolName = Object.keys(drawingManager.toolMap).find(name => drawingManager.toolMap[name] === tool);
         if (toolName === 'ICON') {
             iconMenu.classList.add('active');
+            polygonCircle.classList.remove('active');
         } else {
             iconCircles.forEach(iconCircle => iconCircle.classList.remove('active'));
             iconMenu.classList.remove('active');
+            if (toolName === 'POLYGON') {
+                polygonCircle.classList.add('active');
+            } else {
+                polygonCircle.classList.remove('active');
+            }
         }
     });
 
